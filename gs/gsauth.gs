@@ -1,4 +1,3 @@
-// gsauth.gs
 var DPJAGD_AUTH_SHEET_NAME = "Benutzer";
 var DPJAGD_SESSION_TTL_HOURS = 12;
 
@@ -122,8 +121,7 @@ function ensureBenutzerSheet_() {
   } else {
     var existing = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     if (existing.join("|") !== headers.join("|")) {
-      var range = sheet.getRange(1, 1, 1, headers.length);
-      range.setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     }
   }
 
@@ -223,17 +221,12 @@ function findUserBySessionToken_(token) {
 function updateUserSession_(sheet, rowNumber, values) {
   var data = sheet.getDataRange().getValues();
   var header = data[0];
-  var updates = [];
 
-  updates.push({ col: headerIndex_(header, "SessionToken") + 1, value: values.sessionToken || "" });
-  updates.push({ col: headerIndex_(header, "SessionExpiresAt") + 1, value: values.sessionExpiresAt || "" });
-  updates.push({ col: headerIndex_(header, "LastLoginAt") + 1, value: values.lastLoginAt || "" });
-  updates.push({ col: headerIndex_(header, "LastLogoutAt") + 1, value: values.lastLogoutAt || "" });
-  updates.push({ col: headerIndex_(header, "UpdatedAt") + 1, value: values.updatedAt || "" });
-
-  updates.forEach(function (item) {
-    sheet.getRange(rowNumber, item.col).setValue(item.value);
-  });
+  sheet.getRange(rowNumber, headerIndex_(header, "SessionToken") + 1).setValue(values.sessionToken || "");
+  sheet.getRange(rowNumber, headerIndex_(header, "SessionExpiresAt") + 1).setValue(values.sessionExpiresAt || "");
+  sheet.getRange(rowNumber, headerIndex_(header, "LastLoginAt") + 1).setValue(values.lastLoginAt || "");
+  sheet.getRange(rowNumber, headerIndex_(header, "LastLogoutAt") + 1).setValue(values.lastLogoutAt || "");
+  sheet.getRange(rowNumber, headerIndex_(header, "UpdatedAt") + 1).setValue(values.updatedAt || "");
 }
 
 function clearSessionForRow_(sheet, rowNumber) {
