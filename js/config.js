@@ -1,4 +1,3 @@
-// js/config.js
 (function (window) {
   "use strict";
 
