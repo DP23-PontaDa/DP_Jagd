@@ -1,4 +1,3 @@
-// js/auth.js
 (function (window) {
   "use strict";
 
