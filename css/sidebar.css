@@ -1,1 +1,85 @@
+#sidebar{
 
+    width:260px;
+
+    background:#2c3e50;
+
+    color:white;
+
+}
+
+.logo{
+
+    height:70px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:22px;
+
+    font-weight:bold;
+
+}
+
+.menu{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.menu button{
+
+    background:none;
+
+    border:none;
+
+    color:white;
+
+    text-align:left;
+
+    padding:16px 20px;
+
+    cursor:pointer;
+
+    font-size:16px;
+
+}
+
+.menu button:hover{
+
+    background:#008080;
+
+}
+
+.menu button.active{
+
+    background:#008080;
+
+}
+
+@media(max-width:768px){
+
+#sidebar{
+
+width:70px;
+
+}
+
+.menu button span{
+
+display:none;
+
+}
+
+.logo span{
+
+display:none;
+
+}
+
+}
