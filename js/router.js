@@ -1,17 +1,13 @@
-const Router={
+const Router = {
 
-load:function(page){
+    async open(page){
 
-fetch("pages/"+page+".html")
+        const response = await fetch("pages/" + page + ".html");
 
-.then(r=>r.text())
+        const html = await response.text();
 
-.then(html=>{
+        document.getElementById("page").innerHTML = html;
 
-document.getElementById("page").innerHTML=html;
-
-});
-
-}
+    }
 
 };
