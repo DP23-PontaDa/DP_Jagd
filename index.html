@@ -1,19 +1,16 @@
 <!DOCTYPE html>
-
-<html>
+<html lang="de">
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>DP Jagd</title>
 
 <link rel="stylesheet" href="css/layout.css">
-
 <link rel="stylesheet" href="css/sidebar.css">
-
 <link rel="stylesheet" href="css/login.css">
 
 </head>
@@ -22,44 +19,95 @@
 
 <div id="app">
 
-<div id="sidebar">
+    <!-- Sidebar -->
 
-<div class="logo">
+    <aside id="sidebar" class="hidden">
 
-🌲 <span>DP Jagd</span>
+        <div class="logo">
+
+            🌲 DP Jagd
+
+        </div>
+
+        <nav>
+
+            <button onclick="Router.open('dashboard')">
+
+                🏠 Dashboard
+
+            </button>
+
+            <button onclick="Router.open('personen')">
+
+                👥 Personen
+
+            </button>
+
+            <button onclick="Router.open('abschuss')">
+
+                🦌 Abschuss
+
+            </button>
+
+            <button onclick="Router.open('abschussplan')">
+
+                📋 Abschussplan
+
+            </button>
+
+        </nav>
+
+        <div class="sidebar-footer">
+
+            <button onclick="Auth.logout()">
+
+                🚪 Logout
+
+            </button>
+
+        </div>
+
+    </aside>
+
+    <!-- Hauptbereich -->
+
+    <main id="main">
+
+        <header id="header" class="hidden">
+
+            <div>
+
+                <strong>DP Jagd</strong>
+
+            </div>
+
+            <div>
+
+                👤
+
+                <span id="currentUser">
+
+                    -
+
+                </span>
+
+            </div>
+
+        </header>
+
+        <section id="page">
+
+        </section>
+
+    </main>
 
 </div>
 
-<div class="menu">
-
-<button onclick="Router.load('dashboard')">🏠 <span>Dashboard</span></button>
-
-<button onclick="Router.load('personen')">👥 <span>Personen</span></button>
-
-<button onclick="Router.load('abschuss')">🦌 <span>Abschuss</span></button>
-
-<button onclick="Router.load('abschussplan')">📋 <span>Abschussplan</span></button>
-
-</div>
-
-</div>
-
-<div id="content">
-
-<div id="page">
-
-</div>
-
-</div>
-
-</div>
-
+<script src="js/config.js"></script>
 <script src="js/router.js"></script>
-
+<script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 
-<script src="js/auth.js"></script>
-  
 </body>
 
 </html>
