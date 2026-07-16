@@ -1,4 +1,3 @@
-// gsapi.gs
 function doGet(e) {
   var payload = {
     ok: true,
@@ -36,6 +35,12 @@ function dispatchAction_(action, body) {
       return authSession_(body);
     case "auth.logout":
       return authLogout_(body);
+    case "personen.getInitialData":
+      return { ok: true, data: persGetInitialData() };
+    case "personen.savePerson":
+      return { ok: true, data: persSavePerson(body.payload) };
+    case "personen.deletePerson":
+      return { ok: true, data: persDeletePerson(body.idName) };
     default:
       throw new Error("Unbekannte Aktion: " + action);
   }
