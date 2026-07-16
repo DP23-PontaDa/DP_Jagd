@@ -3,122 +3,65 @@
    sidebar.css
 ========================================== */
 
-#sidebar{
-
-    width:260px;
-
-    background:#2c3e50;
-
-    color:white;
-
-    display:flex;
-
-    flex-direction:column;
-
-    transition:all .25s;
-
+#sidebar {
+    display: flex;
+    width: 250px;
+    min-height: 100vh;
+    flex-direction: column;
+    background: #2c3e50;
+    color: #ffffff;
 }
 
-.logo{
-
-    height:65px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    font-size:24px;
-
-    font-weight:bold;
-
-    background:#233140;
-
+.logo {
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    padding: 0 24px;
+    background: #233140;
+    font-size: 1.3rem;
+    font-weight: 700;
 }
 
-#sidebar nav{
-
-    flex:1;
-
-    display:flex;
-
-    flex-direction:column;
-
-    padding-top:15px;
-
+#sidebar nav {
+    flex: 1;
+    padding: 16px 0;
 }
 
-#sidebar button{
-
-    background:none;
-
-    border:none;
-
-    color:white;
-
-    padding:15px 20px;
-
-    text-align:left;
-
-    font-size:15px;
-
-    transition:.2s;
-
+#sidebar button {
+    width: 100%;
+    border: 0;
+    padding: 14px 24px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
 }
 
-#sidebar button:hover{
-
-    background:#008080;
-
+#sidebar button:hover,
+#sidebar button:focus-visible,
+#sidebar button.active {
+    background: #008080;
+    outline: none;
 }
 
-#sidebar button.active{
-
-    background:#008080;
-
+.sidebar-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
 }
 
-.sidebar-bottom{
-
-    border-top:1px solid rgba(255,255,255,.15);
-
+.sidebar-bottom button {
+    color: #ffe0e0;
 }
 
-.sidebar-bottom button{
+@media (max-width: 768px) {
+    #sidebar {
+        width: 180px;
+    }
 
-    color:#ffd7d7;
+    .logo {
+        padding: 0 16px;
+    }
 
-}
-
-@media(max-width:768px){
-
-#sidebar{
-
-width:70px;
-
-}
-
-.logo{
-
-font-size:28px;
-
-}
-
-.logo::after{
-
-content:"";
-
-}
-
-#sidebar button{
-
-padding:18px 0;
-
-text-align:center;
-
-font-size:22px;
-
-}
-
+    #sidebar button {
+        padding: 14px 16px;
+        text-align: left;
+    }
 }

@@ -1,29 +1,15 @@
 <div class="login-page">
-
-    <div class="login-card">
-
+    <form id="loginForm" class="login-card" novalidate>
         <h1>DP Jagd</h1>
+        <p>Bitte melden Sie sich an.</p>
 
-        <p>Anmeldung</p>
+        <label for="email">E-Mail-Adresse</label>
+        <input id="email" name="email" type="email" autocomplete="email" required autofocus>
 
-        <input
-            id="email"
-            type="email"
-            placeholder="E-Mail">
+        <label for="password">Passwort</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
 
-        <input
-            id="password"
-            type="password"
-            placeholder="Passwort">
-
-        <button onclick="Auth.login()">
-
-            Anmelden
-
-        </button>
-
-        <div id="loginError"></div>
-
-    </div>
-
+        <button id="loginButton" type="submit">Anmelden</button>
+        <p id="loginError" class="login-error" role="alert" aria-live="assertive"></p>
+    </form>
 </div>
