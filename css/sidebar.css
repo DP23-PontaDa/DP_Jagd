@@ -1,149 +1,124 @@
-.sidebar{
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  padding: 18px;
-  border-right: 1px solid var(--line);
-  background: rgba(8,16,30,.95);
-  backdrop-filter: blur(10px);
-  display:flex;
-  flex-direction: column;
-  gap: 16px;
+/* ==========================================
+   DP_Jagd V2
+   sidebar.css
+========================================== */
+
+#sidebar{
+
+    width:260px;
+
+    background:#2c3e50;
+
+    color:white;
+
+    display:flex;
+
+    flex-direction:column;
+
+    transition:all .25s;
+
 }
 
-.brand{
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,.03);
+.logo{
+
+    height:65px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:24px;
+
+    font-weight:bold;
+
+    background:#233140;
+
 }
 
-.brand-mark{
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  display:grid;
-  place-items:center;
-  font-weight: 800;
-  color: #fff;
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-2) 100%);
-  box-shadow: 0 12px 26px rgba(79,140,255,.26);
+#sidebar nav{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    padding-top:15px;
+
 }
 
-.brand-title{
-  font-weight: 700;
-  line-height: 1.15;
-}
-.brand-subtitle{
-  color: var(--muted);
-  font-size: .92rem;
-}
+#sidebar button{
 
-.nav{
-  display:grid;
-  gap: 8px;
-}
+    background:none;
 
-.nav-title{
-  color: var(--muted);
-  font-size: .82rem;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  padding: 6px 12px 0;
+    border:none;
+
+    color:white;
+
+    padding:15px 20px;
+
+    text-align:left;
+
+    font-size:15px;
+
+    transition:.2s;
+
 }
 
-.nav-link{
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 14px;
-  color: var(--text);
-  border: 1px solid transparent;
-  background: transparent;
+#sidebar button:hover{
+
+    background:#008080;
+
 }
 
-.nav-link:hover{
-  background: rgba(255,255,255,.04);
-  border-color: rgba(255,255,255,.06);
+#sidebar button.active{
+
+    background:#008080;
+
 }
 
-.nav-link.active{
-  background: rgba(79,140,255,.12);
-  border-color: rgba(79,140,255,.28);
+.sidebar-bottom{
+
+    border-top:1px solid rgba(255,255,255,.15);
+
 }
 
-.nav-icon{
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  display:grid;
-  place-items:center;
-  background: rgba(255,255,255,.06);
-  color: #dbe8ff;
+.sidebar-bottom button{
+
+    color:#ffd7d7;
+
 }
 
-.user-box{
-  margin-top: auto;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid var(--line);
-  display:grid;
-  gap: 10px;
+@media(max-width:768px){
+
+#sidebar{
+
+width:70px;
+
 }
 
-.user-name{
-  font-weight: 700;
+.logo{
+
+font-size:28px;
+
 }
 
-.user-meta{
-  color: var(--muted);
-  font-size: .92rem;
-  line-height: 1.4;
+.logo::after{
+
+content:"";
+
 }
 
-.topbar{
-  display:flex;
-  align-items:center;
-  gap: 14px;
-  justify-content: space-between;
-  margin-bottom: 18px;
+#sidebar button{
+
+padding:18px 0;
+
+text-align:center;
+
+font-size:22px;
+
 }
 
-.topbar-actions{
-  display:flex;
-  gap: 10px;
-  align-items:center;
-  flex-wrap: wrap;
-}
-
-.mobile-topbar{
-  display:none;
-}
-
-@media (max-width: 980px){
-  .page-shell{
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar{
-    position: relative;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-}
-
-@media (max-width: 720px){
-  .topbar{
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .topbar-actions{
-    justify-content: flex-start;
-  }
 }
