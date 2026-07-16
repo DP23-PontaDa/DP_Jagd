@@ -1,60 +1,102 @@
+/* ==========================================
+   DP_Jagd V2
+   login.css
+========================================== */
+
 .login-page{
-  min-height: 100vh;
-  display:grid;
-  place-items:center;
-  padding: 24px;
+
+    width:100%;
+
+    height:100%;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
 }
 
-.login-shell{
-  width: min(100%, 760px);
-  display:grid;
-  grid-template-columns: 1.05fr .95fr;
-  gap: 18px;
+.login-card{
+
+    width:360px;
+
+    background:white;
+
+    padding:35px;
+
+    border-radius:12px;
+
+    box-shadow:0 10px 35px rgba(0,0,0,.15);
+
 }
 
-.login-hero{
-  padding: 26px;
-  display:grid;
-  align-content: space-between;
-  gap: 22px;
+.login-card h1{
+
+    text-align:center;
+
+    color:#2c3e50;
+
+    margin-bottom:8px;
+
 }
 
-.login-hero h1{
-  margin: 0;
-  font-size: clamp(2rem, 3vw, 3rem);
-  line-height: 1.02;
+.login-card p{
+
+    text-align:center;
+
+    color:#777;
+
+    margin-bottom:25px;
+
 }
 
-.login-copy{
-  color: var(--muted);
-  line-height: 1.6;
-  margin: 0;
+.login-card input{
+
+    width:100%;
+
+    padding:12px;
+
+    margin-bottom:15px;
+
+    border:1px solid #ccc;
+
+    border-radius:6px;
+
 }
 
-.login-panel{
-  padding: 26px;
+.login-card button{
+
+    width:100%;
+
+    padding:12px;
+
+    background:#008080;
+
+    color:white;
+
+    border:none;
+
+    border-radius:6px;
+
+    font-size:16px;
+
 }
 
-.login-form{
-  display:grid;
-  gap: 14px;
+.login-card button:hover{
+
+    background:#006666;
+
 }
 
-.login-note{
-  margin: 0;
-  color: var(--muted);
-  font-size: .92rem;
-  line-height: 1.5;
-}
+#loginError{
 
-.login-status{
-  min-height: 22px;
-  color: #ffd9a8;
-  font-size: .94rem;
-}
+    margin-top:15px;
 
-@media (max-width: 860px){
-  .login-shell{
-    grid-template-columns: 1fr;
-  }
+    color:red;
+
+    text-align:center;
+
+    min-height:20px;
+
 }
