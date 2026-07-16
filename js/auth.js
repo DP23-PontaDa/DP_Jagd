@@ -1,50 +1,100 @@
-const Auth = {
+// js/auth.js
+(function (window) {
+  "use strict";
 
-    async login(){
+  var Config = window.DPJagdConfig;
+  var Api = window.DPJagdApi;
 
-        const benutzer = document.getElementById("loginUser").value.trim();
+  function nowIso() {
+    return new Date().toISOString();
+  }
 
-        const passwort = document.getElementById("loginPassword").value.trim();
+  function isExpired(session) {
+    if (!session || !session.expiresAt) return true;
+    return new Date(session.expiresAt).getTime() <= Date.now();
+  }
 
-        if(benutzer===""){
-
-            document.getElementById("loginError").innerHTML="Benutzer eingeben.";
-
-            return;
-
-        }
-
-        if(passwort===""){
-
-            document.getElementById("loginError").innerHTML="Passwort eingeben.";
-
-            return;
-
-        }
-
-        /*
-         Vorerst Dummy Login.
-         In Lieferung 4 wird dies durch Apps Script ersetzt.
-        */
-
-        localStorage.setItem(CONFIG.SESSION_KEY,benutzer);
-
-        document.getElementById("sidebar").classList.remove("hidden");
-
-        document.getElementById("header").classList.remove("hidden");
-
-        document.getElementById("currentUser").innerHTML=benutzer;
-
-        Router.open("dashboard");
-
-    },
-
-    logout(){
-
-        localStorage.removeItem(CONFIG.SESSION_KEY);
-
-        location.reload();
-
+  async function bootstrap() {
+    var session = Config.getSession();
+    if (!session || !session.token || isExpired(session)) {
+      clearSession();
+      return { authenticated: false, session: null };
     }
 
-};
+    try {
+      var result = await Api.request("auth.session", { token: session.token }, { includeToken: false });
+      var nextSession = {
+        token: result.session.token,
+        expiresAt: result.session.expiresAt,
+        user: result.user
+      };
+      Config.setSession(nextSession);
+      return { authenticated: true, session: nextSession };
+    } catch (err) {
+      clearSession();
+      return { authenticated: false, session: null };
+    }
+  }
+
+  async function login(apiUrl, username, password) {
+    Config.setApiUrl(apiUrl);
+
+    var result = await Api.request(
+      "auth.login",
+      {
+        username: username,
+        password: password
+      },
+      { includeToken: false }
+    );
+
+    var session = {
+      token: result.session.token,
+      expiresAt: result.session.expiresAt,
+      user: result.user
+    };
+
+    Config.setSession(session);
+    return session;
+  }
+
+  async function logout() {
+    var session = Config.getSession();
+    if (session && session.token && Config.hasApiUrl()) {
+      try {
+        await Api.request("auth.logout", { token: session.token }, { includeToken: false });
+      } catch (err) {
+      }
+    }
+    clearSession();
+  }
+
+  function clearSession() {
+    Config.clearSession();
+  }
+
+  function getSession() {
+    return Config.getSession();
+  }
+
+  function hasSession() {
+    var session = getSession();
+    return !!(session && session.token && !isExpired(session));
+  }
+
+  function getUser() {
+    var session = getSession();
+    return session && session.user ? session.user : null;
+  }
+
+  window.DPJagdAuth = {
+    bootstrap: bootstrap,
+    login: login,
+    logout: logout,
+    clearSession: clearSession,
+    getSession: getSession,
+    hasSession: hasSession,
+    getUser: getUser,
+    nowIso: nowIso
+  };
+})(window);
