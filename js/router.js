@@ -1,4 +1,3 @@
-// js/router.js
 (function (window) {
   "use strict";
 
