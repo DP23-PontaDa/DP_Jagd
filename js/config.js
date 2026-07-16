@@ -15,9 +15,9 @@ const CONFIG = {
 
 };
 
-// Verbindung zu Supabase
+const { createClient } = supabase;
 
-const supabase = window.supabase.createClient(
+const db = createClient(
     CONFIG.SUPABASE_URL,
     CONFIG.SUPABASE_KEY
 );
