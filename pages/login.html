@@ -5,15 +5,15 @@
         <div class="badge"><span class="badge-dot"></span> Version 0.1</div>
         <h1>DP_Jagd V2</h1>
         <p class="login-copy">
-          Sichere Anmeldung, Session-Verwaltung und Anbindung an die Google-Apps-Script-API.
-          Die bestehenden Verwaltungsseiten werden später ohne Umbau angebunden.
+          Sichere Anmeldung, Session-Verwaltung und Anbindung an die Google-Apps-Script-Bridge.
+          Die App spricht das Backend jetzt ohne direkten Fetch auf die API an.
         </p>
       </div>
 
       <div class="field-grid">
         <div class="badge">
           <span class="badge-dot"></span>
-          Produktionsbereit: Login / Session / API
+          Produktionsbereit: Login / Session / Bridge
         </div>
         <div class="badge">
           <span class="badge-dot"></span>
@@ -28,11 +28,14 @@
 
     <section class="card login-panel">
       <h2 class="h2">Anmelden</h2>
-      <p class="login-note">Die API-URL wird lokal im Browser gespeichert.</p>
+      <p class="login-note">
+        Trage die Web-App-URL deiner bereitgestellten Apps-Script-Anwendung ein.
+        Die URL endet auf <b>/exec</b>.
+      </p>
 
       <form id="loginForm" class="login-form">
         <div class="field">
-          <label for="apiUrl">Apps-Script-API-URL</label>
+          <label for="apiUrl">Apps-Script-Web-App-URL</label>
           <input id="apiUrl" class="input" type="url" autocomplete="off" required />
         </div>
 
