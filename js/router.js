@@ -1,13 +1,33 @@
-const Router = {
+// js/router.js
+(function (window) {
+  "use strict";
 
-    async open(page){
+  var UI = window.DPJagdUI;
+  var Auth = window.DPJagdAuth;
 
-        const response = await fetch("pages/" + page + ".html");
+  function normalizeRoute(hash) {
+    var route = (hash || "#/login").replace(/^#\/?/, "").trim().toLowerCase();
+    return route || "login";
+  }
 
-        const html = await response.text();
+  async function handleRoute() {
+    var route = normalizeRoute(window.location.hash);
 
-        document.getElementById("page").innerHTML = html;
-
+    if (route !== "login" && !Auth.hasSession()) {
+      UI.go("login");
+      return;
     }
 
-};
+    await UI.renderCurrent();
+  }
+
+  function start() {
+    window.addEventListener("hashchange", handleRoute);
+    handleRoute();
+  }
+
+  window.DPJagdRouter = {
+    start: start,
+    handleRoute: handleRoute
+  };
+})(window);
