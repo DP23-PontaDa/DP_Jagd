@@ -1,23 +1,24 @@
-document.addEventListener("DOMContentLoaded", async () => {
+// js/app.js
+(function (window) {
+  "use strict";
 
-    const session = localStorage.getItem(CONFIG.SESSION_KEY);
-
-    if(session){
-
-        document.getElementById("sidebar").classList.remove("hidden");
-        document.getElementById("header").classList.remove("hidden");
-
-        document.getElementById("currentUser").innerHTML = session;
-
-        await Router.open("dashboard");
-
-    }else{
-
-        document.getElementById("sidebar").classList.add("hidden");
-        document.getElementById("header").classList.add("hidden");
-
-        await Router.open("login");
-
+  async function boot() {
+    try {
+      await window.DPJagdAuth.bootstrap();
+    } catch (err) {
+      window.DPJagdAuth.clearSession();
     }
 
-});
+    if (!window.location.hash) {
+      window.location.hash = "#/login";
+    }
+
+    window.DPJagdRouter.start();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})(window);
