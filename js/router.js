@@ -8,7 +8,10 @@ const Router = {
 
     routes: {
         login: "pages/login.html",
-        dashboard: "pages/dashboard.html"
+        dashboard: "pages/dashboard.html",
+        personen: "pages/personen.html",
+        abschuss: "pages/abschuss.html",
+        abschussplan: "pages/abschussplan.html"
     },
 
     async open(page) {
@@ -46,6 +49,8 @@ const Router = {
             } else {
                 Auth.updateHeader();
             }
+
+            this.initializePage(requestedPage);
         } catch (error) {
             console.error("Seite konnte nicht geladen werden:", error);
             content.textContent = "Die Seite konnte nicht geladen werden. Bitte laden Sie die Anwendung erneut.";
@@ -60,6 +65,12 @@ const Router = {
                 event.preventDefault();
                 Auth.login();
             });
+        }
+    },
+
+    initializePage(page) {
+        if (page === "personen" && window.Personen && typeof window.Personen.init === "function") {
+            window.Personen.init();
         }
     },
 
