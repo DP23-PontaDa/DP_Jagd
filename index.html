@@ -1,77 +1,61 @@
 <!DOCTYPE html>
-<html lang="de">
+
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DP Jagd</title>
 
-    <style>
+<meta charset="utf-8">
 
-        body{
-            margin:0;
-            padding:0;
-            font-family:Arial,Helvetica,sans-serif;
-            background:#f5f7fa;
-        }
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-        .header{
+<title>DP Jagd</title>
 
-            background:#2c3e50;
-            color:white;
+<link rel="stylesheet" href="css/layout.css">
 
-            height:70px;
-
-            display:flex;
-            align-items:center;
-
-            padding-left:25px;
-
-            font-size:26px;
-            font-weight:bold;
-
-        }
-
-        .content{
-
-            padding:40px;
-
-        }
-
-        h1{
-
-            color:#2c3e50;
-
-        }
-
-        p{
-
-            font-size:18px;
-
-        }
-
-    </style>
+<link rel="stylesheet" href="css/sidebar.css">
 
 </head>
 
 <body>
 
-<div class="header">
+<div id="app">
 
-DP Jagd
+<div id="sidebar">
+
+<div class="logo">
+
+🌲 <span>DP Jagd</span>
+
+</div>
+
+<div class="menu">
+
+<button onclick="Router.load('dashboard')">🏠 <span>Dashboard</span></button>
+
+<button onclick="Router.load('personen')">👥 <span>Personen</span></button>
+
+<button onclick="Router.load('abschuss')">🦌 <span>Abschuss</span></button>
+
+<button onclick="Router.load('abschussplan')">📋 <span>Abschussplan</span></button>
 
 </div>
 
-<div class="content">
+</div>
 
-<h1>Willkommen 😊</h1>
+<div id="content">
 
-<p>
-
-Die neue Version der Jagdverwaltung wird gerade aufgebaut.
-
-</p>
+<div id="page">
 
 </div>
+
+</div>
+
+</div>
+
+<script src="js/router.js"></script>
+
+<script src="js/app.js"></script>
 
 </body>
+
 </html>
