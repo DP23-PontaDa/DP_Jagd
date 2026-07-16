@@ -1,4 +1,3 @@
-// js/api.js
 (function (window) {
   "use strict";
 
