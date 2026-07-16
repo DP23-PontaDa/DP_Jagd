@@ -1,4 +1,3 @@
-// js/ui.js
 (function (window) {
   "use strict";
 
