@@ -11,7 +11,7 @@ const CONFIG = {
 
     SUPABASE_URL: "https://cgbnifbttqybkbpiadns.supabase.co",
 
-    SUPABASE_KEY: "HIER_DEINEN_SB_PUBLISHABLE_KEY_EINFÜGEN"
+    SUPABASE_KEY: "sb_publishable_u6mg9P8YsZCOLoHyMMiPlQ_hXKF_dJ4"
 
 };
 
