@@ -1,60 +1,29 @@
 <div class="login-page">
-  <div class="login-shell">
-    <section class="card login-hero">
-      <div>
-        <div class="badge"><span class="badge-dot"></span> Version 0.1</div>
-        <h1>DP_Jagd V2</h1>
-        <p class="login-copy">
-          Sichere Anmeldung, Session-Verwaltung und Anbindung an die Google-Apps-Script-Bridge.
-          Die App spricht das Backend jetzt ohne direkten Fetch auf die API an.
-        </p>
-      </div>
 
-      <div class="field-grid">
-        <div class="badge">
-          <span class="badge-dot"></span>
-          Produktionsbereit: Login / Session / Bridge
-        </div>
-        <div class="badge">
-          <span class="badge-dot"></span>
-          Frontend auf GitHub Pages
-        </div>
-        <div class="badge">
-          <span class="badge-dot"></span>
-          Backend auf Google Apps Script
-        </div>
-      </div>
-    </section>
+    <div class="login-card">
 
-    <section class="card login-panel">
-      <h2 class="h2">Anmelden</h2>
-      <p class="login-note">
-        Trage die Web-App-URL deiner bereitgestellten Apps-Script-Anwendung ein.
-        Die URL endet auf <b>/exec</b>.
-      </p>
+        <h1>DP Jagd</h1>
 
-      <form id="loginForm" class="login-form">
-        <div class="field">
-          <label for="apiUrl">Apps-Script-Web-App-URL</label>
-          <input id="apiUrl" class="input" type="url" autocomplete="off" required />
-        </div>
+        <p>Anmeldung</p>
 
-        <div class="field">
-          <label for="username">Benutzername oder E-Mail</label>
-          <input id="username" class="input" type="text" autocomplete="username" required />
-        </div>
+        <input
+            id="email"
+            type="email"
+            placeholder="E-Mail">
 
-        <div class="field">
-          <label for="password">Passwort</label>
-          <input id="password" class="input" type="password" autocomplete="current-password" required />
-        </div>
+        <input
+            id="password"
+            type="password"
+            placeholder="Passwort">
 
-        <div class="row">
-          <button type="submit" class="btn btn-primary">Anmelden</button>
-        </div>
+        <button onclick="Auth.login()">
 
-        <div id="loginStatus" class="login-status" role="status"></div>
-      </form>
-    </section>
-  </div>
+            Anmelden
+
+        </button>
+
+        <div id="loginError"></div>
+
+    </div>
+
 </div>
