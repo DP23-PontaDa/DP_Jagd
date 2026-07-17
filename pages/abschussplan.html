@@ -1,1 +1,178 @@
-<h1>Abschussplan</h1>
+<section class="abschussplan-root">
+  <h1>Abschussplan</h1>
+
+  <div class="action-bar">
+    <div class="pers-tabs">
+      <button class="pers-tab-btn" data-target="ap-overview">Übersicht</button>
+      <button class="pers-tab-btn" data-target="ap-rotwild">Rotwild</button>
+      <button class="pers-tab-btn" data-target="ap-rehwild">Rehwild</button>
+      <button class="pers-tab-btn" data-target="ap-gamswild">Gamswild</button>
+      <button class="pers-tab-btn" data-target="ap-jahre">Übersicht Jahre</button>
+    </div>
+
+    <div class="search-group">
+      <label>KJ-Plan:
+        <select id="ap-kj-select"></select>
+      </label>
+    </div>
+  </div>
+
+  <div id="ap-content">
+    <div id="ap-overview" class="ap-pane">
+      <h2>Übersicht</h2>
+      <p>Kurze Zusammenfassung der Wildgruppen (Platzhalterdaten).</p>
+      <table class="ap-table">
+        <thead>
+          <tr><th>Wildgruppe</th><th>Soll 2 Jahre</th><th>Intern (Jahr 1)</th><th>Ist (Jahr 1)</th><th>Vorschlag (Jahr 2)</th></tr>
+        </thead>
+        <tbody id="ap-overview-body"></tbody>
+      </table>
+    </div>
+
+    <template id="ap-species-template">
+      <div class="ap-species">
+        <div class="action-bar">
+          <div></div>
+          <div class="btn-group">
+            <button class="btn btn-primary ap-add-kj" type="button">+ KJ Abschussplan</button>
+            <button class="btn btn-outline ap-edit-kj" type="button">Bearbeiten</button>
+            <button class="btn btn-outline ap-delete-kj" type="button">Löschen</button>
+          </div>
+        </div>
+
+        <div class="ap-planperiode-info" hidden></div>
+        <h2 class="ap-species-title"></h2>
+
+        <div>
+          <div class="no-data ap-no-data-message">Es wurde noch kein KJ-Abschussplan angelegt.</div>
+          <table class="person-table ap-species-table" hidden>
+            <thead>
+              <tr>
+                <th>Klasse</th>
+                <th>Soll 2 Jahre</th>
+              </tr>
+            </thead>
+            <tbody class="ap-species-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <div id="ap-rotwild" class="ap-pane" hidden></div>
+    <div id="ap-rehwild" class="ap-pane" hidden></div>
+    <div id="ap-gamswild" class="ap-pane" hidden></div>
+
+    <div id="ap-jahre" class="ap-pane" hidden>
+      <h2>Übersicht Jahre</h2>
+      <div class="action-bar">
+        <div class="btn-group">
+          <button class="btn btn-primary" type="button" id="ap-add-planperiode">+ Neue Planperiode</button>
+        </div>
+      </div>
+
+      <div id="ap-jahre-empty" class="no-data">Keine Planperioden vorhanden.</div>
+      <div id="ap-jahre-error" class="load-error-box">
+        <b>Die Planperioden konnten nicht geladen werden.</b>
+      </div>
+
+      <table class="person-table" id="ap-jahre-table">
+        <thead>
+          <tr>
+            <th>Zeitraum</th>
+            <th>Status</th>
+            <th>Rotwild</th>
+            <th>Rehwild</th>
+            <th>Gamswild</th>
+            <th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="ap-jahre-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="apPlanperiodeModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="apPlanperiodeModalTitle">Planperiode</h2>
+        <span class="close-btn" id="apPlanperiodeClose">×</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Bezeichnung</label>
+          <input type="text" id="apPlanperiodeName" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Startjahr</label>
+          <input type="number" id="apPlanperiodeStartjahr" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Endjahr</label>
+          <input type="number" id="apPlanperiodeEndjahr" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="apPlanperiodeStatus" class="form-control">
+            <option>Entwurf</option>
+            <option>Aktiv</option>
+            <option>Archiv</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>Bemerkung</label>
+          <textarea id="apPlanperiodeBemerkung" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="apPlanperiodeCancel" type="button">Schließen</button>
+        <button class="btn btn-primary" id="apPlanperiodeSave" type="button">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="kjPlanModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="kjModalTitle">KJ Abschussplan</h2>
+        <span class="close-btn" id="kjModalClose">×</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Planperiode</label>
+          <input type="text" id="kjPlanperiode" class="form-control" disabled>
+        </div>
+        <div class="form-group full-width">
+          <label>Wildgruppe</label>
+          <input type="text" id="kjWildgruppe" class="form-control" disabled>
+        </div>
+      </div>
+
+      <div id="kjPlanEmpty" class="no-data">Es wurde noch kein KJ-Abschussplan angelegt.</div>
+      <div id="kjPlanTableContainer" style="display:none; margin-top: 16px;">
+        <table class="person-table">
+          <thead>
+            <tr>
+              <th>Klasse</th>
+              <th>Soll 2 Jahre</th>
+            </tr>
+          </thead>
+          <tbody id="kjPlanPositionsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="kjPlanDelete" type="button">Löschen</button>
+        <button class="btn btn-primary" id="kjPlanSave" type="button">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/services/abschussplanService.js"></script>
+  <script src="js/abschussplanWildgruppe.js"></script>
+  <script src="js/abschussplan.js"></script>
+</section>
+
+

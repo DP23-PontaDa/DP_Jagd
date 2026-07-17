@@ -5,6 +5,7 @@
 
 const Router = {
     currentPage: null,
+    pendingPanel: null,
 
     routes: {
         login: "pages/login.html",
@@ -51,6 +52,12 @@ const Router = {
             }
 
             this.initializePage(requestedPage);
+            if (requestedPage === "abschussplan" && this.pendingPanel) {
+                if (window.Abschussplan && typeof window.Abschussplan.activateTab === "function") {
+                    window.Abschussplan.activateTab(this.pendingPanel);
+                }
+                this.pendingPanel = null;
+            }
         } catch (error) {
             console.error("Seite konnte nicht geladen werden:", error);
             content.textContent = "Die Seite konnte nicht geladen werden. Bitte laden Sie die Anwendung erneut.";
@@ -75,8 +82,24 @@ const Router = {
     },
 
     updateMenu(page) {
-        document.querySelectorAll("#sidebar [data-page]").forEach(function (button) {
-            button.classList.toggle("active", button.dataset.page === page);
+        const sidebarButtons = document.querySelectorAll("#sidebar [data-page]");
+        sidebarButtons.forEach(function (button) {
+            if (page !== "abschussplan") {
+                button.classList.toggle("active", button.dataset.page === page);
+                return;
+            }
+
+            if (button.dataset.page !== "abschussplan") {
+                button.classList.remove("active");
+                return;
+            }
+
+            if (!button.dataset.panel) {
+                button.classList.add("active");
+                return;
+            }
+
+            button.classList.toggle("active", button.dataset.panel === Router.pendingPanel);
         });
     },
 
@@ -94,6 +117,9 @@ document.addEventListener("click", function (event) {
     const pageButton = event.target.closest("[data-page]");
 
     if (pageButton) {
+        if (pageButton.dataset.page === "abschussplan" && pageButton.dataset.panel) {
+            Router.pendingPanel = pageButton.dataset.panel;
+        }
         Router.open(pageButton.dataset.page);
         return;
     }

@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/login.css">
     <style>
     /* Mobile sidebar: overlay, toggle and slide-in behavior (overrides placed here to load last) */
-    @media (max-width: 5768px) {
+    @media (max-width: 768px) {
         #app { position: relative; }
         #sidebar {
             position: fixed !important;
@@ -67,7 +67,16 @@
                 <button type="button" data-page="dashboard">Dashboard</button>
                 <button type="button" data-page="personen">Personen</button>
                 <button type="button" data-page="abschuss">Abschuss</button>
-                <button type="button" data-page="abschussplan">Abschussplan</button>
+                <div class="sidebar-group">
+                    <button type="button" class="sidebar-group-toggle" data-toggle="submenu" data-group="abschussplan" aria-expanded="false">Abschussplan</button>
+                    <div class="sidebar-submenu" data-group="abschussplan">
+                        <button type="button" data-page="abschussplan" data-panel="ap-overview">Übersicht</button>
+                        <button type="button" data-page="abschussplan" data-panel="ap-rotwild">Rotwild</button>
+                        <button type="button" data-page="abschussplan" data-panel="ap-rehwild">Rehwild</button>
+                        <button type="button" data-page="abschussplan" data-panel="ap-gamswild">Gamswild</button>
+                        <button type="button" data-page="abschussplan" data-panel="ap-jahre">Übersicht Jahre</button>
+                    </div>
+                </div>
             </nav>
             <div class="sidebar-bottom">
                 <button id="logoutButton" type="button">Abmelden</button>

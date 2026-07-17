@@ -53,6 +53,53 @@ async function init() {
             });
         }
 
+        const submenuToggles = document.querySelectorAll('[data-toggle="submenu"]');
+        function closeAllGroups() {
+            document.querySelectorAll('.sidebar-group').forEach(group => {
+                group.classList.remove('open');
+                const toggle = group.querySelector('[data-toggle="submenu"]');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        function openGroup(name) {
+            closeAllGroups();
+            const group = document.querySelector(`.sidebar-group [data-group="${name}"]`);
+            if (!group) return;
+            const root = group.closest('.sidebar-group');
+            if (!root) return;
+            root.classList.add('open');
+            group.setAttribute('aria-expanded', 'true');
+        }
+
+        submenuToggles.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const groupName = btn.dataset.group;
+                const isOpen = btn.getAttribute('aria-expanded') === 'true';
+                if (isOpen) {
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.closest('.sidebar-group').classList.remove('open');
+                } else {
+                    openGroup(groupName);
+                }
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            const pageButton = event.target.closest('[data-page]');
+            if (pageButton && pageButton.dataset.page === 'abschussplan') {
+                const submenu = pageButton.closest('.sidebar-submenu');
+                if (submenu) {
+                    const groupName = submenu.dataset.group;
+                    openGroup(groupName);
+                }
+            }
+        });
+
+        if (Router.currentPage === 'abschussplan') {
+            openGroup('abschussplan');
+        }
+
         // Close sidebar automatically after selecting a menu item on mobile
         document.addEventListener("click", function (event) {
             const pageButton = event.target.closest("[data-page]");
