@@ -8,6 +8,54 @@
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/login.css">
+    <style>
+    /* Mobile sidebar: overlay, toggle and slide-in behavior (overrides placed here to load last) */
+    @media (max-width: 5768px) {
+        #app { position: relative; }
+        #sidebar {
+            position: fixed !important;
+            left: 0;
+            top: 0;
+            height: 100vh !important;
+            transform: translateX(-110%);
+            transition: transform 280ms ease;
+            z-index: 1100;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.18);
+        }
+        #sidebar.open { transform: translateX(0); }
+
+        #sidebarOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 200ms ease, visibility 200ms ease;
+            z-index: 1050;
+        }
+        #sidebarOverlay.open { opacity: 1; visibility: visible; }
+
+        #sidebarToggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 0;
+            font-size: 1.4rem;
+            line-height: 1;
+            padding: 6px 8px;
+            margin-right: 8px;
+            cursor: pointer;
+            color: inherit;
+        }
+    }
+
+    @media (min-width: 769px) {
+        #sidebarToggle { display: none; }
+        #sidebarOverlay { display: none !important; }
+        #sidebar { position: static !important; transform: none !important; height: auto !important; box-shadow: none !important; }
+    }
+    </style>
 </head>
 <body>
     <div id="loading" role="status" aria-live="polite">DP Jagd wird gestartet...</div>
@@ -28,6 +76,7 @@
 
         <main>
             <header>
+                    <button id="sidebarToggle" aria-label="Menü" aria-expanded="false">☰</button>
                 <strong>DP Jagd</strong>
                 <div>
                     <span class="header-user-label">Angemeldet als:</span>
@@ -37,6 +86,8 @@
             <section id="app-content" aria-live="polite"></section>
         </main>
     </div>
+
+    <div id="sidebarOverlay" aria-hidden="true"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
