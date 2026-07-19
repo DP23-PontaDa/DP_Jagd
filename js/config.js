@@ -14,7 +14,7 @@ if (!window.supabase || typeof window.supabase.createClient !== "function") {
     throw new Error("Supabase konnte nicht geladen werden.");
 }
 
-const db = window.supabase.createClient(
+window.db = window.supabase.createClient(
     CONFIG.SUPABASE_URL,
     CONFIG.SUPABASE_PUBLISHABLE_KEY,
     {

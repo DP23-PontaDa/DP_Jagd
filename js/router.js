@@ -76,11 +76,16 @@ const Router = {
     },
 
     initializePage(page) {
+
         if (page === "personen" && window.Personen && typeof window.Personen.init === "function") {
             window.Personen.init();
         }
-    },
 
+        if (page === "abschussplan" && window.Abschussplan && typeof window.Abschussplan.init === "function") {
+            window.Abschussplan.init();
+        }
+    },
+    
     updateMenu(page) {
         const sidebarButtons = document.querySelectorAll("#sidebar [data-page]");
         sidebarButtons.forEach(function (button) {

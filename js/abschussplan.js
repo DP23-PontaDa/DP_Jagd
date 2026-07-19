@@ -91,8 +91,8 @@
     }
 
     function getPlaceholderIst(planperiode, species) {
-        const status = (planperiode.status || 'Entwurf').trim();
-        if (status === 'Entwurf') {
+        const status = (planperiode.status || 'ENTWURF').trim();
+        if (status === 'ENTWURF') {
             return 0;
         }
         if (status === 'Aktiv') {
@@ -142,24 +142,11 @@
 
             planperioden.forEach(period => {
                 const zeitraum = `${period.startjahr || ''} / ${period.endjahr || ''}`;
-                const status = period.status || 'Entwurf';
+                const status = period.status || 'ENTWURF';
                 const soll = getPlaceholderSoll();
                 const rotIst = getPlaceholderIst(period, 'Rotwild');
                 const rehIst = getPlaceholderIst(period, 'Rehwild');
                 const gamsIst = getPlaceholderIst(period, 'Gamswild');
-
-                const actions = [];
-                actions.push(`<button class="btn btn-outline ap-plan-edit" type="button" data-id="${period.id}">Bearbeiten</button>`);
-                if (status !== 'Entwurf') {
-                    actions.push(`<button class="btn btn-outline ap-plan-status" type="button" data-id="${period.id}" data-status="Entwurf">Entwurf</button>`);
-                }
-                if (status !== 'Aktiv') {
-                    actions.push(`<button class="btn btn-outline ap-plan-status" type="button" data-id="${period.id}" data-status="Aktiv">Aktiv</button>`);
-                }
-                if (status !== 'Archiv') {
-                    actions.push(`<button class="btn btn-outline ap-plan-status" type="button" data-id="${period.id}" data-status="Archiv">Archiv</button>`);
-                }
-                actions.push(`<button class="btn btn-outline ap-plan-delete" type="button" data-id="${period.id}">Löschen</button>`);
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -168,43 +155,81 @@
                     <td style="color:${getNumberColor(rotIst, soll)};">${rotIst} / ${soll}</td>
                     <td style="color:${getNumberColor(rehIst, soll)};">${rehIst} / ${soll}</td>
                     <td style="color:${getNumberColor(gamsIst, soll)};">${gamsIst} / ${soll}</td>
-                    <td>${actions.join(' ')}</td>
+                    <td class="action-cell"></td>
                 `;
                 tbody.appendChild(tr);
-            });
 
-            tbody.querySelectorAll('.ap-plan-edit').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const periodId = btn.dataset.id;
-                    openPlanperiodeModal('edit', periodId);
+                const actionCell = tr.querySelector('.action-cell');
+
+                // Bearbeiten icon button
+                const editBtn = document.createElement('button');
+                editBtn.className = 'action-btn edit-btn';
+                editBtn.title = 'Bearbeiten';
+                editBtn.setAttribute('aria-label', 'Bearbeiten');
+                editBtn.innerHTML = '<span aria-hidden="true">&#9998;</span>';
+                editBtn.addEventListener('click', () => {
+                    openPlanperiodeModal('edit', period.id);
                 });
-            });
+                actionCell.appendChild(editBtn);
 
-            tbody.querySelectorAll('.ap-plan-status').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const periodId = btn.dataset.id;
-                    const status = btn.dataset.status;
-                    const result = await AbschussplanService.setPlanperiodeStatus(periodId, status);
-                    if (result) {
-                        await renderPlanperiodenTable();
-                    } else {
-                        alert('Status konnte nicht geändert werden.');
+                // Aktiv icon button (only if not already Aktiv)
+                if (status !== 'Aktiv') {
+                    const aktivBtn = document.createElement('button');
+                    aktivBtn.className = 'action-btn aktiv-btn';
+                    aktivBtn.title = 'Aktiv setzen';
+                    aktivBtn.setAttribute('aria-label', 'Aktiv setzen');
+                    aktivBtn.innerHTML = '<span aria-hidden="true">&#10003;</span>';
+                    aktivBtn.addEventListener('click', async () => {
+                        const result = await AbschussplanService.setPlanperiodeStatus(period.id, 'Aktiv');
+                        if (result) {
+                            await renderPlanperiodenTable();
+                        } else {
+                            alert('Status konnte nicht geändert werden.');
+                        }
+                    });
+                    actionCell.appendChild(aktivBtn);
+                }
+
+                // Archiv icon button (only if not already Archiv)
+                if (status !== 'Archiv') {
+                    const archivBtn = document.createElement('button');
+                    archivBtn.className = 'action-btn archiv-btn';
+                    archivBtn.title = 'Archivieren';
+                    archivBtn.setAttribute('aria-label', 'Archivieren');
+                    archivBtn.innerHTML = '<span aria-hidden="true">&#128451;</span>';
+                    archivBtn.addEventListener('click', async () => {
+                        const result = await AbschussplanService.setPlanperiodeStatus(period.id, 'Archiv');
+                        if (result) {
+                            await renderPlanperiodenTable();
+                        } else {
+                            alert('Status konnte nicht geändert werden.');
+                        }
+                    });
+                    actionCell.appendChild(archivBtn);
+                }
+
+                // Löschen icon button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn delete-btn';
+                deleteBtn.title = 'Löschen';
+                deleteBtn.setAttribute('aria-label', 'Löschen');
+                deleteBtn.innerHTML = '<span aria-hidden="true">&#128465;</span>';
+                deleteBtn.addEventListener('click', async () => {
+                    const hasPlans = await AbschussplanService.hasAbschussplaene(period.id);
+                    if (hasPlans) {
+                        alert('Planperiode kann nicht gelöscht werden, da noch Abschusspläne für diese Periode existieren.');
+                        return;
                     }
-                });
-            });
-
-            tbody.querySelectorAll('.ap-plan-delete').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const periodId = btn.dataset.id;
                     const confirmDelete = confirm('Planperiode wirklich löschen?');
                     if (!confirmDelete) return;
-                    const deleted = await AbschussplanService.deletePlanperiode(periodId);
+                    const deleted = await AbschussplanService.deletePlanperiode(period.id);
                     if (!deleted) {
-                        alert('Planperiode kann nicht gelöscht werden, da abhängige Daten existieren oder ein Fehler aufgetreten ist.');
+                        alert('Planperiode konnte nicht gelöscht werden.');
                         return;
                     }
                     await renderPlanperiodenTable();
                 });
+                actionCell.appendChild(deleteBtn);
             });
         } catch (error) {
             console.error('Fehler beim Laden der Planperioden:', error);
@@ -218,10 +243,9 @@
         const nameInput = document.getElementById('apPlanperiodeName');
         const startInput = document.getElementById('apPlanperiodeStartjahr');
         const endInput = document.getElementById('apPlanperiodeEndjahr');
-        const statusSelect = document.getElementById('apPlanperiodeStatus');
         const remarkInput = document.getElementById('apPlanperiodeBemerkung');
 
-        if (!modal || !title || !nameInput || !startInput || !endInput || !statusSelect || !remarkInput) return;
+        if (!modal || !title || !nameInput || !startInput || !endInput || !remarkInput) return;
 
         if (mode === 'edit' && planperiodeId) {
             title.textContent = 'Planperiode bearbeiten';
@@ -235,7 +259,6 @@
             nameInput.value = period.bezeichnung || '';
             startInput.value = period.startjahr || '';
             endInput.value = period.endjahr || '';
-            statusSelect.value = period.status || 'Entwurf';
             remarkInput.value = period.bemerkung || '';
         } else {
             title.textContent = 'Neue Planperiode';
@@ -243,7 +266,6 @@
             nameInput.value = '';
             startInput.value = '';
             endInput.value = '';
-            statusSelect.value = 'Entwurf';
             remarkInput.value = '';
         }
 
@@ -265,15 +287,13 @@
         const nameInput = document.getElementById('apPlanperiodeName');
         const startInput = document.getElementById('apPlanperiodeStartjahr');
         const endInput = document.getElementById('apPlanperiodeEndjahr');
-        const statusSelect = document.getElementById('apPlanperiodeStatus');
         const remarkInput = document.getElementById('apPlanperiodeBemerkung');
 
-        if (!modal || !nameInput || !startInput || !endInput || !statusSelect || !remarkInput) return;
+        if (!modal || !nameInput || !startInput || !endInput || !remarkInput) return;
 
         const bezeichnung = nameInput.value.trim();
         const startjahr = Number(startInput.value) || 0;
         const endjahr = Number(endInput.value) || 0;
-        const status = statusSelect.value;
         const bemerkung = remarkInput.value.trim();
 
         if (!bezeichnung) {
@@ -289,9 +309,8 @@
             bezeichnung,
             startjahr,
             endjahr,
-            status,
+            status: 'ENTWURF',
             bemerkung,
-            active: status === 'Aktiv'
         };
 
         const editId = modal.dataset.editId;
@@ -299,14 +318,8 @@
 
         if (editId) {
             result = await AbschussplanService.updatePlanperiode(editId, payload);
-            if (status === 'Aktiv') {
-                await AbschussplanService.setPlanperiodeStatus(editId, 'Aktiv');
-            }
         } else {
             result = await AbschussplanService.createPlanperiode(payload);
-            if (result && status === 'Aktiv' && result.id) {
-                await AbschussplanService.setPlanperiodeStatus(result.id, 'Aktiv');
-            }
         }
 
         if (!result) {
@@ -370,24 +383,46 @@
         await renderPlanperiodenTable();
     }
 
-    // initialize when page loaded
-    document.addEventListener('DOMContentLoaded', async function () {
-        if (!document.getElementById('ap-overview')) return;
-        renderKJSelect();
-        wireTabs();
-        wireKJModal();
-        wirePlanperiodeEvents();
-        await renderAll();
-        activateTab('ap-overview');
-    });
+    async function init() {
 
-    // Export helpers for later use/testing
+    if (!document.getElementById("ap-overview")) {
+        return;
+    }
+
+    renderKJSelect();
+
+    wireTabs();
+
+    AbschussplanWildgruppe.wireKJModal();
+
+    wirePlanperiodeEvents();
+
+    await renderAll();
+
+    activateTab("ap-overview");
+
+}
+
     window.Abschussplan = {
-        computeVorschlag,
-        computeAktuellerSoll,
-        activateTab,
-        renderAll,
-        _data: {KJ_PLANS, CLASSES, ABSCHUSS, PLAN_PLACEHOLDER, INTERN_PLACEHOLDER}
-    };
+
+    init,
+
+    computeVorschlag,
+
+    computeAktuellerSoll,
+
+    activateTab,
+
+    renderAll,
+
+    _data: {
+        KJ_PLANS,
+        CLASSES,
+        ABSCHUSS,
+        PLAN_PLACEHOLDER,
+        INTERN_PLACEHOLDER
+    }
+
+};
 
 })();

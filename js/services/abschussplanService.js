@@ -1,251 +1,326 @@
-/* Abschussplan Service
-   Kapselt alle Supabase-Zugriffe für das Abschussplan-Modul.
-   UI darf nicht direkt auf Supabase zugreifen.
-*/
+/* ===========================================================
+   DP_Jagd
+   abschussplanService.js
+   Version 1.0
+=========================================================== */
 
-const AbschussplanService = (function () {
-    const TABLES = {
-        planperiode: 'planperiode',
-        wildgruppe: 'wildgruppe',
-        wildklasse: 'wildklasse',
-        abschussplan: 'abschussplaene',
-        abschussplan_positionen: 'abschussplan_positionen'
+const AbschussplanService = (() => {
+
+    const db = window.db || window.supabase;
+
+    const TABLE = {
+        PLANPERIODEN: "planperioden",
+        WILDGRUPPEN: "wildgruppen",
+        WILDKLASSEN: "wildklassen",
+        PLAENE: "abschussplaene",
+        POSITIONEN: "abschussplan_positionen"
     };
 
-    function normalizeResult(result) {
-        if (!result) return null;
-        return result.data || null;
-    }
+    function handle(result, text) {
 
-    async function getAktivePlanperiode() {
-        try {
-            const response = await db.from(TABLES.planperiode).select('*').eq('active', true).single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in getAktivePlanperiode:', error);
+        if (result.error) {
+            console.error(text, result.error);
             return null;
         }
+
+        return result.data;
+
+    }
+
+    /* =======================================================
+       PLANPERIODEN
+    ======================================================= */
+
+    async function getAktivePlanperiode() {
+
+        const result = await db
+            .from(TABLE.PLANPERIODEN)
+            .select("*")
+            .eq("status", "AKTIV")
+            .maybeSingle();
+
+        return handle(result, "Fehler in getAktivePlanperiode");
+
     }
 
     async function getPlanperioden() {
-        try {
-            const response = await db.from(TABLES.planperiode)
-                .select('*')
-                .order('active', { ascending: false })
-                .order('startjahr', { ascending: false });
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in getPlanperioden:', error);
-            return [];
-        }
+
+        const result = await db
+            .from(TABLE.PLANPERIODEN)
+            .select("*")
+            .order("startjahr", { ascending: false });
+
+        return handle(result, "Fehler in getPlanperioden") || [];
+
     }
 
-    async function createPlanperiode(payload) {
-        try {
-            const response = await db.from(TABLES.planperiode).insert(payload).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in createPlanperiode:', error);
-            return null;
-        }
+    async function createPlanperiode(data) {
+
+        const result = await db
+            .from(TABLE.PLANPERIODEN)
+            .insert(data)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in createPlanperiode");
+
     }
 
-    async function updatePlanperiode(planperiodeId, payload) {
-        try {
-            const response = await db.from(TABLES.planperiode).update(payload).eq('id', planperiodeId).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in updatePlanperiode:', error);
-            return null;
-        }
+    async function updatePlanperiode(id, data) {
+
+        const result = await db
+            .from(TABLE.PLANPERIODEN)
+            .update(data)
+            .eq("id", id)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in updatePlanperiode");
+
     }
 
-    async function hasAbschussplaene(planperiodeId) {
-        try {
-            const response = await db.from(TABLES.abschussplan).select('id').eq('planperiode_id', planperiodeId).limit(1);
-            if (response.error) throw response.error;
-            const data = normalizeResult(response) || [];
-            return data.length > 0;
-        } catch (error) {
-            console.error('Fehler in hasAbschussplaene:', error);
+    async function deletePlanperiode(id) {
+
+        const result = await db
+            .from(TABLE.PLANPERIODEN)
+            .delete()
+            .eq("id", id);
+
+        if (result.error) {
+            console.error(result.error);
             return false;
         }
+
+        return true;
+
     }
 
-    async function deletePlanperiode(planperiodeId) {
-        try {
-            if (await hasAbschussplaene(planperiodeId)) {
-                return false;
+    async function setPlanperiodeStatus(id, status) {
+
+    try {
+
+        if (status === "AKTIV") {
+
+            const archiveResult = await db
+                .from(TABLE.PLANPERIODEN)
+                .update({
+                    status: "ARCHIV"
+                })
+                .eq("status", "AKTIV");
+
+            if (archiveResult.error) {
+                throw archiveResult.error;
             }
-            const response = await db.from(TABLES.planperiode).delete().eq('id', planperiodeId).select('*');
-            if (response.error) throw response.error;
-            return true;
-        } catch (error) {
-            console.error('Fehler in deletePlanperiode:', error);
-            return false;
+
         }
+
+        const result = await db
+            .from(TABLE.PLANPERIODEN)
+            .update({
+                status: status
+            })
+            .eq("id", id)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in setPlanperiodeStatus");
+
+    } catch (error) {
+
+        console.error("Fehler in setPlanperiodeStatus", error);
+
+        return null;
+
     }
 
-    async function setPlanperiodeStatus(planperiodeId, status) {
-        try {
-            if (status === 'Aktiv') {
-                const archiveResponse = await db.from(TABLES.planperiode).update({ status: 'Archiv', active: false }).neq('id', planperiodeId).eq('status', 'Aktiv');
-                if (archiveResponse.error) throw archiveResponse.error;
-                const response = await db.from(TABLES.planperiode).update({ status, active: true }).eq('id', planperiodeId).select('*').single();
-                if (response.error) throw response.error;
-                return normalizeResult(response);
-            }
-            const response = await db.from(TABLES.planperiode).update({ status, active: status === 'Aktiv' }).eq('id', planperiodeId).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in setPlanperiodeStatus:', error);
-            return null;
-        }
-    }
+}
+
+    /* =======================================================
+       WILDGRUPPEN
+    ======================================================= */
 
     async function getWildgruppen() {
-        try {
-            const response = await db.from(TABLES.wildgruppe).select('*').order('name', { ascending: true });
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in getWildgruppen:', error);
-            return [];
-        }
+
+        const result = await db
+            .from(TABLE.WILDGRUPPEN)
+            .select("*")
+            .order("reihenfolge");
+
+        return handle(result, "Fehler in getWildgruppen") || [];
+
     }
 
     async function getWildklassen(wildgruppeId) {
-        try {
-            const response = await db.from(TABLES.wildklasse).select('*').eq('wildgruppe_id', wildgruppeId).order('name', { ascending: true });
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in getWildklassen:', error);
-            return [];
-        }
+
+        const result = await db
+            .from(TABLE.WILDKLASSEN)
+            .select("*")
+            .eq("wildgruppe_id", wildgruppeId)
+            .eq("aktiv", true)
+            .order("reihenfolge");
+
+        return handle(result, "Fehler in getWildklassen") || [];
+
     }
+
+        /* =======================================================
+       ABSCHUSSPLÄNE
+    ======================================================= */
 
     async function getAbschussplaene(planperiodeId) {
-        try {
-            const response = await db.from(TABLES.abschussplan).select('*').eq('planperiode_id', planperiodeId).order('created_at', { ascending: false });
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in getAbschussplaene:', error);
-            return [];
-        }
+
+        const result = await db
+            .from(TABLE.PLAENE)
+            .select("*")
+            .eq("planperiode_id", planperiodeId)
+            .order("plan_typ")
+            .order("jahr");
+
+        return handle(result, "Fehler in getAbschussplaene") || [];
+
     }
 
-    async function getAbschussplan(planId) {
-        try {
-            const response = await db.from(TABLES.abschussplan).select('*').eq('id', planId).single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in getAbschussplan:', error);
-            return null;
-        }
+    async function getAbschussplan(id) {
+
+        const result = await db
+            .from(TABLE.PLAENE)
+            .select("*")
+            .eq("id", id)
+            .single();
+
+        return handle(result, "Fehler in getAbschussplan");
+
     }
+
+    async function createAbschussplan(data) {
+
+        const result = await db
+            .from(TABLE.PLAENE)
+            .insert(data)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in createAbschussplan");
+
+    }
+
+    async function updateAbschussplan(id, data) {
+
+        const result = await db
+            .from(TABLE.PLAENE)
+            .update(data)
+            .eq("id", id)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in updateAbschussplan");
+
+    }
+
+    async function deleteAbschussplan(id) {
+
+        const result = await db
+            .from(TABLE.PLAENE)
+            .delete()
+            .eq("id", id);
+
+        if (result.error) {
+            console.error(result.error);
+            return false;
+        }
+
+        return true;
+
+    }
+
+    /* =======================================================
+       POSITIONEN
+    ======================================================= */
 
     async function getPositionen(planId) {
-        try {
-            const response = await db.from(TABLES.abschussplan_positionen).select('*').eq('abschussplan_id', planId).order('wildklasse_id', { ascending: true });
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in getPositionen:', error);
-            return [];
-        }
+
+        const result = await db
+            .from(TABLE.POSITIONEN)
+            .select("*")
+            .eq("plan_id", planId)
+            .order("klasse_id");
+
+        return handle(result, "Fehler in getPositionen") || [];
+
     }
 
-    async function createAbschussplan(payload) {
-        try {
-            const response = await db.from(TABLES.abschussplan).insert(payload).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in createAbschussplan:', error);
-            return null;
-        }
+    async function createPosition(data) {
+
+        const result = await db
+            .from(TABLE.POSITIONEN)
+            .insert(data)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in createPosition");
+
     }
 
-    async function updateAbschussplan(planId, payload) {
-        try {
-            const response = await db.from(TABLES.abschussplan).update(payload).eq('id', planId).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in updateAbschussplan:', error);
-            return null;
-        }
+    async function updatePosition(id, data) {
+
+        const result = await db
+            .from(TABLE.POSITIONEN)
+            .update(data)
+            .eq("id", id)
+            .select()
+            .single();
+
+        return handle(result, "Fehler in updatePosition");
+
     }
 
-    async function deleteAbschussplan(planId) {
-        try {
-            const response = await db.from(TABLES.abschussplan).delete().eq('id', planId).select('*');
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in deleteAbschussplan:', error);
-            return [];
+    async function deletePosition(id) {
+
+        const result = await db
+            .from(TABLE.POSITIONEN)
+            .delete()
+            .eq("id", id);
+
+        if (result.error) {
+            console.error(result.error);
+            return false;
         }
+
+        return true;
+
     }
 
-    async function createPosition(payload) {
-        try {
-            const response = await db.from(TABLES.abschussplan_positionen).insert(payload).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in createPosition:', error);
-            return null;
-        }
-    }
+        return {
 
-    async function updatePosition(positionId, payload) {
-        try {
-            const response = await db.from(TABLES.abschussplan_positionen).update(payload).eq('id', positionId).select('*').single();
-            if (response.error) throw response.error;
-            return normalizeResult(response);
-        } catch (error) {
-            console.error('Fehler in updatePosition:', error);
-            return null;
-        }
-    }
+        /* Planperioden */
 
-    async function deletePosition(positionId) {
-        try {
-            const response = await db.from(TABLES.abschussplan_positionen).delete().eq('id', positionId).select('*');
-            if (response.error) throw response.error;
-            return normalizeResult(response) || [];
-        } catch (error) {
-            console.error('Fehler in deletePosition:', error);
-            return [];
-        }
-    }
-
-    return {
         getAktivePlanperiode,
         getPlanperioden,
         createPlanperiode,
         updatePlanperiode,
         deletePlanperiode,
         setPlanperiodeStatus,
+
+        /* Wild */
+
         getWildgruppen,
         getWildklassen,
+
+        /* Abschusspläne */
+
         getAbschussplaene,
         getAbschussplan,
-        getPositionen,
         createAbschussplan,
         updateAbschussplan,
         deleteAbschussplan,
+
+        /* Positionen */
+
+        getPositionen,
         createPosition,
         updatePosition,
         deletePosition
+
     };
+
 })();
