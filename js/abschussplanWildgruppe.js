@@ -1,338 +1,420 @@
-/* Abschussplan Wildgruppen-Komponente
-   Gemeinsame KJ-Abschussplan-Logik für Rotwild, Rehwild und Gamswild.
-   Diese Komponente übernimmt Laden, Anzeigen, Dialogöffnung, Speichern und Löschen.
-*/
+/* ==========================================================
+   DP_Jagd
+   abschussplanWildgruppe.js
+   Teil 1
+========================================================== */
 
-const AbschussplanWildgruppe = (function () {
-    const GROUP_MAP = {
-        RW: 'Rotwild',
-        RE: 'Rehwild',
-        GA: 'Gamswild'
-    };
+const AbschussplanWildgruppe = (() => {
+  const GROUP_MAP = {
+    RW: "Rotwild",
+    RE: "Rehwild",
+    GA: "Gamswild",
+  };
 
-    function $(sel, ctx = document) {
-        return ctx.querySelector(sel);
+  function resolveWildgruppe(code) {
+    return GROUP_MAP[code] || code;
+  }
+
+  async function getWildgruppeId(groupName) {
+    const gruppen = await AbschussplanService.getWildgruppen();
+
+    const gruppe = gruppen.find(
+      (g) => g.bezeichnung === groupName || String(g.id) === String(groupName),
+    );
+
+    return gruppe ? gruppe.id : null;
+  }
+
+  async function getKJPlan(planperiodeId, wildgruppeId) {
+    const plaene = await AbschussplanService.getAbschussplaene(planperiodeId);
+
+    return (
+      plaene.find(
+        (p) =>
+          String(p.wildgruppe_id) === String(wildgruppeId) &&
+          p.plan_typ === "KJ",
+      ) || null
+    );
+  }
+
+  async function buildGroupPane(groupCode, containerId) {
+    const container = document.getElementById(containerId);
+
+    if (!container) return;
+
+    const template = document.getElementById("ap-species-template");
+
+    if (!template) return;
+
+    container.innerHTML = "";
+
+    const clone = template.content.cloneNode(true);
+
+    container.appendChild(clone);
+
+    const card = container.querySelector(".ap-species");
+
+    const title = card.querySelector(".ap-species-title");
+
+    const info = card.querySelector(".ap-planperiode-info");
+
+    const body = card.querySelector(".ap-species-body");
+
+    const table = card.querySelector(".ap-species-table");
+
+    const noData = card.querySelector(".ap-no-data-message");
+
+    const btnEdit = card.querySelector(".ap-edit-kj");
+
+    const btnDelete = card.querySelector(".ap-delete-kj");
+
+    const groupName = resolveWildgruppe(groupCode);
+
+    title.textContent = groupName;
+
+    const planperiode = await AbschussplanService.getAktivePlanperiode();
+
+    if (!planperiode) {
+      info.textContent = "Keine aktive Planperiode";
+
+      table.hidden = true;
+
+      noData.style.display = "block";
+
+      btnEdit.hidden = true;
+      btnDelete.hidden = true;
+
+      return;
     }
 
-    function $all(sel, ctx = document) {
-        return Array.from(ctx.querySelectorAll(sel));
+    info.textContent = `KJ-Abschussplan · Planperiode ${planperiode.startjahr} / ${planperiode.endjahr}`;
+
+    const wildgruppeId = await getWildgruppeId(groupName);
+
+    const plan = await getKJPlan(planperiode.id, wildgruppeId);
+
+    if (!plan) {
+      table.hidden = true;
+
+      noData.style.display = "block";
+
+      noData.textContent = "Kein KJ-Abschussplan vorhanden.";
+
+      btnEdit.hidden = true;
+      btnDelete.hidden = true;
+
+      //btnNew.onclick = () => openKJModal(groupCode);
+
+      return;
     }
 
-    function resolveWildgruppe(groupCode) {
-        if (!groupCode) return '';
-        const key = String(groupCode).trim();
-        if (GROUP_MAP[key]) {
-            return GROUP_MAP[key];
-        }
-        const mapped = Object.values(GROUP_MAP).find(name => name === key);
-        return mapped || key;
+    btnEdit.hidden = false;
+    btnDelete.hidden = false;
+
+    //btnNew.onclick = () => openKJModal(groupCode);
+
+    btnEdit.onclick = () => openKJModal(groupCode);
+
+    btnDelete.onclick = () => deleteKJPlanForGroup(groupCode);
+
+    table.hidden = false;
+
+    noData.style.display = "none";
+
+    body.innerHTML = "";
+
+    const positionen = await AbschussplanService.getPositionen(plan.id);
+
+    positionen.forEach((pos) => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+          <td>${pos.wildklassen?.bezeichnung ?? ""}</td>
+          <td>${pos.soll}</td>
+      `;
+
+      body.appendChild(tr);
+    });
+  }
+
+  async function renderGroup(groupCode, containerId) {
+    await buildGroupPane(groupCode, containerId);
+  }
+
+  async function openKJModal(groupCode) {
+    const modal = document.getElementById("kjPlanModal");
+    const title = document.getElementById("kjModalTitle");
+    const txtPlanperiode = document.getElementById("kjPlanperiode");
+    const txtWildgruppe = document.getElementById("kjWildgruppe");
+    const tableContainer = document.getElementById("kjPlanTableContainer");
+    const empty = document.getElementById("kjPlanEmpty");
+    const body = document.getElementById("kjPlanPositionsBody");
+
+    if (
+      !modal ||
+      !title ||
+      !txtPlanperiode ||
+      !txtWildgruppe ||
+      !tableContainer ||
+      !empty ||
+      !body
+    ) {
+      return;
     }
 
-    async function getWildgruppeId(groupName) {
-        const wildgruppen = await AbschussplanService.getWildgruppen();
-        const wildgruppe = (wildgruppen || []).find(item => item.name === groupName || item.bezeichnung === groupName || String(item.id) === String(groupName));
-        return wildgruppe ? wildgruppe.id : null;
+    const groupName = resolveWildgruppe(groupCode);
+
+    title.textContent = `KJ-Abschussplan ${groupName}`;
+
+    body.innerHTML = "";
+
+    modal.dataset.planId = "";
+
+    txtWildgruppe.value = groupName;
+
+    const planperiode = await AbschussplanService.getAktivePlanperiode();
+
+    if (!planperiode) {
+      txtPlanperiode.value = "";
+
+      empty.textContent = "Keine aktive Planperiode vorhanden.";
+
+      empty.style.display = "block";
+
+      tableContainer.style.display = "none";
+
+      modal.style.display = "block";
+
+      return;
     }
 
-    async function buildGroupPane(groupCode, containerId) {
-        const groupName = resolveWildgruppe(groupCode);
-        const container = document.getElementById(containerId);
-        if (!container) return;
+    txtPlanperiode.value = `${planperiode.startjahr} / ${planperiode.endjahr}`;
 
-        const tpl = document.getElementById('ap-species-template');
-        if (!tpl) return;
+    const wildgruppeId = await getWildgruppeId(groupName);
 
-        const node = tpl.content.cloneNode(true);
-        const root = node.querySelector('.ap-species');
-        root.dataset.group = groupName;
-        root.querySelector('.ap-species-title').textContent = groupName;
+    const plan = await getKJPlan(planperiode.id, wildgruppeId);
 
-        const addButton = root.querySelector('.ap-add-kj');
-        const editButton = root.querySelector('.ap-edit-kj');
-        const deleteButton = root.querySelector('.ap-delete-kj');
-        const noDataMessage = root.querySelector('.ap-no-data-message');
-        const speciesTable = root.querySelector('.ap-species-table');
-        const speciesBody = root.querySelector('.ap-species-body');
-        const planperiodeInfo = root.querySelector('.ap-planperiode-info');
+    if (!plan) {
+      empty.style.display = "block";
 
-        const activePlanperiode = await AbschussplanService.getAktivePlanperiode();
-        const plans = activePlanperiode ? await AbschussplanService.getAbschussplaene(activePlanperiode.id) : [];
-        const existingPlan = (plans || []).find(p => p.wildgruppe === groupName && p.plan_typ === 'KJ');
+      empty.textContent = "Kein KJ-Abschussplan vorhanden.";
 
-        if (activePlanperiode) {
-            planperiodeInfo.textContent = `Aktive Planperiode ${activePlanperiode.startjahr} / ${activePlanperiode.endjahr}`;
-        } else {
-            planperiodeInfo.textContent = 'Aktive Planperiode nicht gefunden.';
-        }
+      tableContainer.style.display = "none";
 
-        if (groupName !== 'Rotwild') {
-            planperiodeInfo.hidden = true;
-        }
+      modal.style.display = "block";
 
-        addButton.addEventListener('click', () => openKJModal(groupCode));
-        editButton.addEventListener('click', () => openKJModal(groupCode));
-        deleteButton.addEventListener('click', async () => {
-            const deleted = await deleteKJPlanForGroup(groupName);
-            if (deleted) {
-                await renderGroup(groupCode, containerId);
-                alert('KJ-Abschussplan gelöscht.');
-            }
-        });
-
-        if (!existingPlan) {
-            speciesTable.hidden = true;
-            noDataMessage.style.display = 'block';
-            editButton.hidden = true;
-            deleteButton.hidden = true;
-            if (groupName === 'Rotwild' && activePlanperiode) {
-                noDataMessage.textContent = 'Für die aktive Planperiode wurde noch kein KJ-Abschussplan für Rotwild angelegt.';
-            }
-        } else {
-            noDataMessage.style.display = 'none';
-            speciesTable.hidden = false;
-            editButton.hidden = false;
-            deleteButton.hidden = false;
-
-            const positions = await AbschussplanService.getPositionen(existingPlan.id);
-            speciesBody.innerHTML = '';
-
-            if (!positions || positions.length === 0) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = '<td colspan="2">Keine Positionen im KJ-Abschussplan vorhanden.</td>';
-                speciesBody.appendChild(tr);
-            } else {
-                positions.forEach(position => {
-                    const klasse = position.wildklasse_name || position.name || position.wildklasse_id;
-                    const soll = position.soll_2_jahre || 0;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${klasse}</td><td>${soll}</td>`;
-                    speciesBody.appendChild(tr);
-                });
-            }
-        }
-
-        container.innerHTML = '';
-        container.appendChild(root);
+      return;
     }
 
-    async function renderGroup(groupCode, containerId) {
-        await buildGroupPane(groupCode, containerId);
+    modal.dataset.planId = plan.id;
+
+    empty.style.display = "none";
+
+    tableContainer.style.display = "block";
+
+    const klassen = await AbschussplanService.getWildklassen(wildgruppeId);
+
+    const positionen = await AbschussplanService.getPositionen(plan.id);
+
+    body.innerHTML = "";
+
+    for (const klasse of klassen) {
+      const position = positionen.find(
+        (p) => String(p.klasse_id) === String(klasse.id),
+      );
+
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+      <td>${klasse.bezeichnung}</td>
+      <td>
+        <input
+          type="number"
+          class="kj-plan-soll"
+          data-position-id="${position?.id ?? ""}"
+          data-klasse-id="${klasse.id}"
+          value="${position?.soll ?? 0}">
+      </td>
+    `;
+
+      body.appendChild(tr);
     }
 
-    async function openKJModal(groupCode) {
-        const groupName = resolveWildgruppe(groupCode);
-        const modal = document.getElementById('kjPlanModal');
-        const modalTitle = document.getElementById('kjModalTitle');
-        const planperiodeInput = document.getElementById('kjPlanperiode');
-        const wildgruppeInput = document.getElementById('kjWildgruppe');
-        const tableContainer = document.getElementById('kjPlanTableContainer');
-        const emptyMessage = document.getElementById('kjPlanEmpty');
-        const positionsBody = document.getElementById('kjPlanPositionsBody');
+    modal.style.display = "block";
 
-        if (!modal || !planperiodeInput || !wildgruppeInput || !tableContainer || !emptyMessage || !positionsBody) return;
-        if (modalTitle) {
-            modalTitle.textContent = `KJ-Abschussplan ${groupName}`;
-        }
+    modal.setAttribute("aria-hidden", "false");
 
-        planperiodeInput.value = 'Lade...';
-        wildgruppeInput.value = groupName;
-        positionsBody.innerHTML = '';
-        modal.dataset.planId = '';
+    document.body.style.overflow = "hidden";
+  }
 
-        const activePlanperiode = await AbschussplanService.getAktivePlanperiode();
-        if (activePlanperiode) {
-            planperiodeInput.value = `${activePlanperiode.startjahr} / ${activePlanperiode.endjahr}`;
-        } else {
-            planperiodeInput.value = 'Keine aktive Planperiode';
-        }
+  function closeKJModal() {
+    const modal = document.getElementById("kjPlanModal");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
 
-        const wildgruppeId = await getWildgruppeId(groupName);
-        const wildklassen = wildgruppeId ? await AbschussplanService.getWildklassen(wildgruppeId) : [];
-        const plans = activePlanperiode ? await AbschussplanService.getAbschussplaene(activePlanperiode.id) : [];
-        const existingPlan = (plans || []).find(p => p.wildgruppe === groupName && p.plan_typ === 'KJ');
+  async function saveKJPlan() {
+    const modal = document.getElementById("kjPlanModal");
+    const body = document.getElementById("kjPlanPositionsBody");
 
-        if (!wildgruppeId || !wildklassen || wildklassen.length === 0) {
-            emptyMessage.textContent = 'Es wurden keine Klassen gefunden.';
-            emptyMessage.style.display = 'block';
-            tableContainer.style.display = 'none';
-        } else {
-            tableContainer.style.display = 'block';
-            emptyMessage.style.display = existingPlan ? 'none' : 'block';
-            emptyMessage.textContent = existingPlan ? '' : 'Es wurde noch kein KJ-Abschussplan angelegt.';
-            positionsBody.innerHTML = '';
-
-            let positions = [];
-            if (existingPlan && existingPlan.id) {
-                modal.dataset.planId = existingPlan.id;
-                positions = await AbschussplanService.getPositionen(existingPlan.id);
-            }
-
-            wildklassen.forEach(klasse => {
-                const position = positions.find(pos => String(pos.wildklasse_id) === String(klasse.id));
-                const sollWert = position ? position.soll_2_jahre : 0;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${klasse.name || klasse.klasse || ''}</td><td><input type="number" class="kj-plan-soll" data-klasse-id="${klasse.id}" data-position-id="${position ? position.id : ''}" value="${sollWert}" /></td>`;
-                positionsBody.appendChild(tr);
-            });
-
-            const firstInput = positionsBody.querySelector('.kj-plan-soll');
-            if (firstInput) {
-                firstInput.focus();
-            }
-        }
-
-        modal.style.display = 'block';
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
+    if (!modal || !body) {
+      return;
     }
 
-    function closeKJModal() {
-        const modal = document.getElementById('kjPlanModal');
-        if (!modal) return;
-        modal.style.display = 'none';
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+    const planId = modal.dataset.planId;
+
+    if (!planId) {
+      alert("KJ-Abschussplan nicht gefunden.");
+      return;
     }
 
-    async function saveKJPlan() {
-        const modal = document.getElementById('kjPlanModal');
-        const planperiodeInput = document.getElementById('kjPlanperiode');
-        const wildgruppeInput = document.getElementById('kjWildgruppe');
-        const positionsBody = document.getElementById('kjPlanPositionsBody');
-        if (!modal || !planperiodeInput || !wildgruppeInput || !positionsBody) return;
+    const plan = await AbschussplanService.getAbschussplan(planId);
 
-        const activePlanperiode = await AbschussplanService.getAktivePlanperiode();
-        if (!activePlanperiode) {
-            alert('Keine aktive Planperiode verfügbar.');
-            return;
-        }
-
-        const wildgruppe = wildgruppeInput.value;
-        const planId = modal.dataset.planId;
-        const inputs = Array.from(positionsBody.querySelectorAll('.kj-plan-soll'));
-        if (inputs.length === 0) {
-            alert('Keine Klassen zum Speichern gefunden.');
-            return;
-        }
-
-        let plan = null;
-        if (planId) {
-            plan = await AbschussplanService.getAbschussplan(planId);
-        }
-
-        if (!plan) {
-            const planPayload = {
-                planperiode_id: activePlanperiode.id,
-                wildgruppe: wildgruppe,
-                plan_typ: 'KJ',
-                jahr: null
-            };
-            plan = await AbschussplanService.createAbschussplan(planPayload);
-            if (!plan || !plan.id) {
-                alert('Fehler beim Anlegen des KJ-Abschussplans.');
-                return;
-            }
-            modal.dataset.planId = plan.id;
-        }
-
-        for (const input of inputs) {
-            const klasseId = input.dataset.klasseId;
-            const positionId = input.dataset.positionId;
-            const sollWert = Number(input.value) || 0;
-            const payload = {
-                abschussplan_id: plan.id,
-                wildklasse_id: klasseId,
-                soll_2_jahre: sollWert
-            };
-            if (positionId) {
-                await AbschussplanService.updatePosition(positionId, payload);
-            } else {
-                const position = await AbschussplanService.createPosition(payload);
-                if (position && position.id) {
-                    input.dataset.positionId = position.id;
-                }
-            }
-        }
-
-        closeKJModal();
-        window.Abschussplan?.renderAll?.();
-        alert('KJ-Abschussplan gespeichert.');
+    if (!plan) {
+      alert("KJ-Abschussplan konnte nicht geladen werden.");
+      return;
     }
 
-    async function deleteKJPlan() {
-        const confirmDelete = confirm('KJ-Abschussplan wirklich löschen?');
-        if (!confirmDelete) return;
+    const inputs = body.querySelectorAll(".kj-plan-soll");
 
-        const activePlanperiode = await AbschussplanService.getAktivePlanperiode();
-        if (!activePlanperiode) {
-            alert('Keine aktive Planperiode verfügbar.');
-            return;
+    for (const input of inputs) {
+      const positionId = input.dataset.positionId;
+
+      const klasseId = input.dataset.klasseId;
+
+      const soll = Number(input.value) || 0;
+
+      const payload = {
+        plan_id: plan.id,
+        klasse_id: klasseId,
+        soll: soll,
+      };
+
+      if (positionId) {
+        const ok = await AbschussplanService.updatePosition(
+          positionId,
+          payload,
+        );
+
+        if (!ok) {
+          alert("Fehler beim Speichern.");
+          return;
+        }
+      } else {
+        const neu = await AbschussplanService.createPosition(payload);
+
+        if (!neu) {
+          alert("Fehler beim Speichern.");
+          return;
         }
 
-        const wildgruppe = document.getElementById('kjWildgruppe')?.value;
-        if (!wildgruppe) return;
-
-        const deleted = await deleteKJPlanForGroup(wildgruppe);
-        if (!deleted) {
-            return;
-        }
-
-        closeKJModal();
-        window.Abschussplan?.renderAll?.();
-        alert('KJ-Abschussplan gelöscht.');
+        input.dataset.positionId = neu.id;
+      }
     }
 
-    function wireKJModal() {
-        const closeBtn = document.getElementById('kjModalClose');
-        const saveBtn = document.getElementById('kjPlanSave');
-        const deleteBtn = document.getElementById('kjPlanDelete');
+    closeKJModal();
 
-        if (closeBtn) closeBtn.addEventListener('click', closeKJModal);
-        if (saveBtn) saveBtn.addEventListener('click', saveKJPlan);
-        if (deleteBtn) deleteBtn.addEventListener('click', deleteKJPlan);
+    await window.Abschussplan.renderAll();
+  }
 
-        const modal = document.getElementById('kjPlanModal');
-        if (modal) {
-            modal.addEventListener('click', (event) => {
-                if (event.target === modal) {
-                    closeKJModal();
-                }
-            });
-        }
+  async function deleteKJPlan() {
+    if (!confirm("KJ-Abschussplan wirklich löschen?")) {
+      return;
     }
 
-    async function deleteKJPlanForGroup(groupName) {
-        const activePlanperiode = await AbschussplanService.getAktivePlanperiode();
-        if (!activePlanperiode) {
-            alert('Keine aktive Planperiode verfügbar.');
-            return false;
-        }
+    const wildgruppe = document.getElementById("kjWildgruppe").value;
 
-        const plans = await AbschussplanService.getAbschussplaene(activePlanperiode.id);
-        const plan = (plans || []).find(p => p.wildgruppe === groupName && p.plan_typ === 'KJ');
-        if (!plan) {
-            alert('Kein KJ-Abschussplan zum Löschen gefunden.');
-            return false;
-        }
+    const deleted = await deleteKJPlanForGroup(wildgruppe);
 
-        const positions = await AbschussplanService.getPositionen(plan.id);
-        for (const position of positions) {
-            await AbschussplanService.deletePosition(position.id);
-        }
+    if (deleted) {
+      closeKJModal();
 
-        await AbschussplanService.deleteAbschussplan(plan.id);
-        return true;
+      await window.Abschussplan.renderAll();
+    }
+  }
+
+  function wireKJModal() {
+    const modal = document.getElementById("kjPlanModal");
+
+    const btnClose = document.getElementById("kjModalClose");
+
+    const btnSave = document.getElementById("kjPlanSave");
+
+    const btnDelete = document.getElementById("kjPlanDelete");
+
+    if (btnClose) {
+      btnClose.onclick = closeKJModal;
     }
 
-    const api = {
-        renderGroup,
-        openKJModal,
-        wireKJModal,
-        saveKJPlan,
-        deleteKJPlan,
-        deleteKJPlanForGroup
-    };
+    if (btnSave) {
+      btnSave.onclick = saveKJPlan;
+    }
 
-    window.AbschussplanWildgruppe = api;
-    return api;
+    if (btnDelete) {
+      btnDelete.onclick = deleteKJPlan;
+    }
+
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          closeKJModal();
+        }
+      });
+    }
+  }
+
+  async function deleteKJPlanForGroup(groupCode) {
+    const planperiode = await AbschussplanService.getAktivePlanperiode();
+
+    if (!planperiode) {
+      alert("Keine aktive Planperiode vorhanden.");
+      return false;
+    }
+
+    const groupName = resolveWildgruppe(groupCode);
+
+    const wildgruppeId = await getWildgruppeId(groupName);
+
+    const plan = await getKJPlan(planperiode.id, wildgruppeId);
+
+    if (!plan) {
+      return false;
+    }
+
+    const positionen = await AbschussplanService.getPositionen(plan.id);
+
+    for (const position of positionen) {
+      const ok = await AbschussplanService.deletePosition(position.id);
+
+      if (!ok) {
+        alert("Position konnte nicht gelöscht werden.");
+        return false;
+      }
+    }
+
+    const ok = await AbschussplanService.deleteAbschussplan(plan.id);
+
+    if (!ok) {
+      alert("Abschussplan konnte nicht gelöscht werden.");
+      return false;
+    }
+
+    await renderGroup(groupCode, `ap-${groupCode.toLowerCase()}`);
+
+    return true;
+  }
+
+  const api = {
+    renderGroup,
+    openKJModal,
+    wireKJModal,
+    saveKJPlan,
+    deleteKJPlan,
+    deleteKJPlanForGroup,
+  };
+
+  window.AbschussplanWildgruppe = api;
+  return api;
 })();

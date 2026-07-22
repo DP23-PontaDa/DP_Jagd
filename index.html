@@ -61,39 +61,76 @@
     <div id="loading" role="status" aria-live="polite">DP Jagd wird gestartet...</div>
 
     <div id="app" hidden>
-        <aside id="sidebar" aria-label="Hauptnavigation">
-            <div class="logo">DP Jagd</div>
-            <nav>
-                <button type="button" data-page="dashboard">Dashboard</button>
-                <button type="button" data-page="personen">Personen</button>
-                <button type="button" data-page="abschuss">Abschuss</button>
-                <div class="sidebar-group">
-                    <button type="button" class="sidebar-group-toggle" data-toggle="submenu" data-group="abschussplan" aria-expanded="false">Abschussplan</button>
-                    <div class="sidebar-submenu" data-group="abschussplan">
-                        <button type="button" data-page="abschussplan" data-panel="ap-overview">Übersicht</button>
-                        <button type="button" data-page="abschussplan" data-panel="ap-rotwild">Rotwild</button>
-                        <button type="button" data-page="abschussplan" data-panel="ap-rehwild">Rehwild</button>
-                        <button type="button" data-page="abschussplan" data-panel="ap-gamswild">Gamswild</button>
-                        <button type="button" data-page="abschussplan" data-panel="ap-jahre">Übersicht Jahre</button>
-                    </div>
-                </div>
-            </nav>
-            <div class="sidebar-bottom">
-                <button id="logoutButton" type="button">Abmelden</button>
-            </div>
-        </aside>
+    <aside id="sidebar" aria-label="Hauptnavigation">
+        <div class="logo">DP Jagd</div>
 
-        <main>
-            <header>
-                    <button id="sidebarToggle" aria-label="Menü" aria-expanded="false">☰</button>
-                <strong>DP Jagd</strong>
-                <div>
-                    <span class="header-user-label">Angemeldet als:</span>
-                    <span id="currentUser">-</span>
+        <nav>
+            <button type="button" data-page="dashboard">Dashboard</button>
+            <button type="button" data-page="personen">Personen</button>
+            <button type="button" data-page="abschuss">Abschuss</button>
+
+            <div class="sidebar-group">
+                <button
+                    type="button"
+                    class="sidebar-group-toggle"
+                    data-toggle="submenu"
+                    data-group="abschussplan"
+                    aria-expanded="false">
+                    Abschussplan
+                </button>
+
+                <div class="sidebar-submenu" data-group="abschussplan">
+                    <button type="button" data-page="abschussplan" data-panel="ap-overview">Übersicht</button>
+                    <button type="button" data-page="abschussplan" data-panel="ap-rotwild">Rotwild</button>
+                    <button type="button" data-page="abschussplan" data-panel="ap-rehwild">Rehwild</button>
+                    <button type="button" data-page="abschussplan" data-panel="ap-gamswild">Gamswild</button>
+                    <button type="button" data-page="abschussplan" data-panel="ap-jahre">Übersicht Jahre</button>
                 </div>
-            </header>
-            <section id="app-content" aria-live="polite"></section>
-        </main>
+            </div>
+
+            <div class="sidebar-group">
+                <button
+                    type="button"
+                    class="sidebar-group-toggle"
+                    data-toggle="submenu"
+                    data-group="stammdaten"
+                    aria-expanded="false">
+                    Stammdaten
+                </button>
+
+                <div
+                    class="sidebar-submenu"
+                    data-group="stammdaten">
+
+                    <button
+                        type="button"
+                        data-page="stammdaten">
+                        Wildklassen
+                    </button>
+
+                </div>
+            </div>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button id="logoutButton" type="button">Abmelden</button>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <button id="sidebarToggle" aria-label="Menü" aria-expanded="false">☰</button>
+            <strong>DP Jagd</strong>
+
+            <div>
+                <span class="header-user-label">Angemeldet als:</span>
+                <span id="currentUser">-</span>
+            </div>
+        </header>
+
+        <section id="app-content" aria-live="polite"></section>
+    </main>
     </div>
 
     <div id="sidebarOverlay" aria-hidden="true"></div>
@@ -107,6 +144,8 @@
     <script src="js/services/abschussplanService.js"></script>
     <script src="js/abschussplanWildgruppe.js"></script>
     <script src="js/abschussplan.js"></script>
+    <script src="js/services/wildklassenService.js"></script>
+    <script src="js/stammdaten.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
