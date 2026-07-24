@@ -72,9 +72,13 @@ window.SearchDropdown = class SearchDropdown {
     });
     this.toggle.addEventListener("mousedown", (event) => event.preventDefault());
     this.toggle.addEventListener("click", () => {
-      if (this.list.hidden) this.open();
-      else this.close();
-      this.input.focus();
+      if (this.list.hidden) {
+        this.open();
+        this.input.focus();
+      } else {
+        this.close();
+        this.input.blur();
+      }
     });
     this.list.addEventListener("mousedown", (event) => event.preventDefault());
     this.list.addEventListener("click", (event) => {
@@ -133,11 +137,13 @@ window.SearchDropdown = class SearchDropdown {
     if (this.disabled) return;
     this.filter(this.input.value === this.getLabel() ? "" : this.input.value);
     this.list.hidden = false;
+    this.container.classList.add("is-open");
     this.input.setAttribute("aria-expanded", "true");
   }
 
   close() {
     this.list.hidden = true;
+    this.container.classList.remove("is-open");
     this.input.setAttribute("aria-expanded", "false");
   }
 

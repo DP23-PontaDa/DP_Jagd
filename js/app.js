@@ -5,6 +5,14 @@
 
 document.addEventListener("DOMContentLoaded", init);
 
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function (error) {
+            console.warn("Offline-Unterstützung konnte nicht aktiviert werden:", error);
+        });
+    });
+}
+
 async function init() {
     const loading = document.getElementById("loading");
     const app = document.getElementById("app");

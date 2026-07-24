@@ -514,8 +514,32 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
+    html,
+    body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    #app {
+        min-height: 100dvh;
+    }
+
     header {
-        padding: 12px 16px;
+        min-height: 52px;
+        gap: 8px;
+        padding: 6px 10px;
+    }
+
+    header strong {
+        margin-right: auto;
+        white-space: nowrap;
+    }
+
+    header > div {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .header-user-label {
@@ -523,6 +547,305 @@ textarea.form-control {
     }
 
     #app-content {
-        padding: 20px 16px;
+        width: 100%;
+        max-width: 100vw;
+        padding: 14px 10px 88px;
+        overflow-x: hidden;
+    }
+
+    #app-content .person-container {
+        padding: 12px 0;
+        background: transparent;
+    }
+
+    #app-content h1 {
+        font-size: 1.55rem;
+    }
+
+    #app-content .form-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    #app-content .full-width {
+        grid-column: auto;
+    }
+
+    #app-content input,
+    #app-content select,
+    #app-content textarea,
+    #app-content .form-control,
+    #app-content .search-input,
+    #app-content .search-select {
+        width: 100%;
+        max-width: 100%;
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    #app-content input[type="checkbox"] {
+        width: 24px;
+        min-height: 24px;
+    }
+
+    #app-content button,
+    header button,
+    #sidebar button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    #app-content .action-btn {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+
+    #app-content .action-bar {
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #app-content .search-group,
+    #app-content .btn-group {
+        width: 100%;
+    }
+
+    #app-content .search-group label {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #app-content .modal {
+        padding: 10px;
+        overflow: hidden;
+    }
+
+    #app-content .modal-content {
+        display: flex;
+        width: 100%;
+        max-width: none;
+        max-height: calc(100dvh - 20px);
+        margin: 0;
+        padding: 16px;
+        flex-direction: column;
+        overflow-y: auto;
+        border-radius: 12px;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #app-content .modal-header {
+        position: sticky;
+        z-index: 5;
+        top: -16px;
+        flex: 0 0 auto;
+        gap: 8px;
+        padding-top: 12px;
+        background: #fff;
+    }
+
+    #app-content .modal-header h2 {
+        min-width: 0;
+        font-size: 1.25rem;
+    }
+
+    #app-content .close-btn {
+        display: inline-flex;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #app-content .modal-footer {
+        position: sticky;
+        bottom: -16px;
+        padding: 12px 0 max(4px, env(safe-area-inset-bottom));
+        flex-wrap: wrap;
+        background: #fff;
+    }
+
+    #app-content .modal-footer .btn {
+        flex: 1 1 130px;
+        min-height: 44px;
+    }
+
+    #app-content .pers-tabs {
+        width: 100%;
+        max-width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #app-content .pers-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    #app-content .pers-tab-btn {
+        flex: 0 0 auto;
+        min-height: 44px;
+        scroll-snap-align: center;
+        white-space: nowrap;
+    }
+
+    #app-content .table-wrap,
+    #app-content .pers-table-container {
+        overflow: visible;
+    }
+
+    #app-content table.person-table,
+    #app-content table.ap-table,
+    #app-content table.jagd-table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    #app-content table.person-table thead,
+    #app-content table.ap-table thead,
+    #app-content table.jagd-table thead {
+        display: none;
+    }
+
+    #app-content table.person-table tbody,
+    #app-content table.ap-table tbody,
+    #app-content table.jagd-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    #app-content table.person-table tbody tr,
+    #app-content table.ap-table tbody tr,
+    #app-content table.jagd-table tbody tr {
+        display: block;
+        width: 100%;
+        margin-bottom: 12px;
+        overflow: hidden;
+        border: 1px solid #e1e5e8;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 2px 7px rgba(0, 0, 0, 0.07);
+    }
+
+    #app-content table.person-table tbody td,
+    #app-content table.ap-table tbody td,
+    #app-content table.jagd-table tbody td {
+        display: grid;
+        width: 100%;
+        min-height: 44px;
+        grid-template-columns: minmax(105px, 40%) minmax(0, 60%);
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border: 0;
+        border-bottom: 1px solid #eceff1;
+        overflow-wrap: anywhere;
+    }
+
+    #app-content table.person-table tbody td:last-child,
+    #app-content table.ap-table tbody td:last-child,
+    #app-content table.jagd-table tbody td:last-child {
+        border-bottom: 0;
+    }
+
+    #app-content table tbody td::before {
+        content: attr(data-label);
+        color: #596775;
+        font-weight: 700;
+    }
+
+    #app-content table tbody td.action-cell {
+        display: flex;
+        min-height: 56px;
+        justify-content: flex-end;
+    }
+
+    #app-content table tbody td.action-cell::before {
+        margin-right: auto;
+        align-self: center;
+    }
+
+    #app-content .mobile-fab {
+        position: fixed;
+        z-index: 900;
+        right: max(18px, env(safe-area-inset-right));
+        bottom: max(18px, env(safe-area-inset-bottom));
+        width: 56px;
+        min-width: 56px;
+        height: 56px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 50%;
+        box-shadow: 0 5px 18px rgba(0, 0, 0, 0.28);
+        color: transparent;
+        font-size: 0;
+    }
+
+    #app-content .mobile-fab::after {
+        content: "+";
+        color: #fff;
+        font-size: 32px;
+        font-weight: 300;
+        line-height: 1;
+    }
+
+    #app-content .search-dropdown.is-open {
+        position: fixed;
+        z-index: 1400;
+        inset: 10px;
+        display: flex;
+        padding: 14px;
+        flex-direction: column;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+    }
+
+    #app-content .search-dropdown.is-open .search-dropdown-input {
+        flex: 0 0 48px;
+        padding-right: 44px;
+    }
+
+    #app-content .search-dropdown.is-open .search-dropdown-toggle {
+        top: 15px;
+        right: 15px;
+        width: 44px;
+        height: 46px;
+    }
+
+    #app-content .search-dropdown.is-open .search-dropdown-list {
+        position: static;
+        max-height: none;
+        margin-top: 10px;
+        flex: 1;
+        overflow-y: auto;
+        box-shadow: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #app-content .search-dropdown-option,
+    #app-content .search-dropdown-empty {
+        min-height: 48px;
+        padding: 13px 12px;
+    }
+
+    #app-content .read-mode .form-group {
+        grid-template-columns: minmax(105px, 40%) minmax(0, 60%);
+        min-height: 48px;
+        padding: 12px;
+    }
+
+    #app-content .jagd-box {
+        max-width: 100%;
+        overflow: hidden;
     }
 }

@@ -1,0 +1,19 @@
+{
+  "name": "DP Jagd",
+  "short_name": "DP Jagd",
+  "description": "Jagdverwaltung für Personen, Abschüsse und Abschusspläne",
+  "lang": "de-AT",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#2c3e50",
+  "icons": [
+    {
+      "src": "assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

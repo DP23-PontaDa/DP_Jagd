@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="DP Jagd">
     <title>DP Jagd</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/app-icon.svg">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/login.css">
@@ -16,7 +22,7 @@
             position: fixed !important;
             left: 0;
             top: 0;
-            height: 100vh !important;
+            height: 100dvh !important;
             transform: translateX(-110%);
             transition: transform 280ms ease;
             z-index: 1100;
@@ -162,6 +168,7 @@
     <script src="js/stammdaten.js"></script>
     <script src="js/components/searchDropdown.js"></script>
     <script src="js/components/detailMode.js"></script>
+    <script src="js/mobile.js"></script>
     <script src="js/services/wildhaendlerService.js"></script>
     <script src="js/wildhaendler.js"></script>
     <script src="js/services/abschussService.js"></script>
