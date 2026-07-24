@@ -110,28 +110,6 @@
     font-weight: 700;
   }
 
-  .action-cell {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .action-btn {
-    width: 32px;
-    height: 30px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    line-height: 1;
-  }
-
-  .edit-btn { background: #3498db; color: #fff; }
-  .delete-btn { background: #e74c3c; color: #fff; }
-
   .modal {
     display: none;
     position: fixed;
@@ -342,6 +320,10 @@
   <div class="modal-content">
     <div class="modal-header">
       <h2 id="persModalTitle">Person hinzufügen</h2>
+      <div class="detail-header-actions">
+        <button id="persDetailEdit" class="action-btn edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button>
+        <button id="persDetailDelete" class="action-btn delete-btn" type="button" title="Löschen" aria-label="Löschen"></button>
+      </div>
       <span class="close-btn" onclick="persClosePersonModal()">&times;</span>
     </div>
 
@@ -435,7 +417,7 @@
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="persClosePersonModal()">Schließen</button>
+      <button class="btn btn-outline" onclick="persCancelPersonModal()">Abbrechen</button>
       <button class="btn btn-primary" onclick="persSavePerson()">Speichern</button>
     </div>
   </div>

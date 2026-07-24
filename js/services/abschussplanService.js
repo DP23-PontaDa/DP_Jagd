@@ -160,7 +160,8 @@ const AbschussplanService = (() => {
     const result = await db
       .from(TABLE.WILDGRUPPEN)
       .select("*")
-      .order("reihenfolge");
+      .eq("aktiv", true)
+      .order("bezeichnung", { ascending: true });
 
     return handle(result, "Fehler in getWildgruppen") || [];
   }

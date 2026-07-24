@@ -177,10 +177,11 @@ const AbschussplanWildgruppe = (() => {
 
       actionBar.className = "action-bar";
       leer.textContent = "";
-      buttonGruppe.className = "btn-group";
-      button.className = "btn btn-outline";
+      buttonGruppe.className = "action-cell";
+      button.className = "action-btn edit-btn";
       button.type = "button";
-      button.textContent = "Bearbeiten";
+      button.title = "Bearbeiten";
+      button.setAttribute("aria-label", "Bearbeiten");
       button.hidden = !plan;
       button.onclick = () => openInternModal(groupCode, jahr);
       info.className = "ap-planperiode-info";

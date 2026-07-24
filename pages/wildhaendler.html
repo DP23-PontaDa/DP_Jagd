@@ -1,0 +1,59 @@
+<section class="stammdaten-page">
+  <h1>Stammdaten – Wildhändler</h1>
+  <div class="action-bar">
+    <div></div>
+    <div class="btn-group">
+      <button id="abNeu" class="btn btn-primary" type="button">+ Neuer Wildhändler</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="ap-table">
+      <thead>
+        <tr>
+          <th style="width:140px">Code</th>
+          <th>Bezeichnung</th>
+          <th style="width:130px">Preis/kg</th>
+          <th style="width:90px">Aktiv</th>
+          <th style="width:210px">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="abTabelleBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="abModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="abModalTitel">Wildhändler</h2>
+      <div class="detail-header-actions">
+        <button id="abDetailEdit" class="action-btn edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button>
+        <button id="abDetailDelete" class="action-btn delete-btn" type="button" title="Löschen" aria-label="Löschen"></button>
+      </div>
+      <span id="abSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">&times;</span>
+    </div>
+    <p id="abFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="abCode" class="required">Code</label>
+        <input id="abCode" class="form-control" type="text" maxlength="30">
+      </div>
+      <div class="form-group">
+        <label for="abBezeichnung" class="required">Bezeichnung</label>
+        <input id="abBezeichnung" class="form-control" type="text" maxlength="150">
+      </div>
+      <div class="form-group" data-read-currency="EUR">
+        <label for="abPreisProKg">Preis/kg</label>
+        <input id="abPreisProKg" class="form-control" type="number" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label for="abAktiv">Aktiv</label>
+        <input id="abAktiv" type="checkbox">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="abSpeichern" class="btn btn-primary" type="button">Speichern</button>
+      <button id="abAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>

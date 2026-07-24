@@ -1,1 +1,97 @@
-<h1>Abschuss</h1>
+<section class="abschuss-page">
+  <h1>Abschuss</h1>
+  <div class="action-bar">
+    <div></div>
+    <div class="btn-group">
+      <button id="asNeu" class="btn btn-primary" type="button">+ Neuer Abschuss</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="ap-table">
+      <thead>
+        <tr>
+          <th>Nr</th><th>Datum</th><th>Jäger</th><th>Wildgruppe</th><th>Wildklasse</th>
+          <th>Gewicht</th><th>Preis/kg</th><th>Gesamtpreis</th>
+          <th>Wildhändler</th><th>Fallwild</th><th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="asTabelleBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="asModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="asModalTitel">Abschuss</h2>
+      <div class="detail-header-actions">
+        <button id="asDetailEdit" class="action-btn edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button>
+        <button id="asDetailDelete" class="action-btn delete-btn" type="button" title="Löschen" aria-label="Löschen"></button>
+      </div>
+      <span id="asSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">&times;</span>
+    </div>
+    <p id="asFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="asNr" class="required">Nr</label>
+        <input id="asNr" class="form-control" type="number" min="1" step="1">
+      </div>
+      <div class="form-group">
+        <label for="asDatum" class="required">Datum</label>
+        <input id="asDatum" class="form-control" type="date">
+      </div>
+      <div class="form-group">
+        <label id="asJaegerLabel" class="required">Jäger</label>
+        <div id="asJaeger" aria-labelledby="asJaegerLabel"></div>
+      </div>
+      <div class="form-group">
+        <label id="asWildgruppeLabel" class="required">Wildgruppe</label>
+        <div id="asWildgruppe" aria-labelledby="asWildgruppeLabel"></div>
+      </div>
+      <div class="form-group">
+        <label id="asWildklasseLabel" class="required">Wildklasse</label>
+        <div id="asWildklasse" aria-labelledby="asWildklasseLabel"></div>
+      </div>
+      <div class="form-group" data-read-suffix=" kg">
+        <label for="asGewicht" class="required">Gewicht (kg)</label>
+        <input id="asGewicht" class="form-control" type="number" min="0.01" step="0.01">
+      </div>
+      <div class="form-group" data-read-currency="EUR">
+        <label for="asPreis">Preis/kg</label>
+        <input id="asPreis" class="form-control" type="number" min="0" step="0.01">
+      </div>
+      <div class="form-group" data-read-currency="EUR">
+        <label for="asGesamtpreis">Gesamtpreis</label>
+        <input id="asGesamtpreis" class="form-control" type="number" step="0.01" readonly>
+      </div>
+      <div class="form-group">
+        <label id="asWildhaendlerLabel" class="required">Wildhändler</label>
+        <div id="asWildhaendler" aria-labelledby="asWildhaendlerLabel"></div>
+      </div>
+      <div class="form-group">
+        <label for="asZahlungseingang">Zahlungseingangsdatum</label>
+        <input id="asZahlungseingang" class="form-control" type="date">
+      </div>
+      <div class="form-group full-width">
+        <label for="asZusatzinfo">Zusatzinfo</label>
+        <textarea id="asZusatzinfo" class="form-control"></textarea>
+      </div>
+      <div class="form-group full-width">
+        <label for="asBemerkung">Bemerkung</label>
+        <textarea id="asBemerkung" class="form-control"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="asFallwild">Fallwild</label>
+        <input id="asFallwild" type="checkbox">
+      </div>
+      <div id="asProtokollGruppe" class="form-group" hidden>
+        <label for="asProtokoll" class="required">Untersuchungsprotokoll Nr</label>
+        <input id="asProtokoll" class="form-control" type="text" maxlength="100">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="asSpeichern" class="btn btn-primary" type="button">Speichern</button>
+      <button id="asAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>

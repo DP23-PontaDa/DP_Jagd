@@ -11,6 +11,19 @@ function persInit() {
   persInitDone = true;
   persRenderTableHead();
   persUpdatePageTitle();
+  const detailEdit = document.getElementById('persDetailEdit');
+  const detailDelete = document.getElementById('persDetailDelete');
+  if (detailEdit) {
+    detailEdit.addEventListener('click', function() {
+      DetailMode.setMode(document.getElementById('persPersonModal'), 'edit');
+    });
+  }
+  if (detailDelete) {
+    detailDelete.addEventListener('click', function() {
+      const id = document.getElementById('persOriginalPersonId').value;
+      if (id) persDeletePersonConfirm(id);
+    });
+  }
   persLoadData();
 }
 
@@ -228,7 +241,7 @@ function persRenderTable() {
     editBtn.className = 'action-btn edit-btn';
     editBtn.title = 'Bearbeiten';
     editBtn.setAttribute('aria-label', 'Bearbeiten');
-    editBtn.innerHTML = '<span aria-hidden="true">&#9998;</span>';
+    editBtn.innerHTML = '';
     editBtn.onclick = function() {
       persOpenEditPersonModal(person.personId);
     };
@@ -238,13 +251,18 @@ function persRenderTable() {
     deleteBtn.className = 'action-btn delete-btn';
     deleteBtn.title = 'Löschen';
     deleteBtn.setAttribute('aria-label', 'Löschen');
-    deleteBtn.innerHTML = '<span aria-hidden="true">&#128465;</span>';
+    deleteBtn.innerHTML = '';
     deleteBtn.onclick = function() {
       persDeletePersonConfirm(person.personId);
     };
     actionCell.appendChild(deleteBtn);
 
     row.appendChild(actionCell);
+    row.addEventListener('click', function(event) {
+      if (!event.target.closest('button')) {
+        persOpenEditPersonModal(person.personId, 'read');
+      }
+    });
     tbody.appendChild(row);
   });
 }
@@ -364,6 +382,7 @@ function persOpenNewPersonModal() {
   document.getElementById('persNameKat').value = persActiveKat;
   document.getElementById('persAktiv').checked = true;
   persHandleNameKatChange();
+  DetailMode.setMode(document.getElementById('persPersonModal'), 'edit');
   document.getElementById('persPersonModal').style.display = 'block';
   setTimeout(function() {
     const input = document.getElementById('persPersonenNr');
@@ -372,7 +391,7 @@ function persOpenNewPersonModal() {
 }
 
 // TODO: Extend the edit state handling once additional person-specific panels are introduced.
-function persOpenEditPersonModal(personId) {
+function persOpenEditPersonModal(personId, mode) {
   const person = persAllPersons.find(function(item) {
     return String(item.personId || '') === String(personId || '');
   });
@@ -380,7 +399,8 @@ function persOpenEditPersonModal(personId) {
   if (!person) return;
 
   persEditMode = 'edit';
-  document.getElementById('persModalTitle').textContent = 'Person bearbeiten';
+  document.getElementById('persModalTitle').textContent =
+    mode === 'read' ? 'Person' : 'Person bearbeiten';
   persClearModal();
 
   const hiddenOriginalId = document.getElementById('persOriginalPersonId');
@@ -448,12 +468,26 @@ function persOpenEditPersonModal(personId) {
     }
   }
 
+  DetailMode.setMode(
+    document.getElementById('persPersonModal'),
+    mode === 'read' ? 'read' : 'edit',
+    { capture: mode !== 'read' }
+  );
   document.getElementById('persPersonModal').style.display = 'block';
 }
 
 function persClosePersonModal() {
   const modal = document.getElementById('persPersonModal');
   if (modal) modal.style.display = 'none';
+}
+
+function persCancelPersonModal() {
+  const modal = document.getElementById('persPersonModal');
+  if (persEditMode === 'edit' && modal && modal._detailSnapshot) {
+    DetailMode.cancel(modal);
+    return;
+  }
+  persClosePersonModal();
 }
 
 function persClearModal() {
@@ -583,7 +617,7 @@ function persAddJagdYearRow(rowData) {
     '<td style="text-align:center;"><input type="checkbox" class="pers-jagd-aktiv" ' + (row.aktiv ? 'checked' : '') + ' onchange="persUpdateJagdAktivPreview()"></td>' +
     '<td><select class="form-control pers-jagd-jaeger">' + persMemberOptions(row.jaegerGastId || '') + '</select></td>' +
     '<td><input type="text" class="form-control pers-jagd-bemerkung" value="' + persEscAttr(row.bemerkung || '') + '"></td>' +
-    '<td><button class="action-btn delete-btn" type="button" title="Entfernen" aria-label="Entfernen" onclick="this.closest(\'tr\').remove(); persUpdateJagdAktivPreview();"><span aria-hidden="true">&#128465;</span></button></td>';
+    '<td><button class="action-btn delete-btn" type="button" title="Entfernen" aria-label="Entfernen" onclick="this.closest(\'tr\').remove(); persUpdateJagdAktivPreview();"></button></td>';
 
   tbody.appendChild(tr);
   persUpdateJagdAktivPreview();

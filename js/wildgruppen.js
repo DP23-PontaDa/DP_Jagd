@@ -21,11 +21,25 @@ window.Wildgruppen = (() => {
     aktuelleWildgruppe = null;
   }
 
+  function abbrechen() {
+    if (aktuelleWildgruppe) {
+      DetailMode.cancel(element("wgModal"));
+      return;
+    }
+    modalSchliessen();
+  }
+
   async function init() {
     element("wgNeu").addEventListener("click", neueWildgruppe);
     element("wgSpeichern").addEventListener("click", speichern);
-    element("wgAbbrechen").addEventListener("click", modalSchliessen);
+    element("wgAbbrechen").addEventListener("click", abbrechen);
     element("wgSchliessen").addEventListener("click", modalSchliessen);
+    element("wgDetailEdit").addEventListener("click", () =>
+      DetailMode.setMode(element("wgModal"), "edit"),
+    );
+    element("wgDetailDelete").addEventListener("click", () => {
+      if (aktuelleWildgruppe) loeschen(aktuelleWildgruppe);
+    });
     element("wgSchliessen").addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -41,6 +55,12 @@ window.Wildgruppen = (() => {
       const button = event.target.closest("button[data-aktion]");
 
       if (!button) {
+        const row = event.target.closest("tr");
+        const id = row && row.dataset.id;
+        const wildgruppe = wildgruppen.find(
+          (eintrag) => String(eintrag.id) === String(id),
+        );
+        if (wildgruppe) bearbeiten(wildgruppe, "read");
         return;
       }
 
@@ -87,6 +107,7 @@ window.Wildgruppen = (() => {
 
     wildgruppen.forEach((wildgruppe) => {
       const tr = document.createElement("tr");
+      tr.dataset.id = wildgruppe.id;
       const code = document.createElement("td");
       const bezeichnung = document.createElement("td");
       const aktiv = document.createElement("td");
@@ -99,19 +120,21 @@ window.Wildgruppen = (() => {
       bezeichnung.textContent = wildgruppe.bezeichnung || "";
       aktiv.textContent = wildgruppe.aktiv ? "✓" : "—";
 
-      buttonGruppe.className = "btn-group";
+      buttonGruppe.className = "action-cell";
 
       bearbeitenButton.type = "button";
-      bearbeitenButton.className = "btn btn-outline";
+      bearbeitenButton.className = "action-btn edit-btn";
       bearbeitenButton.dataset.aktion = "bearbeiten";
       bearbeitenButton.dataset.id = wildgruppe.id;
-      bearbeitenButton.textContent = "Bearbeiten";
+      bearbeitenButton.title = "Bearbeiten";
+      bearbeitenButton.setAttribute("aria-label", "Bearbeiten");
 
       loeschenButton.type = "button";
-      loeschenButton.className = "btn btn-outline";
+      loeschenButton.className = "action-btn delete-btn";
       loeschenButton.dataset.aktion = "loeschen";
       loeschenButton.dataset.id = wildgruppe.id;
-      loeschenButton.textContent = "Löschen";
+      loeschenButton.title = "Löschen";
+      loeschenButton.setAttribute("aria-label", "Löschen");
 
       buttonGruppe.append(bearbeitenButton, loeschenButton);
       aktionen.appendChild(buttonGruppe);
@@ -126,15 +149,20 @@ window.Wildgruppen = (() => {
     element("wgCode").value = "";
     element("wgBezeichnung").value = "";
     element("wgAktiv").checked = true;
+    DetailMode.setMode(element("wgModal"), "edit");
     modalOeffnen();
   }
 
-  function bearbeiten(wildgruppe) {
+  function bearbeiten(wildgruppe, mode = "edit") {
     aktuelleWildgruppe = wildgruppe;
-    element("wgModalTitel").textContent = "Wildgruppe bearbeiten";
+    element("wgModalTitel").textContent =
+      mode === "read" ? "Wildgruppe" : "Wildgruppe bearbeiten";
     element("wgCode").value = wildgruppe.code || "";
     element("wgBezeichnung").value = wildgruppe.bezeichnung || "";
     element("wgAktiv").checked = wildgruppe.aktiv === true;
+    DetailMode.setMode(element("wgModal"), mode, {
+      capture: mode === "edit",
+    });
     modalOeffnen();
   }
 

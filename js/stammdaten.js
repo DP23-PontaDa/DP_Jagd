@@ -26,8 +26,15 @@ window.Stammdaten = (() => {
 
     document.getElementById("sdSpeichern").addEventListener("click", speichern);
 
-    document.getElementById("sdAbbrechen").addEventListener("click", () => {
-      document.getElementById("sdWildklasseModal").style.display = "none";
+    document.getElementById("sdAbbrechen").addEventListener("click", abbrechen);
+    document.getElementById("sdDetailEdit").addEventListener("click", () =>
+      DetailMode.setMode(
+        document.getElementById("sdWildklasseModal"),
+        "edit",
+      ),
+    );
+    document.getElementById("sdDetailDelete").addEventListener("click", () => {
+      if (aktuelleWildklasse) loeschen(aktuelleWildklasse);
     });
 
     const schliessen = document.getElementById("sdSchliessen");
@@ -84,21 +91,21 @@ window.Stammdaten = (() => {
               ${klasse.aktiv ? "✓" : "—"}
           </td>
 
-          <td class="text-center">
+          <td class="action-cell">
 
               <button
-                  class="icon-btn edit"
+                  class="action-btn edit-btn edit"
+                  type="button"
                   data-id="${klasse.id}"
-                  title="Bearbeiten">
-                  ✏️
-              </button>
+                  title="Bearbeiten"
+                  aria-label="Bearbeiten"></button>
 
               <button
-                  class="icon-btn delete"
+                  class="action-btn delete-btn delete"
+                  type="button"
                   data-id="${klasse.id}"
-                  title="Löschen">
-                  🗑️
-              </button>
+                  title="Löschen"
+                  aria-label="Löschen"></button>
 
           </td>
       `;
@@ -112,12 +119,16 @@ window.Stammdaten = (() => {
       tr.querySelector(".delete").addEventListener("click", () =>
         loeschen(klasse),
       );
+      tr.addEventListener("click", (event) => {
+        if (!event.target.closest("button")) bearbeiten(klasse, "read");
+      });
     });
   }
 
-  function bearbeiten(klasse) {
+  function bearbeiten(klasse, mode = "edit") {
     istNeu = false;
     aktuelleKlasse = klasse.id;
+    aktuelleWildklasse = klasse;
 
     document.getElementById("sdCode").value = klasse.code;
 
@@ -128,14 +139,20 @@ window.Stammdaten = (() => {
     document.getElementById("sdAktiv").checked = klasse.aktiv;
 
     document.getElementById("sdWildklasseTitel").textContent =
-      "Wildklasse bearbeiten";
+      mode === "read" ? "Wildklasse" : "Wildklasse bearbeiten";
 
+    DetailMode.setMode(
+      document.getElementById("sdWildklasseModal"),
+      mode,
+      { capture: mode === "edit" },
+    );
     document.getElementById("sdWildklasseModal").style.display = "block";
   }
 
   function neueWildklasse() {
     istNeu = true;
     aktuelleKlasse = null;
+    aktuelleWildklasse = null;
 
     document.getElementById("sdWildklasseTitel").textContent =
       "Neue Wildklasse";
@@ -145,7 +162,19 @@ window.Stammdaten = (() => {
     document.getElementById("sdReihenfolge").value = "";
     document.getElementById("sdAktiv").checked = true;
 
+    DetailMode.setMode(
+      document.getElementById("sdWildklasseModal"),
+      "edit",
+    );
     document.getElementById("sdWildklasseModal").style.display = "block";
+  }
+
+  function abbrechen() {
+    if (!istNeu && aktuelleWildklasse) {
+      DetailMode.cancel(document.getElementById("sdWildklasseModal"));
+      return;
+    }
+    document.getElementById("sdWildklasseModal").style.display = "none";
   }
 
   async function loeschen(klasse) {

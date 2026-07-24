@@ -15,6 +15,7 @@ const Router = {
     abschussplan: "pages/abschussplan.html",
     wildgruppen: "pages/wildgruppen.html",
     stammdaten: "pages/stammdaten.html",
+    wildhaendler: "pages/wildhaendler.html",
   },
 
   async open(page) {
@@ -114,6 +115,22 @@ const Router = {
       typeof window.Stammdaten.init === "function"
     ) {
       window.Stammdaten.init();
+    }
+
+    if (
+      page === "wildhaendler" &&
+      window.Wildhaendler &&
+      typeof window.Wildhaendler.init === "function"
+    ) {
+      window.Wildhaendler.init();
+    }
+
+    if (
+      page === "abschuss" &&
+      window.Abschuss &&
+      typeof window.Abschuss.init === "function"
+    ) {
+      window.Abschuss.init();
     }
   },
 

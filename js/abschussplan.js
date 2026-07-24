@@ -140,7 +140,8 @@
         const editBtn = document.createElement("button");
         editBtn.className = "action-btn edit-btn";
         editBtn.title = "Bearbeiten";
-        editBtn.innerHTML = "✏";
+        editBtn.setAttribute("aria-label", "Bearbeiten");
+        editBtn.innerHTML = "";
         editBtn.onclick = () => openPlanperiodeModal("edit", period.id);
         actionCell.appendChild(editBtn);
 
@@ -193,7 +194,8 @@
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "action-btn delete-btn";
         deleteBtn.title = "Löschen";
-        deleteBtn.innerHTML = "🗑";
+        deleteBtn.setAttribute("aria-label", "Löschen");
+        deleteBtn.innerHTML = "";
 
         deleteBtn.onclick = async () => {
           if (!confirm("Planperiode wirklich löschen?")) {
