@@ -1,0 +1,131 @@
+<section class="stammdaten-page">
+
+    <h1>Stammdaten</h1>
+
+    <div class="action-bar">
+
+        <div></div>
+
+        <div class="btn-group">
+
+            <button
+                id="wgNeu"
+                class="btn btn-primary"
+                type="button">
+                + Neue Wildgruppe
+            </button>
+
+        </div>
+
+    </div>
+
+    <table class="ap-table">
+
+        <thead>
+
+            <tr>
+                <th style="width:140px;">Code</th>
+                <th>Bezeichnung</th>
+                <th style="width:90px;">Aktiv</th>
+                <th style="width:210px;">Aktionen</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="wgTabelleBody"></tbody>
+
+    </table>
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- Modal Wildgruppe                                      -->
+<!-- ===================================================== -->
+
+<div id="wgModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2 id="wgModalTitel">
+                Wildgruppe
+            </h2>
+
+            <span
+                id="wgSchliessen"
+                class="close-btn"
+                role="button"
+                tabindex="0"
+                aria-label="Schließen">
+                &times;
+            </span>
+
+        </div>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+
+                <label for="wgCode" class="required">
+                    Code
+                </label>
+
+                <input
+                    id="wgCode"
+                    class="form-control"
+                    type="text"
+                    maxlength="20"
+                    style="text-transform: uppercase;">
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="wgBezeichnung" class="required">
+                    Bezeichnung
+                </label>
+
+                <input
+                    id="wgBezeichnung"
+                    class="form-control"
+                    type="text">
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="wgAktiv">
+                    Aktiv
+                </label>
+
+                <input
+                    id="wgAktiv"
+                    type="checkbox">
+
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+
+            <button
+                id="wgSpeichern"
+                class="btn btn-primary"
+                type="button">
+                Speichern
+            </button>
+
+            <button
+                id="wgAbbrechen"
+                class="btn btn-outline"
+                type="button">
+                Abbrechen
+            </button>
+
+        </div>
+
+    </div>
+
+</div>

@@ -462,6 +462,7 @@
     wireTabs();
 
     AbschussplanWildgruppe.wireKJModal();
+    AbschussplanWildgruppe.wireInternModal();
 
     wirePlanperiodeEvents();
 

@@ -26,14 +26,20 @@ const AbschussplanWildgruppe = (() => {
   }
 
   async function getKJPlan(planperiodeId, wildgruppeId) {
-    const plaene = await AbschussplanService.getAbschussplaene(planperiodeId);
+    const plaene = await AbschussplanService.getAbschussplaeneNachTyp(
+      planperiodeId,
+      wildgruppeId,
+      "KJ",
+    );
 
-    return (
-      plaene.find(
-        (p) =>
-          String(p.wildgruppe_id) === String(wildgruppeId) &&
-          p.plan_typ === "KJ",
-      ) || null
+    return plaene[0] || null;
+  }
+
+  async function getInternPlaene(planperiodeId, wildgruppeId) {
+    return AbschussplanService.getAbschussplaeneNachTyp(
+      planperiodeId,
+      wildgruppeId,
+      "INTERN",
     );
   }
 
@@ -68,6 +74,8 @@ const AbschussplanWildgruppe = (() => {
 
     const btnDelete = card.querySelector(".ap-delete-kj");
 
+    const internContainer = card.querySelector(".ap-intern-plaene");
+
     const groupName = resolveWildgruppe(groupCode);
 
     title.textContent = groupName;
@@ -88,6 +96,7 @@ const AbschussplanWildgruppe = (() => {
     }
 
     info.textContent = `KJ-Abschussplan · Planperiode ${planperiode.startjahr} / ${planperiode.endjahr}`;
+    info.hidden = false;
 
     const wildgruppeId = await getWildgruppeId(groupName);
 
@@ -102,39 +111,130 @@ const AbschussplanWildgruppe = (() => {
 
       btnEdit.hidden = true;
       btnDelete.hidden = true;
+    } else {
+      btnEdit.hidden = false;
+      btnDelete.hidden = false;
 
-      //btnNew.onclick = () => openKJModal(groupCode);
+      btnEdit.onclick = () => openKJModal(groupCode);
 
-      return;
+      btnDelete.onclick = () => deleteKJPlanForGroup(groupCode);
+
+      table.hidden = false;
+
+      noData.style.display = "none";
+
+      body.innerHTML = "";
+
+      const positionen = await AbschussplanService.getPositionen(plan.id);
+
+      positionen.forEach((pos) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${pos.wildklassen?.bezeichnung ?? ""}</td>
+            <td>${pos.soll}</td>
+        `;
+
+        body.appendChild(tr);
+      });
     }
 
-    btnEdit.hidden = false;
-    btnDelete.hidden = false;
+    await renderInternPlaene(
+      groupCode,
+      wildgruppeId,
+      planperiode,
+      internContainer,
+    );
+  }
 
-    //btnNew.onclick = () => openKJModal(groupCode);
+  async function renderInternPlaene(
+    groupCode,
+    wildgruppeId,
+    planperiode,
+    container,
+  ) {
+    if (!container) return;
 
-    btnEdit.onclick = () => openKJModal(groupCode);
+    container.innerHTML = "";
 
-    btnDelete.onclick = () => deleteKJPlanForGroup(groupCode);
+    const plaene = await getInternPlaene(planperiode.id, wildgruppeId);
+    const klassen = await AbschussplanService.getWildklassen(
+      wildgruppeId,
+      false,
+    );
+    const jahre = [planperiode.startjahr, planperiode.endjahr];
 
-    table.hidden = false;
+    for (const jahr of jahre) {
+      const plan =
+        plaene.find((eintrag) => Number(eintrag.jahr) === Number(jahr)) || null;
+      const bereich = document.createElement("div");
+      const actionBar = document.createElement("div");
+      const leer = document.createElement("div");
+      const buttonGruppe = document.createElement("div");
+      const button = document.createElement("button");
+      const info = document.createElement("div");
+      const titel = document.createElement("h2");
 
-    noData.style.display = "none";
+      actionBar.className = "action-bar";
+      leer.textContent = "";
+      buttonGruppe.className = "btn-group";
+      button.className = "btn btn-outline";
+      button.type = "button";
+      button.textContent = "Bearbeiten";
+      button.hidden = !plan;
+      button.onclick = () => openInternModal(groupCode, jahr);
+      info.className = "ap-planperiode-info";
+      info.textContent =
+        `INTERN-Abschussplan · Jahr ${jahr} · ` +
+        `Planperiode ${planperiode.startjahr} / ${planperiode.endjahr}`;
+      titel.textContent = `INTERN ${jahr}`;
 
-    body.innerHTML = "";
+      buttonGruppe.appendChild(button);
+      actionBar.append(leer, buttonGruppe);
+      bereich.append(actionBar, info, titel);
 
-    const positionen = await AbschussplanService.getPositionen(plan.id);
+      if (!plan) {
+        const noData = document.createElement("div");
+        noData.className = "no-data";
+        noData.style.display = "block";
+        noData.textContent = `Kein INTERN-Abschussplan für ${jahr} vorhanden.`;
+        bereich.appendChild(noData);
+      } else {
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const header = document.createElement("tr");
+        const klasseHeader = document.createElement("th");
+        const sollHeader = document.createElement("th");
+        const tbody = document.createElement("tbody");
+        const positionen = await AbschussplanService.getPositionen(plan.id);
 
-    positionen.forEach((pos) => {
-      const tr = document.createElement("tr");
+        table.className = "person-table";
+        klasseHeader.textContent = "Klasse";
+        sollHeader.textContent = "Soll";
+        header.append(klasseHeader, sollHeader);
+        thead.appendChild(header);
 
-      tr.innerHTML = `
-          <td>${pos.wildklassen?.bezeichnung ?? ""}</td>
-          <td>${pos.soll}</td>
-      `;
+        klassen.forEach((klasseEintrag) => {
+          const position = positionen.find(
+            (eintrag) =>
+              String(eintrag.klasse_id) === String(klasseEintrag.id),
+          );
+          const tr = document.createElement("tr");
+          const klasse = document.createElement("td");
+          const soll = document.createElement("td");
 
-      body.appendChild(tr);
-    });
+          klasse.textContent = klasseEintrag.bezeichnung || "";
+          soll.textContent = position?.soll ?? 0;
+          tr.append(klasse, soll);
+          tbody.appendChild(tr);
+        });
+
+        table.append(thead, tbody);
+        bereich.appendChild(table);
+      }
+
+      container.appendChild(bereich);
+    }
   }
 
   async function renderGroup(groupCode, containerId) {
@@ -253,6 +353,185 @@ const AbschussplanWildgruppe = (() => {
     modal.style.display = "none";
     modal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
+  }
+
+  async function openInternModal(groupCode, jahr) {
+    const modal = document.getElementById("internPlanModal");
+    const title = document.getElementById("internModalTitle");
+    const txtPlanperiode = document.getElementById("internPlanperiode");
+    const txtJahr = document.getElementById("internJahr");
+    const txtWildgruppe = document.getElementById("internWildgruppe");
+    const tableContainer = document.getElementById(
+      "internPlanTableContainer",
+    );
+    const empty = document.getElementById("internPlanEmpty");
+    const body = document.getElementById("internPlanPositionsBody");
+
+    if (
+      !modal ||
+      !title ||
+      !txtPlanperiode ||
+      !txtJahr ||
+      !txtWildgruppe ||
+      !tableContainer ||
+      !empty ||
+      !body
+    ) {
+      return;
+    }
+
+    const groupName = resolveWildgruppe(groupCode);
+    const planperiode = await AbschussplanService.getAktivePlanperiode();
+
+    title.textContent = `INTERN-Abschussplan ${groupName}`;
+    txtWildgruppe.value = groupName;
+    txtJahr.value = jahr;
+    body.innerHTML = "";
+    modal.dataset.planId = "";
+    modal.dataset.groupCode = groupCode;
+
+    if (!planperiode) {
+      txtPlanperiode.value = "";
+      empty.textContent = "Keine aktive Planperiode vorhanden.";
+      empty.style.display = "block";
+      tableContainer.style.display = "none";
+      modal.style.display = "block";
+      return;
+    }
+
+    txtPlanperiode.value =
+      `${planperiode.startjahr} / ${planperiode.endjahr}`;
+
+    const wildgruppeId = await getWildgruppeId(groupName);
+    const plaene = await getInternPlaene(planperiode.id, wildgruppeId);
+    const plan =
+      plaene.find((eintrag) => Number(eintrag.jahr) === Number(jahr)) || null;
+
+    if (!plan) {
+      empty.textContent = `Kein INTERN-Abschussplan für ${jahr} vorhanden.`;
+      empty.style.display = "block";
+      tableContainer.style.display = "none";
+      modal.style.display = "block";
+      return;
+    }
+
+    modal.dataset.planId = plan.id;
+    empty.style.display = "none";
+    tableContainer.style.display = "block";
+
+    const klassen = await AbschussplanService.getWildklassen(
+      wildgruppeId,
+      false,
+    );
+    const positionen = await AbschussplanService.getPositionen(plan.id);
+
+    for (const klasse of klassen) {
+      const position = positionen.find(
+        (eintrag) => String(eintrag.klasse_id) === String(klasse.id),
+      );
+      const tr = document.createElement("tr");
+      const klasseCell = document.createElement("td");
+      const sollCell = document.createElement("td");
+      const input = document.createElement("input");
+
+      klasseCell.textContent = klasse.bezeichnung;
+      input.type = "number";
+      input.className = "intern-plan-soll";
+      input.dataset.positionId = position?.id || "";
+      input.dataset.klasseId = klasse.id;
+      input.value = position?.soll ?? 0;
+      sollCell.appendChild(input);
+      tr.append(klasseCell, sollCell);
+      body.appendChild(tr);
+    }
+
+    modal.style.display = "block";
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeInternModal() {
+    const modal = document.getElementById("internPlanModal");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  async function saveInternPlan() {
+    const modal = document.getElementById("internPlanModal");
+    const body = document.getElementById("internPlanPositionsBody");
+
+    if (!modal || !body) return;
+
+    const planId = modal.dataset.planId;
+
+    if (!planId) {
+      alert("INTERN-Abschussplan nicht gefunden.");
+      return;
+    }
+
+    const plan = await AbschussplanService.getAbschussplan(planId);
+
+    if (!plan) {
+      alert("INTERN-Abschussplan konnte nicht geladen werden.");
+      return;
+    }
+
+    const inputs = body.querySelectorAll(".intern-plan-soll");
+
+    for (const input of inputs) {
+      const payload = {
+        plan_id: plan.id,
+        klasse_id: input.dataset.klasseId,
+        soll: Number(input.value) || 0,
+      };
+      const positionId = input.dataset.positionId;
+
+      if (positionId) {
+        const gespeichert = await AbschussplanService.updatePosition(
+          positionId,
+          payload,
+        );
+
+        if (!gespeichert) {
+          alert("Fehler beim Speichern.");
+          return;
+        }
+      } else {
+        const position =
+          await AbschussplanService.createPosition(payload);
+
+        if (!position) {
+          alert("Fehler beim Speichern.");
+          return;
+        }
+
+        input.dataset.positionId = position.id;
+      }
+    }
+
+    closeInternModal();
+    await window.Abschussplan.renderAll();
+  }
+
+  function wireInternModal() {
+    const modal = document.getElementById("internPlanModal");
+    const btnClose = document.getElementById("internModalClose");
+    const btnCancel = document.getElementById("internPlanCancel");
+    const btnSave = document.getElementById("internPlanSave");
+
+    if (btnClose) btnClose.onclick = closeInternModal;
+    if (btnCancel) btnCancel.onclick = closeInternModal;
+    if (btnSave) btnSave.onclick = saveInternPlan;
+
+    if (modal) {
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          closeInternModal();
+        }
+      });
+    }
   }
 
   async function saveKJPlan() {
@@ -413,6 +692,9 @@ const AbschussplanWildgruppe = (() => {
     saveKJPlan,
     deleteKJPlan,
     deleteKJPlanForGroup,
+    openInternModal,
+    wireInternModal,
+    saveInternPlan,
   };
 
   window.AbschussplanWildgruppe = api;

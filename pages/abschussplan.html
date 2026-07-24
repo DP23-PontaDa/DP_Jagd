@@ -71,6 +71,8 @@
             <tbody class="ap-species-body"></tbody>
           </table>
         </div>
+
+        <div class="ap-intern-plaene"></div>
       </div>
     </template>
 
@@ -174,6 +176,48 @@
       <div class="modal-footer">
         <button class="btn btn-outline" id="kjPlanDelete" type="button">Löschen</button>
         <button class="btn btn-primary" id="kjPlanSave" type="button">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="internPlanModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="internModalTitle">INTERN Abschussplan</h2>
+        <span class="close-btn" id="internModalClose">×</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Planperiode</label>
+          <input type="text" id="internPlanperiode" class="form-control" disabled>
+        </div>
+        <div class="form-group">
+          <label>Jahr</label>
+          <input type="text" id="internJahr" class="form-control" disabled>
+        </div>
+        <div class="form-group">
+          <label>Wildgruppe</label>
+          <input type="text" id="internWildgruppe" class="form-control" disabled>
+        </div>
+      </div>
+
+      <div id="internPlanEmpty" class="no-data">Es wurde noch kein INTERN-Abschussplan angelegt.</div>
+      <div id="internPlanTableContainer" style="display:none; margin-top: 16px;">
+        <table class="person-table">
+          <thead>
+            <tr>
+              <th>Klasse</th>
+              <th>Soll</th>
+            </tr>
+          </thead>
+          <tbody id="internPlanPositionsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="internPlanCancel" type="button">Schließen</button>
+        <button class="btn btn-primary" id="internPlanSave" type="button">Speichern</button>
       </div>
     </div>
   </div>

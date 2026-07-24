@@ -165,13 +165,17 @@ const AbschussplanService = (() => {
     return handle(result, "Fehler in getWildgruppen") || [];
   }
 
-  async function getWildklassen(wildgruppeId) {
-    const result = await db
+  async function getWildklassen(wildgruppeId, nurAktive = true) {
+    let query = db
       .from(TABLE.WILDKLASSEN)
       .select("*")
-      .eq("wildgruppe_id", wildgruppeId)
-      .eq("aktiv", true)
-      .order("reihenfolge");
+      .eq("wildgruppe_id", wildgruppeId);
+
+    if (nurAktive) {
+      query = query.eq("aktiv", true);
+    }
+
+    const result = await query.order("reihenfolge");
 
     return handle(result, "Fehler in getWildklassen") || [];
   }
@@ -189,6 +193,20 @@ const AbschussplanService = (() => {
       .order("jahr");
 
     return handle(result, "Fehler in getAbschussplaene") || [];
+  }
+
+  async function getAbschussplaeneNachTyp(
+    planperiodeId,
+    wildgruppeId,
+    planTyp,
+  ) {
+    const plaene = await getAbschussplaene(planperiodeId);
+
+    return plaene.filter(
+      (plan) =>
+        String(plan.wildgruppe_id) === String(wildgruppeId) &&
+        plan.plan_typ === planTyp,
+    );
   }
 
   async function getAbschussplan(id) {
@@ -232,6 +250,27 @@ const AbschussplanService = (() => {
        POSITIONEN
     ======================================================= */
 
+  function sortPositionenByWildklasse(positionen) {
+    return [...positionen].sort((a, b) => {
+      const reihenfolgeA = a.wildklassen?.reihenfolge;
+      const reihenfolgeB = b.wildklassen?.reihenfolge;
+      const sortierwertA =
+        reihenfolgeA !== null &&
+        reihenfolgeA !== undefined &&
+        Number.isFinite(Number(reihenfolgeA))
+          ? Number(reihenfolgeA)
+        : Number.MAX_SAFE_INTEGER;
+      const sortierwertB =
+        reihenfolgeB !== null &&
+        reihenfolgeB !== undefined &&
+        Number.isFinite(Number(reihenfolgeB))
+          ? Number(reihenfolgeB)
+        : Number.MAX_SAFE_INTEGER;
+
+      return sortierwertA - sortierwertB;
+    });
+  }
+
   async function getPositionen(planId) {
     const result = await db
       .from(TABLE.POSITIONEN)
@@ -245,12 +284,11 @@ const AbschussplanService = (() => {
             )
         `,
       )
-      .eq("plan_id", planId)
-      .order("reihenfolge", {
-        foreignTable: "wildklassen",
-      });
+      .eq("plan_id", planId);
 
-    return handle(result, "Fehler in getPositionen") || [];
+    const positionen = handle(result, "Fehler in getPositionen") || [];
+
+    return sortPositionenByWildklasse(positionen);
   }
 
   async function createPosition(data) {
@@ -307,6 +345,7 @@ const AbschussplanService = (() => {
     /* Abschusspläne */
 
     getAbschussplaene,
+    getAbschussplaeneNachTyp,
     getAbschussplan,
     createAbschussplan,
     updateAbschussplan,

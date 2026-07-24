@@ -13,6 +13,7 @@ const Router = {
     personen: "pages/personen.html",
     abschuss: "pages/abschuss.html",
     abschussplan: "pages/abschussplan.html",
+    wildgruppen: "pages/wildgruppen.html",
     stammdaten: "pages/stammdaten.html",
   },
 
@@ -97,6 +98,14 @@ const Router = {
       typeof window.Abschussplan.init === "function"
     ) {
       window.Abschussplan.init();
+    }
+
+    if (
+      page === "wildgruppen" &&
+      window.Wildgruppen &&
+      typeof window.Wildgruppen.init === "function"
+    ) {
+      window.Wildgruppen.init();
     }
 
     if (
