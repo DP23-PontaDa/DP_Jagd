@@ -425,10 +425,18 @@ window.Abschuss = (() => {
         return;
       }
 
-      if (aktuell) await AbschussService.updateAbschuss(aktuell.id, daten);
+      const bisherigeId = aktuell && aktuell.id;
+      if (bisherigeId) await AbschussService.updateAbschuss(aktuell.id, daten);
       else await AbschussService.createAbschuss(daten);
-      schliessen();
       await laden();
+      const gespeichert = abschuesse.find((item) =>
+        bisherigeId
+          ? String(item.id) === String(bisherigeId)
+          : Number(item.nr) === daten.nr &&
+            String(item.datum || "").slice(0, 4) === String(jahr),
+      );
+      if (gespeichert) await bearbeiten(gespeichert.id, "read");
+      else schliessen();
     } catch (error) {
       console.error("Abschuss konnte nicht gespeichert werden:", error);
       meldung(error.code === "23505"

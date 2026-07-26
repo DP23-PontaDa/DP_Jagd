@@ -123,6 +123,8 @@ window.Stammdaten = (() => {
         if (!event.target.closest("button")) bearbeiten(klasse, "read");
       });
     });
+
+    return daten;
   }
 
   function bearbeiten(klasse, mode = "edit") {
@@ -231,8 +233,14 @@ window.Stammdaten = (() => {
         await WildklassenService.updateWildklasse(aktuelleKlasse, daten);
       }
 
-      document.getElementById("sdWildklasseModal").style.display = "none";
-      await ladeWildklassen();
+      const klassen = await ladeWildklassen();
+      const gespeichert = klassen.find((klasse) =>
+        aktuelleKlasse
+          ? String(klasse.id) === String(aktuelleKlasse)
+          : klasse.code === daten.code,
+      );
+      if (gespeichert) bearbeiten(gespeichert, "read");
+      else document.getElementById("sdWildklasseModal").style.display = "none";
     } catch (error) {
       console.error(error);
       alert(error.message);

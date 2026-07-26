@@ -7,7 +7,7 @@ let persInitDone = false;
 let persLoadTimer = null;
 
 function persInit() {
-  if (persInitDone) return;
+  persActiveKat = 'Mitglied';
   persInitDone = true;
   persRenderTableHead();
   persUpdatePageTitle();
@@ -268,29 +268,31 @@ function persRenderTable() {
 }
 
 function persRenderTableHead() {
-  const headers = ['Personen_Nr', 'Vorname', 'Nachname'];
+  const headers = ['Nr.', 'Vorname', 'Nachname'];
   if (persActiveKat === 'Jagdgastkarten') {
     headers.push('Jagdgastkarte');
   } else {
-    headers.push('KJ_Nr');
+    headers.push('KJ-Nr.');
   }
 
   headers.push('Adresse', 'PLZ', 'Ort', 'Aktiv');
 
   if (persNeedsJaegerGastColumn(persActiveKat)) {
-    headers.push('Jäger_Gast');
+    headers.push('Jäger');
   }
 
   if (persIsJagdKategorie(persActiveKat)) {
-    headers.push('Jagdgast-Jahre');
+    headers.push('Jahre');
   }
 
-  headers.push('Aktionen');
+  headers.push('Aktion');
 
   const tr = document.createElement('tr');
-  headers.forEach(function(header) {
+  headers.forEach(function(header, index) {
     const th = document.createElement('th');
     th.textContent = header;
+    if (index === 0) th.className = 'col-number';
+    if (header === 'Aktion') th.className = 'col-actions';
     tr.appendChild(th);
   });
 
@@ -790,9 +792,19 @@ function persSavePerson() {
     person: person,
     jagdgaeste: jagdRows
   })
-    .then(function(data) {
-      persApplyData(data);
-      persClosePersonModal();
+      .then(function(data) {
+        persApplyData(data);
+        const gespeichert = persAllPersons.find(function(item) {
+          if (person.originalPersonId) {
+            return String(item.personId) === String(person.originalPersonId);
+          }
+          return String(item.personenNr) === String(person.personenNr);
+        });
+        if (gespeichert) {
+          persOpenEditPersonModal(gespeichert.personId, 'read');
+        } else {
+          persClosePersonModal();
+        }
     })
     .catch(function(error) {
       persShowError(error);

@@ -152,13 +152,20 @@ window.Wildhaendler = (() => {
 
     el("abSpeichern").disabled = true;
     try {
-      if (aktuell) {
+      const bisherigeId = aktuell && aktuell.id;
+      if (bisherigeId) {
         await WildhaendlerService.updateWildhaendler(aktuell.id, eingabe);
       } else {
         await WildhaendlerService.createWildhaendler(eingabe);
       }
-      schliessen();
       await laden();
+      const gespeichert = daten.find((item) =>
+        bisherigeId
+          ? String(item.id) === String(bisherigeId)
+          : item.code === eingabe.code,
+      );
+      if (gespeichert) bearbeiten(gespeichert, "read");
+      else schliessen();
     } catch (error) {
       console.error("Wildhändler konnte nicht gespeichert werden:", error);
       meldung(error.code === "23505"

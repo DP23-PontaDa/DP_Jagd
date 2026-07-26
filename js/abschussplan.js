@@ -151,7 +151,8 @@
           const aktivBtn = document.createElement("button");
           aktivBtn.className = "action-btn aktiv-btn";
           aktivBtn.title = "Aktiv setzen";
-          aktivBtn.innerHTML = "✔";
+          aktivBtn.setAttribute("aria-label", "Aktiv setzen");
+          aktivBtn.innerHTML = "";
 
           aktivBtn.onclick = async () => {
             const ok = await AbschussplanService.setPlanperiodeStatus(
@@ -173,7 +174,8 @@
           const archivBtn = document.createElement("button");
           archivBtn.className = "action-btn archiv-btn";
           archivBtn.title = "Archivieren";
-          archivBtn.innerHTML = "📦";
+          archivBtn.setAttribute("aria-label", "Archivieren");
+          archivBtn.innerHTML = "";
 
           archivBtn.onclick = async () => {
             const ok = await AbschussplanService.setPlanperiodeStatus(
@@ -212,6 +214,11 @@
         };
 
         actionCell.appendChild(deleteBtn);
+        tr.addEventListener("click", (event) => {
+          if (!event.target.closest("button")) {
+            openPlanperiodeModal("read", period.id);
+          }
+        });
       }
     } catch (err) {
       console.error(err);
@@ -238,8 +245,9 @@
     )
       return;
 
-    if (mode === "edit" && planperiodeId) {
-      title.textContent = "Planperiode bearbeiten";
+    if (mode !== "new" && planperiodeId) {
+      title.textContent =
+        mode === "read" ? "Planperiode" : "Planperiode bearbeiten";
       const planperioden = await AbschussplanService.getPlanperioden();
       //console.log("planperioden", planperioden);
       const period = (planperioden || []).find(
@@ -263,6 +271,9 @@
       remarkInput.value = "";
     }
 
+    DetailMode.setMode(modal, mode === "read" ? "read" : "edit", {
+      capture: mode === "edit",
+    });
     modal.style.display = "block";
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
@@ -394,9 +405,10 @@
       return;
     }
 
-    closePlanperiodeModal();
-
     await renderAll();
+    const gespeichertId = modal.dataset.editId || result.id;
+    if (gespeichertId) await openPlanperiodeModal("read", gespeichertId);
+    else closePlanperiodeModal();
   }
 
   function wirePlanperiodeEvents() {
@@ -404,15 +416,39 @@
     const closeButton = document.getElementById("apPlanperiodeClose");
     const cancelButton = document.getElementById("apPlanperiodeCancel");
     const saveButton = document.getElementById("apPlanperiodeSave");
+    const detailEdit = document.getElementById("apPlanperiodeDetailEdit");
+    const detailDelete = document.getElementById("apPlanperiodeDetailDelete");
     const modal = document.getElementById("apPlanperiodeModal");
 
     if (addButton)
       addButton.addEventListener("click", () => openPlanperiodeModal("new"));
     if (closeButton)
       closeButton.addEventListener("click", closePlanperiodeModal);
-    if (cancelButton)
-      cancelButton.addEventListener("click", closePlanperiodeModal);
+    if (cancelButton) {
+      cancelButton.addEventListener("click", () => {
+        if (modal?.dataset.editId && modal.dataset.detailMode === "edit") {
+          DetailMode.cancel(modal);
+        } else {
+          closePlanperiodeModal();
+        }
+      });
+    }
     if (saveButton) saveButton.addEventListener("click", savePlanperiode);
+    if (detailEdit) {
+      detailEdit.addEventListener("click", () =>
+        DetailMode.setMode(modal, "edit", { capture: true }),
+      );
+    }
+    if (detailDelete) {
+      detailDelete.addEventListener("click", async () => {
+        const id = modal?.dataset.editId;
+        if (!id || !confirm("Planperiode wirklich löschen?")) return;
+        if (await AbschussplanService.deletePlanperiode(id)) {
+          closePlanperiodeModal();
+          await renderAll();
+        }
+      });
+    }
     if (modal) {
       modal.addEventListener("click", (event) => {
         if (event.target === modal) {

@@ -34,6 +34,7 @@
     background: transparent;
     color: inherit;
     text-align: left;
+    font-weight: normal;
 }
 
 #sidebar button:hover,
@@ -77,7 +78,7 @@
 .sidebar-group-toggle {
     position: relative;
     text-align: left;
-    font-weight: 500;
+    font-weight: normal;
     padding-right: 24px;
 }
 
@@ -126,5 +127,5 @@
 
 .sidebar-group > .sidebar-group-toggle {
     text-align: left;
-    font-weight: 700;
+    font-weight: normal;
 }

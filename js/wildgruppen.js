@@ -189,7 +189,8 @@ window.Wildgruppen = (() => {
     speichernButton.disabled = true;
 
     try {
-      if (aktuelleWildgruppe) {
+      const bisherigeId = aktuelleWildgruppe && aktuelleWildgruppe.id;
+      if (bisherigeId) {
         await WildgruppenService.updateWildgruppe(
           aktuelleWildgruppe.id,
           daten,
@@ -198,8 +199,14 @@ window.Wildgruppen = (() => {
         await WildgruppenService.createWildgruppe(daten);
       }
 
-      modalSchliessen();
       await ladeWildgruppen();
+      const gespeichert = wildgruppen.find((item) =>
+        bisherigeId
+          ? String(item.id) === String(bisherigeId)
+          : item.code === daten.code,
+      );
+      if (gespeichert) bearbeiten(gespeichert, "read");
+      else modalSchliessen();
     } catch (error) {
       console.error("Wildgruppe konnte nicht gespeichert werden:", error);
       alert(error.message);

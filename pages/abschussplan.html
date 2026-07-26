@@ -1,7 +1,3 @@
-<style>
-  .aktiv-btn { background: #27ae60; color: #fff; }
-  .archiv-btn { background: #95a5a6; color: #fff; }
-</style>
 <section class="abschussplan-root">
   <h1>Abschussplan</h1>
 
@@ -21,7 +17,7 @@
       <p>Kurze Zusammenfassung der Wildgruppen (Platzhalterdaten).</p>
       <table class="ap-table">
         <thead>
-          <tr><th>Wildgruppe</th><th>Soll 2 Jahre</th><th>Intern (Jahr 1)</th><th>Ist (Jahr 1)</th><th>Vorschlag (Jahr 2)</th></tr>
+          <tr><th>Wildgruppe</th><th>Soll (2 J.)</th><th>Intern (J. 1)</th><th>Ist (J. 1)</th><th>Vorschlag (J. 2)</th></tr>
         </thead>
         <tbody id="ap-overview-body"></tbody>
       </table>
@@ -46,7 +42,7 @@
             <thead>
               <tr>
                 <th>Klasse</th>
-                <th>Soll 2 Jahre</th>
+                <th>Soll (2 J.)</th>
               </tr>
             </thead>
             <tbody class="ap-species-body"></tbody>
@@ -82,7 +78,7 @@
             <th>Rotwild</th>
             <th>Rehwild</th>
             <th>Gamswild</th>
-            <th>Aktionen</th>
+            <th class="col-actions">Aktion</th>
           </tr>
         </thead>
         <tbody id="ap-jahre-body"></tbody>
@@ -94,6 +90,10 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="apPlanperiodeModalTitle">Planperiode</h2>
+        <div class="detail-header-actions">
+          <button id="apPlanperiodeDetailEdit" class="action-btn edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button>
+          <button id="apPlanperiodeDetailDelete" class="action-btn delete-btn" type="button" title="Löschen" aria-label="Löschen"></button>
+        </div>
         <span class="close-btn" id="apPlanperiodeClose">×</span>
       </div>
 
@@ -117,7 +117,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-outline" id="apPlanperiodeCancel" type="button">Schließen</button>
+        <button class="btn btn-outline" id="apPlanperiodeCancel" type="button">Abbrechen</button>
         <button class="btn btn-primary" id="apPlanperiodeSave" type="button">Speichern</button>
       </div>
     </div>
@@ -147,7 +147,7 @@
           <thead>
             <tr>
               <th>Klasse</th>
-              <th>Soll 2 Jahre</th>
+              <th>Soll (2 J.)</th>
             </tr>
           </thead>
           <tbody id="kjPlanPositionsBody"></tbody>

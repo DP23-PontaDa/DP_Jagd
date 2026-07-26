@@ -85,6 +85,23 @@ window.DetailMode = (() => {
 
   function setMode(modal, mode, options = {}) {
     if (!modal) return;
+    const title = modal.querySelector(".modal-header h2");
+    const previousMode = modal.dataset.detailMode;
+    if (mode === "read" && title) {
+      if (previousMode !== "edit" || !modal.dataset.detailReadTitle) {
+        modal.dataset.detailReadTitle = title.textContent.replace(/\s+bearbeiten$/i, "");
+      }
+      title.textContent = modal.dataset.detailReadTitle;
+    }
+    if (
+      mode === "edit" &&
+      previousMode === "read" &&
+      title &&
+      title.textContent === (modal.dataset.detailReadTitle || title.textContent)
+    ) {
+      const readTitle = modal.dataset.detailReadTitle || title.textContent;
+      title.textContent = `${readTitle} bearbeiten`;
+    }
     if (mode === "edit" && options.capture) snapshot(modal);
     if (mode === "read") {
       if (options.capture !== false) snapshot(modal);
