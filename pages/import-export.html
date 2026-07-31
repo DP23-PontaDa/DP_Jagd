@@ -1,0 +1,184 @@
+<section class="import-export-page">
+  <h1>Import / Export</h1>
+  <h2>Abschüsse</h2>
+
+  <div class="ie-card-grid">
+    <section class="ap-overview-group">
+      <h3>Import Abschüsse</h3>
+      <p>Excel- oder CSV-Datei prüfen und nach Bestätigung importieren.</p>
+      <p><small>Unterstützte Formate: Excel (.xlsx), CSV</small></p>
+      <div class="btn-group">
+        <button id="ieDateiAuswaehlen" class="btn btn-primary" type="button">
+          Datei auswählen
+        </button>
+        <button id="ieVorlage" class="btn btn-outline" type="button">
+          Vorlage herunterladen
+        </button>
+      </div>
+      <input id="ieDatei" type="file" accept=".xlsx,.csv,text/csv" hidden>
+    </section>
+
+    <section class="ap-overview-group">
+      <h3>Export Abschüsse</h3>
+      <p>Exportiert ausschließlich die aktuell gesetzte Abschussfilterung.</p>
+      <div class="btn-group">
+        <button id="ieExportExcel" class="btn btn-primary" type="button">
+          Excel exportieren
+        </button>
+        <button id="ieExportCsv" class="btn btn-outline" type="button">
+          CSV exportieren
+        </button>
+      </div>
+      <p id="ieExportStatus" class="form-message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <h2>Mitglieder</h2>
+  <div class="ie-card-grid">
+    <section class="ap-overview-group">
+      <h3>Import Mitglieder</h3>
+      <p>Excel- oder CSV-Datei prüfen, Dubletten entscheiden und importieren.</p>
+      <p><small>Unterstützte Formate: Excel (.xlsx), CSV</small></p>
+      <div class="btn-group">
+        <button id="ieMitgliederDateiAuswaehlen" class="btn btn-primary" type="button">
+          Datei auswählen
+        </button>
+        <button id="ieMitgliederVorlage" class="btn btn-outline" type="button">
+          Excel-Vorlage
+        </button>
+        <button id="ieMitgliederVorlageCsv" class="btn btn-outline" type="button">
+          CSV-Vorlage
+        </button>
+      </div>
+      <input id="ieMitgliederDatei" type="file" accept=".xlsx,.csv,text/csv" hidden>
+    </section>
+
+    <section class="ap-overview-group">
+      <h3>Export Mitglieder</h3>
+      <fieldset class="ie-filter-group">
+        <legend>Filter kombinieren</legend>
+        <label><input id="ieMitgliederAlle" type="checkbox" checked> Alle Mitglieder</label>
+        <label><input class="ie-member-filter" type="checkbox" value="aktiv"> Nur aktive Mitglieder</label>
+        <label><input class="ie-member-filter" type="checkbox" value="inaktiv"> Nur inaktive Mitglieder</label>
+        <label><input id="ieMitgliederBenutzerdefiniert" type="checkbox"> Benutzerdefinierte Filter</label>
+      </fieldset>
+      <div id="ieMitgliederFilterDetails" class="ie-custom-filters" hidden>
+        <input id="ieMitgliederSuche" class="form-control" type="search" placeholder="Name, Adresse, KJ-Nr …">
+        <input id="ieMitgliederNummer" class="form-control" type="text" placeholder="Mitgliedsnummer">
+        <input id="ieMitgliederOrt" class="form-control" type="text" placeholder="Ort">
+      </div>
+      <div class="btn-group">
+        <button id="ieMitgliederExportExcel" class="btn btn-primary" type="button">
+          Excel exportieren
+        </button>
+        <button id="ieMitgliederExportCsv" class="btn btn-outline" type="button">
+          CSV exportieren
+        </button>
+      </div>
+      <p id="ieMitgliederExportStatus" class="form-message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <section id="ieAssistent" class="ap-overview-group ie-wizard" hidden>
+    <div class="ie-step-list" aria-label="Importschritte">
+      <span data-step="1">1 Datei</span>
+      <span data-step="2">2 Einlesen</span>
+      <span data-step="3">3 Vorschau</span>
+      <span data-step="4">4 Validieren</span>
+      <span data-step="5">5 Bestätigen</span>
+      <span data-step="6">6 Bericht</span>
+    </div>
+
+    <div id="ieImportInfo" class="abschuss-table-status"></div>
+    <div id="ieImportFehler" class="form-message" hidden></div>
+
+    <div id="ieVorschau" hidden>
+      <h3>Vorschau</h3>
+      <div class="table-wrap">
+        <table class="ap-table">
+          <thead id="ieVorschauKopf"></thead>
+          <tbody id="ieVorschauBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="ieValidierung" hidden>
+      <h3>Validierung</h3>
+      <p id="ieValidierungStatus" class="form-message"></p>
+      <div class="table-wrap">
+        <table class="ap-table">
+          <thead>
+            <tr><th>Zeile</th><th>Spalte</th><th>Beschreibung</th></tr>
+          </thead>
+          <tbody id="ieFehlerBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="ieBericht" hidden>
+      <h3>Importbericht</h3>
+      <div class="ap-overview-totals">
+        <div><span>Dateiname</span><strong id="ieBerichtDatei">–</strong></div>
+        <div><span>Gelesene Zeilen</span><strong id="ieBerichtGelesen">0</strong></div>
+        <div><span>Importiert</span><strong id="ieBerichtImportiert">0</strong></div>
+        <div><span>Fehler</span><strong id="ieBerichtFehler">0</strong></div>
+        <div><span>Warnungen</span><strong id="ieBerichtWarnungen">0</strong></div>
+      </div>
+      <div id="ieDetailBerichtSummen" class="ap-overview-totals" hidden>
+        <div><span id="ieBerichtNeuLabel">Neue Datensätze</span><strong id="ieBerichtNeu">0</strong></div>
+        <div><span id="ieBerichtAktualisiertLabel">Aktualisiert</span><strong id="ieBerichtAktualisiert">0</strong></div>
+        <div><span id="ieBerichtUebersprungenLabel">Übersprungen</span><strong id="ieBerichtUebersprungen">0</strong></div>
+      </div>
+      <div class="table-wrap">
+        <table class="ap-table">
+          <thead>
+            <tr><th>Zeile</th><th>Spalte</th><th>Beschreibung</th></tr>
+          </thead>
+          <tbody id="ieBerichtFehlerBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="ieImportAbbrechen" class="btn btn-outline" type="button">
+        Abbrechen
+      </button>
+      <button id="ieImportBestaetigen" class="btn btn-primary" type="button" hidden>
+        Import verbindlich bestätigen
+      </button>
+    </div>
+  </section>
+
+  <div id="ieDubletteModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="ieDubletteTitel">Datensatz gefunden</h2>
+        <span id="ieDubletteClose" class="close-btn">×</span>
+      </div>
+      <p><strong id="ieDubletteName"></strong></p>
+      <p id="ieDubletteNummer"></p>
+      <p id="ieDubletteGrund" class="form-message"></p>
+      <h3>Folgende Änderungen wurden gefunden</h3>
+      <div class="table-wrap">
+        <table class="ap-table">
+          <thead><tr><th>Feld</th><th>Alt</th><th>Neu</th></tr></thead>
+          <tbody id="ieDubletteAenderungen"></tbody>
+        </table>
+      </div>
+      <fieldset class="ie-duplicate-decisions">
+        <legend>Entscheidung</legend>
+        <label><input type="radio" name="ieDubletteEntscheidung" value="aktualisieren" checked> Aktualisieren</label>
+        <label><input type="radio" name="ieDubletteEntscheidung" value="ueberspringen"> Überspringen</label>
+        <label><input type="radio" name="ieDubletteEntscheidung" value="neu"> <span id="ieDubletteNeuText">Trotzdem neu anlegen</span></label>
+      </fieldset>
+      <label class="ie-apply-all">
+        <input id="ieDubletteAlle" type="checkbox">
+        Diese Entscheidung auf alle weiteren Dubletten anwenden
+      </label>
+      <div class="modal-footer">
+        <button id="ieDubletteAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+        <button id="ieDubletteUebernehmen" class="btn btn-primary" type="button">Entscheidung übernehmen</button>
+      </div>
+    </div>
+  </div>
+</section>

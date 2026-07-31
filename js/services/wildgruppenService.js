@@ -23,7 +23,7 @@ const WildgruppenService = (() => {
     const { data, error } = await db
       .from("wildgruppen")
       .select("*")
-      .order("bezeichnung", { ascending: true });
+      .order("reihenfolge", { ascending: true });
 
     if (error) {
       throw datenbankfehler(error, "Das Laden der Wildgruppen");
@@ -36,6 +36,7 @@ const WildgruppenService = (() => {
     const { error } = await db.from("wildgruppen").insert(daten);
 
     if (error) {
+      console.error("Supabase Fehler:", error);
       throw datenbankfehler(error, "Das Anlegen der Wildgruppe");
     }
   }

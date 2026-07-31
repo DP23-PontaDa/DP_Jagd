@@ -1,0 +1,63 @@
+<section class="stammdaten-page">
+  <h1>Planpositionen</h1>
+  <div class="action-bar">
+    <div class="form-group">
+      <label for="ppWildgruppe">Wildgruppe</label>
+      <select id="ppWildgruppe" class="form-control"></select>
+    </div>
+    <div class="btn-group">
+      <button id="ppNeu" class="btn btn-primary" type="button">+ Neue Planposition</button>
+    </div>
+  </div>
+  <table class="ap-table">
+    <thead><tr>
+      <th class="col-number">Nr.</th><th class="col-short">Code</th>
+      <th>Bezeichnung</th><th>Wildgruppe</th><th class="col-boolean">Aktiv</th>
+      <th class="col-actions">Aktion</th>
+    </tr></thead>
+    <tbody id="ppTabelleBody"></tbody>
+  </table>
+</section>
+
+<div id="ppModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="ppModalTitel">Planposition</h2>
+      <span id="ppSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">×</span>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ppReihenfolge" class="required">Reihenfolge</label>
+        <input id="ppReihenfolge" class="form-control" type="number" min="1" step="1">
+      </div>
+      <div class="form-group">
+        <label for="ppCode" class="required">Code</label>
+        <input id="ppCode" class="form-control" type="text" maxlength="30">
+      </div>
+      <div class="form-group full-width">
+        <label for="ppBezeichnung" class="required">Bezeichnung</label>
+        <input id="ppBezeichnung" class="form-control" type="text">
+      </div>
+      <div class="form-group"><label for="ppAktiv">Aktiv</label><input id="ppAktiv" type="checkbox"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="ppAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="ppSpeichern" class="btn btn-primary" type="button">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div id="ppMappingModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="ppMappingTitel">Zuordnung</h2>
+      <span id="ppMappingSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">×</span>
+    </div>
+    <p>Diese Zuordnung dient als Vorlage für neue Planperioden.</p>
+    <div id="ppMappingListe" class="ap-wizard-class-list"></div>
+    <div class="modal-footer">
+      <button id="ppMappingAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="ppMappingSpeichern" class="btn btn-primary" type="button">Speichern</button>
+    </div>
+  </div>
+</div>

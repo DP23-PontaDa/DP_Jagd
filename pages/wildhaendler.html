@@ -10,6 +10,7 @@
     <table class="ap-table">
       <thead>
         <tr>
+          <th class="col-number">Nr.</th>
           <th class="col-short">Code</th>
           <th>Bezeichnung</th>
           <th class="col-short">Preis/kg</th>
@@ -34,6 +35,10 @@
     </div>
     <p id="abFehler" class="form-message" hidden></p>
     <div class="form-grid">
+      <div class="form-group">
+        <label for="abReihenfolge" class="required">Reihenfolge</label>
+        <input id="abReihenfolge" class="form-control" type="number" min="1" step="1">
+      </div>
       <div class="form-group">
         <label for="abCode" class="required">Code</label>
         <input id="abCode" class="form-control" type="text" maxlength="30">

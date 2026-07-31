@@ -43,6 +43,7 @@ window.Wildhaendler = (() => {
       const row = document.createElement("tr");
       row.dataset.id = wildhaendler.id;
       [
+        wildhaendler.reihenfolge,
         wildhaendler.code,
         wildhaendler.bezeichnung,
         formatPreis(wildhaendler.preis_pro_kg),
@@ -89,6 +90,7 @@ window.Wildhaendler = (() => {
 
   function neu() {
     aktuell = null;
+    el("abReihenfolge").value = "";
     el("abModalTitel").textContent = "Neuer Wildhändler";
     el("abCode").value = "";
     el("abBezeichnung").value = "";
@@ -100,6 +102,7 @@ window.Wildhaendler = (() => {
 
   function bearbeiten(wildhaendler, mode = "edit") {
     aktuell = wildhaendler;
+    el("abReihenfolge").value = wildhaendler.reihenfolge ?? "";
     el("abModalTitel").textContent =
       mode === "read" ? "Wildhändler" : "Wildhändler bearbeiten";
     el("abCode").value = wildhaendler.code || "";
@@ -140,11 +143,14 @@ window.Wildhaendler = (() => {
 
   async function speichern() {
     const eingabe = {
+      reihenfolge: Number(el("abReihenfolge").value),
       code: el("abCode").value.trim().toUpperCase(),
       bezeichnung: el("abBezeichnung").value.trim(),
       preis_pro_kg: Number(el("abPreisProKg").value || 0),
       aktiv: el("abAktiv").checked,
     };
+    if (!Number.isInteger(eingabe.reihenfolge) || eingabe.reihenfolge <= 0)
+      return meldung("Bitte eine positive ganze Reihenfolge eingeben.");
     if (!eingabe.code) return meldung("Bitte einen Code eingeben.");
     if (!eingabe.bezeichnung) return meldung("Bitte eine Bezeichnung eingeben.");
     if (!Number.isFinite(eingabe.preis_pro_kg) || eingabe.preis_pro_kg < 0)
@@ -164,8 +170,10 @@ window.Wildhaendler = (() => {
           ? String(item.id) === String(bisherigeId)
           : item.code === eingabe.code,
       );
-      if (gespeichert) bearbeiten(gespeichert, "read");
-      else schliessen();
+      schliessen();
+      AppFeedback.success("Wildhändler gespeichert.");
+      if (gespeichert)
+        AppFeedback.focusRow(`#abTabelleBody tr[data-id="${gespeichert.id}"]`);
     } catch (error) {
       console.error("Wildhändler konnte nicht gespeichert werden:", error);
       meldung(error.code === "23505"
@@ -177,10 +185,15 @@ window.Wildhaendler = (() => {
   }
 
   async function loeschen(wildhaendler) {
-    if (!confirm(`Wildhändler "${wildhaendler.bezeichnung}" löschen?`)) return;
+    if (!await AppFeedback.confirmDelete(
+      "Wildhändler löschen?",
+      `„${wildhaendler.bezeichnung}“ wird dauerhaft gelöscht.`,
+    )) return;
     try {
       await WildhaendlerService.deleteWildhaendler(wildhaendler.id);
       await laden();
+      schliessen();
+      AppFeedback.success("Datensatz gelöscht.");
     } catch (error) {
       console.error("Wildhändler konnte nicht gelöscht werden:", error);
       alert(error.code === "23503"

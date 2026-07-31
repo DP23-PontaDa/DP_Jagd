@@ -24,6 +24,7 @@
         <thead>
 
             <tr>
+                <th class="col-number">Nr.</th>
                 <th class="col-short">Code</th>
                 <th>Bezeichnung</th>
                 <th class="col-boolean">Aktiv</th>
@@ -71,7 +72,11 @@
         <div class="form-grid">
 
             <div class="form-group">
+                <label for="wgReihenfolge" class="required">Reihenfolge</label>
+                <input id="wgReihenfolge" class="form-control" type="number" min="1" step="1">
+            </div>
 
+            <div class="form-group">
                 <label for="wgCode" class="required">
                     Code
                 </label>

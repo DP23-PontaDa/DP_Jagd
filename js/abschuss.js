@@ -6,7 +6,13 @@ window.Abschuss = (() => {
   let wildgruppeDropdown;
   let wildklasseDropdown;
   let wildhaendlerDropdown;
+  let jaeger = [];
+  let wildgruppen = [];
+  let wildhaendler = [];
+  let filterInitialisiert = false;
+  let aktuelleFilter = null;
   const el = (id) => document.getElementById(id);
+  const aktuellesJahr = String(new Date().getFullYear());
 
   async function init() {
     el("asNeu").disabled = true;
@@ -48,9 +54,19 @@ window.Abschuss = (() => {
     el("asPreis").addEventListener("input", berechneGesamtpreis);
     el("asFallwild").addEventListener("change", fallwildGeaendert);
     el("asDatum").addEventListener("change", datumGeaendert);
+    el("asSuche").addEventListener("input", rendern);
+    ["asFilterJahr", "asFilterWildgruppe", "asFilterJaeger",
+      "asFilterWildhaendler", "asFilterFallwild"]
+      .forEach((id) => el(id).addEventListener("change", rendern));
+    document.querySelector(".abschuss-quick-filters")
+      .addEventListener("click", schnellfilter);
+
+    filterZuruecksetzen(false);
 
     try {
       await Promise.all([ladeStammdaten(), laden()]);
+      filterOptionenAufbauen();
+      rendern();
     } finally {
       el("asNeu").disabled = false;
     }
@@ -73,7 +89,7 @@ window.Abschuss = (() => {
   }
 
   async function ladeJaeger() {
-      const jaeger = await AbschussService.getJaeger();
+      jaeger = await AbschussService.getJaeger();
       jaegerDropdown.setOptions(
         jaeger.map((person) => ({
           value: person.id,
@@ -84,18 +100,19 @@ window.Abschuss = (() => {
   }
 
   async function ladeWildgruppen() {
-    const gruppen = await AbschussplanService.getWildgruppen();
-    wildgruppeDropdown.setOptions(gruppen);
+    wildgruppen = await WildklassenService.getWildgruppen();
+    wildgruppeDropdown.setOptions(wildgruppen);
   }
 
   async function ladeWildhaendler() {
-    const wildhaendler = await AbschussService.getAktiveWildhaendler();
+    wildhaendler = await AbschussService.getAktiveWildhaendler();
     wildhaendlerDropdown.setOptions(wildhaendler);
   }
 
   async function laden() {
     try {
       abschuesse = await AbschussService.getAbschuesse();
+      filterOptionenAufbauen();
       rendern();
     } catch (error) {
       console.error("Abschüsse konnten nicht geladen werden:", error);
@@ -108,7 +125,43 @@ window.Abschuss = (() => {
   function rendern() {
     const body = el("asTabelleBody");
     body.innerHTML = "";
-    abschuesse.forEach((abschuss) => {
+    aktuelleFilter = {
+      search: el("asSuche").value,
+      jahr: el("asFilterJahr").value,
+      wildgruppeId: el("asFilterWildgruppe").value,
+      jaegerId: el("asFilterJaeger").value,
+      wildhaendlerId: el("asFilterWildhaendler").value,
+      fallwild: el("asFilterFallwild").value,
+    };
+    const gefiltert = ClientFilter.filter(abschuesse, {
+      search: aktuelleFilter.search,
+      searchFields: [
+        (item) => item.nr,
+        (item) => [item.datum, formatDatum(item.datum)],
+        (item) => item.jaeger?.vorname,
+        (item) => item.jaeger?.nachname,
+        (item) => item.wildgruppen?.bezeichnung,
+        (item) => item.wildklassen?.bezeichnung,
+        (item) => item.wildhaendler?.bezeichnung,
+        (item) => item.zusatzinfo,
+        (item) => item.bemerkung,
+        (item) => item.untersuchungsprotokoll_nr,
+      ],
+      predicates: [
+        (item) => !aktuelleFilter.jahr ||
+          String(item.datum || "").slice(0, 4) === aktuelleFilter.jahr,
+        (item) => !aktuelleFilter.wildgruppeId ||
+          String(item.wildgruppe_id) === aktuelleFilter.wildgruppeId,
+        (item) => !aktuelleFilter.jaegerId ||
+          String(item.jaeger_id) === aktuelleFilter.jaegerId,
+        (item) => !aktuelleFilter.wildhaendlerId ||
+          String(item.wildhaendler_id) === aktuelleFilter.wildhaendlerId,
+        (item) => !aktuelleFilter.fallwild ||
+          String(item.fallwild === true) === aktuelleFilter.fallwild,
+      ],
+    });
+
+    gefiltert.forEach((abschuss) => {
       const row = document.createElement("tr");
       row.dataset.id = abschuss.id;
       const werte = [
@@ -138,6 +191,86 @@ window.Abschuss = (() => {
       row.appendChild(actions);
       body.appendChild(row);
     });
+    el("asFilterStatus").textContent =
+      `${gefiltert.length} von ${abschuesse.length} Abschüssen angezeigt`;
+  }
+
+  function selectFuellen(select, label, options) {
+    const value = select.value;
+    select.innerHTML = "";
+    const alle = document.createElement("option");
+    alle.value = "";
+    alle.textContent = `${label}: Alle`;
+    select.appendChild(alle);
+    options.forEach((option) => {
+      const element = document.createElement("option");
+      element.value = option.value;
+      element.textContent = option.label;
+      select.appendChild(element);
+    });
+    select.value = Array.from(select.options).some((option) => option.value === value)
+      ? value
+      : "";
+  }
+
+  function filterOptionenAufbauen() {
+    const jahre = ClientFilter.uniqueOptions(
+      abschuesse,
+      (item) => String(item.datum || "").slice(0, 4),
+      (item) => String(item.datum || "").slice(0, 4),
+      (a, b) => Number(b.value) - Number(a.value),
+    );
+    if (!jahre.some((option) => option.value === aktuellesJahr)) {
+      jahre.push({ value: aktuellesJahr, label: aktuellesJahr });
+      jahre.sort((a, b) => Number(b.value) - Number(a.value));
+    }
+    selectFuellen(el("asFilterJahr"), "Jahr", jahre);
+    selectFuellen(el("asFilterWildgruppe"), "Wildgruppe",
+      ClientFilter.uniqueOptions(wildgruppen, (item) => item.id,
+        (item) => item.label || item.bezeichnung));
+    selectFuellen(el("asFilterJaeger"), "Jäger",
+      ClientFilter.uniqueOptions(jaeger, (item) => item.id,
+        (item) => [item.vorname, item.nachname].filter(Boolean).join(" "),
+        (a, b) => {
+          const personA = jaeger.find((item) => String(item.id) === a.value) || {};
+          const personB = jaeger.find((item) => String(item.id) === b.value) || {};
+          return String(personA.nachname || "").localeCompare(
+            String(personB.nachname || ""), "de", { sensitivity: "base" },
+          ) || a.label.localeCompare(b.label, "de", { sensitivity: "base" });
+        }));
+    selectFuellen(el("asFilterWildhaendler"), "Wildhändler",
+      ClientFilter.uniqueOptions(wildhaendler, (item) => item.id,
+        (item) => item.label || item.bezeichnung));
+    if (!filterInitialisiert) {
+      el("asFilterJahr").value = aktuellesJahr;
+      filterInitialisiert = true;
+    }
+  }
+
+  function filterZuruecksetzen(render = true) {
+    el("asSuche").value = "";
+    el("asFilterJahr").value = aktuellesJahr;
+    el("asFilterWildgruppe").value = "";
+    el("asFilterJaeger").value = "";
+    el("asFilterWildhaendler").value = "";
+    el("asFilterFallwild").value = "false";
+    if (render) rendern();
+  }
+
+  function schnellfilter(event) {
+    const button = event.target.closest("[data-as-quick]");
+    if (!button) return;
+    if (button.dataset.asQuick === "current-year")
+      el("asFilterJahr").value = aktuellesJahr;
+    if (button.dataset.asQuick === "no-fallwild")
+      el("asFilterFallwild").value = "false";
+    if (button.dataset.asQuick === "all-years")
+      el("asFilterJahr").value = "";
+    if (button.dataset.asQuick === "reset") {
+      filterZuruecksetzen();
+      return;
+    }
+    rendern();
   }
 
   function formatDatum(value) {
@@ -164,10 +297,10 @@ window.Abschuss = (() => {
     wildklasseDropdown.setDisabled(true);
     if (!option) return;
     try {
-      const klassen = await AbschussplanService.getWildklassen(
-        option.value,
-        true,
-      );
+      const klassen =
+        await WildklassenService.getAktiveWildklassenByWildgruppe(
+          option.value,
+        );
       wildklasseDropdown.setOptions(klassen);
       wildklasseDropdown.setDisabled(false);
     } catch (error) {
@@ -291,10 +424,10 @@ window.Abschuss = (() => {
       el("asBemerkung").value = abschuss.bemerkung || "";
       el("asFallwild").checked = abschuss.fallwild === true;
       wildgruppeDropdown.setValue(abschuss.wildgruppe_id, false);
-      const klassen = await AbschussplanService.getWildklassen(
-        abschuss.wildgruppe_id,
-        true,
-      );
+      const klassen =
+        await WildklassenService.getAktiveWildklassenByWildgruppe(
+          abschuss.wildgruppe_id,
+        );
       wildklasseDropdown.setOptions(klassen);
       wildklasseDropdown.setDisabled(false);
       wildklasseDropdown.setValue(abschuss.wildklasse_id, false);
@@ -435,8 +568,12 @@ window.Abschuss = (() => {
           : Number(item.nr) === daten.nr &&
             String(item.datum || "").slice(0, 4) === String(jahr),
       );
-      if (gespeichert) await bearbeiten(gespeichert.id, "read");
-      else schliessen();
+      schliessen();
+      AppFeedback.success("Abschuss gespeichert.");
+      if (gespeichert)
+        AppFeedback.focusRow(
+          `#asTabelleBody tr[data-id="${gespeichert.id}"]`,
+        );
     } catch (error) {
       console.error("Abschuss konnte nicht gespeichert werden:", error);
       meldung(error.code === "23505"
@@ -448,15 +585,24 @@ window.Abschuss = (() => {
   }
 
   async function loeschen(abschuss) {
-    if (!confirm(`Abschuss Nr. "${abschuss.nr}" löschen?`)) return;
+    if (!await AppFeedback.confirmDelete(
+      "Abschuss löschen?",
+      `Abschuss Nr. „${abschuss.nr}“ wird dauerhaft gelöscht.`,
+    )) return;
     try {
       await AbschussService.deleteAbschuss(abschuss.id);
       await laden();
+      schliessen();
+      AppFeedback.success("Datensatz gelöscht.");
     } catch (error) {
       console.error("Abschuss konnte nicht gelöscht werden:", error);
       alert("Der Abschuss konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.");
     }
   }
 
-  return { init };
+  function getAktuelleFilter() {
+    return aktuelleFilter ? { ...aktuelleFilter } : null;
+  }
+
+  return { init, getAktuelleFilter };
 })();

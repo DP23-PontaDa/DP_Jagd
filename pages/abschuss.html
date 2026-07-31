@@ -1,10 +1,31 @@
 <section class="abschuss-page">
   <h1>Abschuss</h1>
-  <div class="action-bar">
-    <div></div>
-    <div class="btn-group">
+  <div class="abschuss-filter-bar" aria-label="Abschüsse suchen und filtern">
+    <label class="abschuss-search">
+      <span class="visually-hidden">Suche</span>
+      <input id="asSuche" class="search-input" type="search" placeholder="🔍 Suche" autocomplete="off">
+    </label>
+    <select id="asFilterJahr" class="search-select" aria-label="Jahr"></select>
+    <select id="asFilterWildgruppe" class="search-select" aria-label="Wildgruppe"></select>
+    <select id="asFilterJaeger" class="search-select" aria-label="Jäger"></select>
+    <select id="asFilterWildhaendler" class="search-select" aria-label="Wildhändler"></select>
+    <select id="asFilterFallwild" class="search-select" aria-label="Fallwild">
+      <option value="">Fallwild: Alle</option>
+      <option value="false">Fallwild: Nein</option>
+      <option value="true">Fallwild: Ja</option>
+    </select>
+    <div class="abschuss-filter-action">
       <button id="asNeu" class="btn btn-primary" type="button">+ Neuer Abschuss</button>
     </div>
+  </div>
+  <div class="abschuss-quick-filters" aria-label="Schnellfilter">
+    <button type="button" class="filter-chip" data-as-quick="current-year">Aktuelles Jahr</button>
+    <button type="button" class="filter-chip" data-as-quick="no-fallwild">Fallwild aus</button>
+    <button type="button" class="filter-chip" data-as-quick="all-years">Alle Jahre</button>
+    <button type="button" class="filter-chip" data-as-quick="reset">Alle Filter löschen</button>
+  </div>
+  <div class="abschuss-table-status">
+    <span id="asFilterStatus" aria-live="polite"></span>
   </div>
   <div class="table-wrap">
     <table class="ap-table">

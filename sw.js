@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v3";
+const CACHE_NAME = "dp-jagd-shell-v25";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -12,29 +12,40 @@ const APP_SHELL = [
   "./js/auth.js",
   "./js/router.js",
   "./js/api.js",
+  "./js/dashboard.js",
   "./js/personen.js",
   "./js/abschussplan.js",
   "./js/abschussplanWildgruppe.js",
   "./js/wildgruppen.js",
   "./js/stammdaten.js",
+  "./js/planpositionen.js",
   "./js/wildhaendler.js",
   "./js/abschuss.js",
+  "./js/import-export.js",
   "./js/mobile.js",
   "./js/components/searchDropdown.js",
   "./js/components/detailMode.js",
+  "./js/components/clientFilter.js",
+  "./js/components/appFeedback.js",
+  "./js/components/wildklasseColors.js",
   "./js/services/abschussplanService.js",
+  "./js/services/dashboardService.js",
   "./js/services/wildgruppenService.js",
   "./js/services/wildklassenService.js",
+  "./js/services/planpositionService.js",
   "./js/services/wildhaendlerService.js",
   "./js/services/abschussService.js",
+  "./js/services/importExportService.js",
   "./pages/login.html",
   "./pages/dashboard.html",
   "./pages/personen.html",
   "./pages/abschussplan.html",
   "./pages/wildgruppen.html",
   "./pages/stammdaten.html",
+  "./pages/planpositionen.html",
   "./pages/wildhaendler.html",
-  "./pages/abschuss.html"
+  "./pages/abschuss.html",
+  "./pages/import-export.html"
 ];
 
 self.addEventListener("install", (event) => {

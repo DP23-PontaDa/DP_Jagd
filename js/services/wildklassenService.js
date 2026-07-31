@@ -10,7 +10,7 @@ const WildklassenService = (() => {
     const { data, error } = await db
       .from("wildgruppen")
       .select("*")
-      .order("bezeichnung");
+      .order("reihenfolge");
 
     if (error) throw error;
 
@@ -27,6 +27,19 @@ const WildklassenService = (() => {
     if (error) throw error;
 
     return data;
+  }
+
+  async function getAktiveWildklassenByWildgruppe(wildgruppeId) {
+    const { data, error } = await db
+      .from("wildklassen")
+      .select("*")
+      .eq("wildgruppe_id", wildgruppeId)
+      .eq("aktiv", true)
+      .order("reihenfolge", { ascending: true });
+
+    if (error) throw error;
+
+    return data || [];
   }
 
   async function updateWildklasse(id, daten) {
@@ -50,6 +63,7 @@ const WildklassenService = (() => {
   return {
     getWildgruppen,
     getWildklassen,
+    getAktiveWildklassenByWildgruppe,
     createWildklasse,
     updateWildklasse,
     deleteWildklasse

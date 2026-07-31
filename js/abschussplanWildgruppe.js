@@ -15,6 +15,10 @@ const AbschussplanWildgruppe = (() => {
     return GROUP_MAP[code] || code;
   }
 
+  function formatPlanposition(planposition) {
+    return planposition?.bezeichnung || "";
+  }
+
   async function getWildgruppeId(groupName) {
     const gruppen = await AbschussplanService.getWildgruppen();
 
@@ -43,7 +47,455 @@ const AbschussplanWildgruppe = (() => {
     );
   }
 
+  function matrixPosition(positionen, planpositionId) {
+    return positionen.find(
+      (position) =>
+        String(position.planperiode_planposition_id) ===
+        String(planpositionId),
+    );
+  }
+
+  function readPlanwert(input) {
+    if (!input || input.disabled || input.value.trim() === "") return null;
+    const wert = Number(input.value);
+    return Number.isInteger(wert) && wert >= 0 ? wert : null;
+  }
+
+  function updateMatrixDirtyState(input, saveButton) {
+    const geaendert =
+      (Number(input.value) || 0) !== Number(input.dataset.originalValue);
+    input.classList.toggle("is-dirty", geaendert);
+    const matrix = input.closest(".ap-species");
+    saveButton.disabled = !matrix.querySelector(".ap-matrix-input.is-dirty");
+  }
+
+  function calculatePlanwert(state, changedInput, saveButton) {
+    const changedType = changedInput.dataset.planwertType;
+    if (state.mode === "startjahr") {
+      const kj = readPlanwert(state.inputs.kj);
+      const start = readPlanwert(state.inputs.start);
+      const endInput = state.inputs.end;
+      if (kj === null || start === null || !endInput) return;
+
+      endInput.value = String(Math.max(0, kj - start));
+      updateMatrixDirtyState(endInput, saveButton);
+      return;
+    }
+
+    if (state.mode === "endjahr") {
+      if (changedType !== "kj") return;
+      const kj = readPlanwert(state.inputs.kj);
+      const endInput = state.inputs.end;
+      if (kj === null || !endInput) return;
+
+      endInput.value = String(Math.max(0, kj - state.istStartjahr));
+      updateMatrixDirtyState(endInput, saveButton);
+      return;
+    }
+
+    if (state.mode !== "standard") return;
+
+    state.manualOrder = state.manualOrder.filter(
+      (type) => type !== changedType,
+    );
+    state.manualOrder.push(changedType);
+    state.manualOrder = state.manualOrder.slice(-2);
+
+    const werte = {
+      kj: readPlanwert(state.inputs.kj),
+      start: readPlanwert(state.inputs.start),
+      end: readPlanwert(state.inputs.end),
+    };
+    const vorhandeneTypen = Object.keys(werte).filter(
+      (type) => werte[type] !== null,
+    );
+    if (vorhandeneTypen.length < 2) return;
+
+    let zielTyp = Object.keys(werte).find((type) => werte[type] === null);
+    if (!zielTyp) {
+      if (state.manualOrder.length === 2) {
+        zielTyp = ["kj", "start", "end"].find(
+          (type) => !state.manualOrder.includes(type),
+        );
+      } else {
+        zielTyp = changedType === "end" ? "start" : "end";
+      }
+    }
+
+    let berechnet;
+    if (zielTyp === "kj") {
+      berechnet = werte.start + werte.end;
+    } else if (zielTyp === "start") {
+      berechnet = werte.kj - werte.end;
+    } else {
+      berechnet = werte.kj - werte.start;
+    }
+
+    const zielInput = state.inputs[zielTyp];
+    if (
+      !zielInput ||
+      zielInput.disabled ||
+      !Number.isInteger(berechnet) ||
+      berechnet < 0
+    ) {
+      return;
+    }
+
+    zielInput.value = String(berechnet);
+    updateMatrixDirtyState(zielInput, saveButton);
+  }
+
+  function createMatrixInput(
+    plan,
+    position,
+    planpositionId,
+    saveButton,
+    planwertType,
+    state,
+    angezeigterWert,
+  ) {
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.step = "1";
+    input.inputMode = "numeric";
+    input.className = "ap-matrix-input";
+    input.value = angezeigterWert ?? position?.soll ?? 0;
+    input.dataset.originalValue = String(Number(position?.soll ?? 0));
+    input.dataset.planId = plan?.id || "";
+    input.dataset.positionId = position?.id || "";
+    input.dataset.planpositionId = planpositionId;
+    input.dataset.planwertType = planwertType;
+    input.disabled = !plan;
+    input.readOnly = !state.editableTypes.includes(planwertType);
+    state.inputs[planwertType] = input;
+
+    input.addEventListener("input", () => {
+      if (
+        input.value !== "" &&
+        (!Number.isInteger(Number(input.value)) || Number(input.value) < 0)
+      ) {
+        input.value = "";
+      }
+      updateMatrixDirtyState(input, saveButton);
+      calculatePlanwert(state, input, saveButton);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (["-", "+", ".", ",", "e", "E"].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
+    return input;
+  }
+
+  function setMatrixEditMode(card, editing) {
+    card.classList.toggle("is-editing", editing);
+    card.querySelector(".ap-matrix-edit").hidden =
+      editing || card._planwertEditable === false;
+    card.querySelector(".ap-matrix-footer").hidden = !editing;
+  }
+
+  function cancelPlanningMatrix(card) {
+    card.querySelectorAll(".ap-matrix-input").forEach((input) => {
+      input.value = input.dataset.originalValue;
+      input.classList.remove("is-dirty", "is-saved");
+    });
+    (card._planwertStates || []).forEach((state) => {
+      state.manualOrder = [];
+    });
+    card.querySelector(".ap-matrix-save").disabled = true;
+    setMatrixEditMode(card, false);
+  }
+
+  async function savePlanningMatrix(card) {
+    const inputs = Array.from(
+      card.querySelectorAll(".ap-matrix-input.is-dirty"),
+    );
+    if (!inputs.length) return;
+
+    const button = card.querySelector(".ap-matrix-save");
+    button.disabled = true;
+    try {
+      for (const input of inputs) {
+        const payload = {
+          plan_id: input.dataset.planId,
+          planperiode_planposition_id: input.dataset.planpositionId,
+          soll: Number(input.value) || 0,
+        };
+        if (input.dataset.positionId) {
+          const gespeichert = await AbschussplanService.updatePosition(
+            input.dataset.positionId,
+            payload,
+          );
+          if (!gespeichert) throw new Error("Fehler beim Speichern.");
+        } else {
+          const gespeichert =
+            await AbschussplanService.createPosition(payload);
+          if (!gespeichert) throw new Error("Fehler beim Speichern.");
+          input.dataset.positionId = gespeichert.id;
+        }
+        input.dataset.originalValue = String(payload.soll);
+        const display = input.parentElement.querySelector(
+          ".ap-matrix-display",
+        );
+        if (display) display.textContent = String(payload.soll);
+        if (display) {
+          display.classList.add("is-saved");
+          window.setTimeout(() => display.classList.remove("is-saved"), 2000);
+        }
+        input.classList.remove("is-dirty");
+        input.classList.add("is-saved");
+        window.setTimeout(() => input.classList.remove("is-saved"), 2000);
+      }
+      AppFeedback.success("Änderungen gespeichert.");
+      setMatrixEditMode(card, false);
+      await window.Abschussplan.renderAll();
+    } catch (error) {
+      console.error("Abschussplan konnte nicht gespeichert werden:", error);
+      AppFeedback.error("Die Änderungen konnten nicht gespeichert werden.");
+    } finally {
+      button.disabled =
+        !card.querySelector(".ap-matrix-input.is-dirty");
+    }
+  }
+
+  async function buildPlanningMatrix(groupCode, containerId) {
+    const container = document.getElementById(containerId);
+    const template = document.getElementById("ap-species-template");
+    if (!container || !template) return;
+
+    container.innerHTML = "";
+    container.appendChild(template.content.cloneNode(true));
+    const card = container.querySelector(".ap-species");
+    const title = card.querySelector(".ap-species-title");
+    const info = card.querySelector(".ap-planperiode-info");
+    const noData = card.querySelector(".ap-no-data-message");
+    const scroll = card.querySelector(".ap-matrix-scroll");
+    const matrix = card.querySelector(".ap-planning-matrix");
+    const footer = card.querySelector(".ap-matrix-footer");
+    const saveButton = card.querySelector(".ap-matrix-save");
+    const editButton = card.querySelector(".ap-matrix-edit");
+    const cancelButton = card.querySelector(".ap-matrix-cancel");
+    const deleteButton = card.querySelector(".ap-delete-kj");
+    const groupName = resolveWildgruppe(groupCode);
+    card._planwertStates = [];
+
+    title.textContent = groupName;
+    const planperiode = await AbschussplanService.getAktivePlanperiode();
+    if (!planperiode) {
+      info.textContent = "Keine aktive Planperiode";
+      info.hidden = false;
+      noData.style.display = "block";
+      editButton.hidden = true;
+      deleteButton.hidden = true;
+      return;
+    }
+
+    info.textContent =
+      `Planperiode ${planperiode.startjahr} / ${planperiode.endjahr}`;
+    info.hidden = false;
+    const aktuellesJahr = new Date().getFullYear();
+    const istAktuellesStartjahr =
+      aktuellesJahr === Number(planperiode.startjahr);
+    const istAktuellesEndjahr =
+      aktuellesJahr === Number(planperiode.endjahr);
+    const planwertMode = istAktuellesStartjahr
+      ? "startjahr"
+      : istAktuellesEndjahr
+        ? "endjahr"
+        : "readonly";
+    card._planwertEditable =
+      planwertMode === "startjahr" || planwertMode === "endjahr";
+    const wildgruppeId = await getWildgruppeId(groupName);
+    const kjPlan = await getKJPlan(planperiode.id, wildgruppeId);
+    const internPlaene = await getInternPlaene(
+      planperiode.id,
+      wildgruppeId,
+    );
+    const internJahr1 = internPlaene.find(
+      (plan) => Number(plan.jahr) === Number(planperiode.startjahr),
+    );
+    const internJahr2 = internPlaene.find(
+      (plan) => Number(plan.jahr) === Number(planperiode.endjahr),
+    );
+    const plaene = [kjPlan, internJahr1, internJahr2];
+
+    if (!plaene.some(Boolean)) {
+      noData.style.display = "block";
+      editButton.hidden = true;
+      deleteButton.hidden = true;
+      return;
+    }
+
+    const klassen = (
+      await AbschussplanService.getPlanperiodePlanpositionen(planperiode.id)
+    )
+      .filter(
+        (eintrag) =>
+          eintrag.aktiv === true &&
+          String(eintrag.wildgruppe_id) === String(wildgruppeId),
+      )
+      .sort(
+        (a, b) =>
+          Number(a.reihenfolge ?? Number.MAX_SAFE_INTEGER) -
+          Number(b.reihenfolge ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map((eintrag) => ({
+        id: eintrag.id,
+        code: eintrag.code || "",
+        bezeichnung: eintrag.bezeichnung || "",
+      }));
+    const positionsListen = await Promise.all(
+      plaene.map((plan) =>
+        plan ? AbschussplanService.getPositionen(plan.id) : Promise.resolve([]),
+      ),
+    );
+
+    matrix.style.setProperty(
+      "--ap-matrix-columns",
+      "220px repeat(9, minmax(100px, 1fr))",
+    );
+    [
+      "Planposition",
+      "Soll KJ",
+      `Soll ${planperiode.startjahr}`,
+      `Soll ${planperiode.endjahr}`,
+      "Ist KJ",
+      `Ist ${planperiode.startjahr}`,
+      `Ist ${planperiode.endjahr}`,
+      "Rest",
+      "%",
+      "Fallwild",
+    ]
+      .forEach((text, index) => {
+        const header = document.createElement("div");
+        header.className =
+          "ap-matrix-cell ap-matrix-header" +
+          (index === 0 ? " ap-matrix-sticky-column" : "");
+        if (index === 3 || index === 6) {
+          header.classList.add("ap-matrix-divider-after");
+        }
+        header.textContent = text;
+        matrix.appendChild(header);
+      });
+
+    klassen.forEach((klasse) => {
+      const kjPosition = matrixPosition(positionsListen[0], klasse.id);
+      const startjahrPosition = matrixPosition(positionsListen[1], klasse.id);
+      const endjahrPosition = matrixPosition(positionsListen[2], klasse.id);
+      const automatischerEndjahrSoll = Math.max(
+        0,
+        Number(kjPosition?.soll ?? 0) -
+          Number(
+            planwertMode === "endjahr"
+              ? startjahrPosition?.ist ?? 0
+              : startjahrPosition?.soll ?? 0,
+          ),
+      );
+      const planwertState = {
+        inputs: {},
+        manualOrder: [],
+        mode: planwertMode,
+        istStartjahr: Number(startjahrPosition?.ist ?? 0),
+        editableTypes:
+          planwertMode === "startjahr" || planwertMode === "endjahr"
+          ? ["kj", "start"]
+          : [],
+      };
+      card._planwertStates.push(planwertState);
+      const name = document.createElement("div");
+      name.className = "ap-matrix-cell ap-matrix-class ap-matrix-sticky-column";
+      name.textContent = formatPlanposition(klasse);
+      matrix.appendChild(name);
+
+      plaene.forEach((plan, index) => {
+        const cell = document.createElement("div");
+        cell.className = "ap-matrix-cell ap-matrix-value";
+        if (index === 0) cell.classList.add("ap-matrix-kj");
+        if (index === 2) cell.classList.add("ap-matrix-divider-after");
+        const position = matrixPosition(positionsListen[index], klasse.id);
+        const angezeigterWert =
+          index === 2 &&
+          (planwertMode === "startjahr" || planwertMode === "endjahr")
+            ? automatischerEndjahrSoll
+            : position?.soll ?? 0;
+        const display = document.createElement("span");
+        display.className = "ap-matrix-display";
+        display.textContent = String(angezeigterWert);
+        const input = createMatrixInput(
+          plan,
+          position,
+          klasse.id,
+          saveButton,
+          ["kj", "start", "end"][index],
+          planwertState,
+          angezeigterWert,
+        );
+        cell.append(display, input);
+        matrix.appendChild(cell);
+      });
+
+      const istWert = Number(kjPosition?.ist ?? 0);
+      const istStartjahr = Number(startjahrPosition?.ist ?? 0);
+      const istEndjahr = Number(endjahrPosition?.ist ?? 0);
+      const restWert = Number(kjPosition?.rest ?? 0);
+      const prozentWert = Number(kjPosition?.erfuellung_prozent ?? 0);
+      const fallwildWert = Number(kjPosition?.fallwild ?? 0);
+
+      [
+        { wert: String(istWert) },
+        { wert: String(istStartjahr) },
+        {
+          wert: String(istEndjahr),
+          klasse: "ap-matrix-divider-after",
+        },
+        {
+          wert: String(restWert),
+          klasse: restWert > 0
+            ? "ap-matrix-rest-positive"
+            : "ap-matrix-rest-nonpositive",
+        },
+        {
+          wert: `${prozentWert.toLocaleString("de-AT", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 1,
+          })} %`,
+        },
+        { wert: String(fallwildWert) },
+      ].forEach(({ wert, klasse }) => {
+        const cell = document.createElement("div");
+        cell.className = "ap-matrix-cell ap-matrix-value ap-matrix-metric";
+        if (klasse) cell.classList.add(klasse);
+        const display = document.createElement("span");
+        display.className = "ap-matrix-display";
+        display.textContent = wert;
+        cell.appendChild(display);
+        matrix.appendChild(cell);
+      });
+    });
+
+    noData.style.display = "none";
+    scroll.hidden = false;
+    footer.hidden = false;
+    editButton.hidden = !card._planwertEditable;
+    deleteButton.hidden = !kjPlan;
+    deleteButton.onclick = () => deleteKJPlanForGroup(groupCode);
+    editButton.addEventListener("click", () =>
+      setMatrixEditMode(card, true));
+    cancelButton.addEventListener("click", () =>
+      cancelPlanningMatrix(card));
+    saveButton.addEventListener("click", () => savePlanningMatrix(card));
+    setMatrixEditMode(card, false);
+    if (planwertMode === "startjahr" || planwertMode === "endjahr") {
+      card.querySelectorAll(
+        '.ap-matrix-input[data-planwert-type="end"]',
+      ).forEach((input) => updateMatrixDirtyState(input, saveButton));
+    }
+  }
+
   async function buildGroupPane(groupCode, containerId) {
+    return buildPlanningMatrix(groupCode, containerId);
+
     const container = document.getElementById(containerId);
 
     if (!container) return;
@@ -131,7 +583,7 @@ const AbschussplanWildgruppe = (() => {
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
-            <td>${pos.wildklassen?.bezeichnung ?? ""}</td>
+            <td>${formatPlanposition(pos.planperiode_planpositionen)}</td>
             <td>${pos.soll}</td>
         `;
 
@@ -158,9 +610,10 @@ const AbschussplanWildgruppe = (() => {
     container.innerHTML = "";
 
     const plaene = await getInternPlaene(planperiode.id, wildgruppeId);
-    const klassen = await AbschussplanService.getWildklassen(
-      wildgruppeId,
-      false,
+    const klassen = (
+      await AbschussplanService.getPlanperiodePlanpositionen(planperiode.id)
+    ).filter(
+      (eintrag) => String(eintrag.wildgruppe_id) === String(wildgruppeId),
     );
     const jahre = [planperiode.startjahr, planperiode.endjahr];
 
@@ -210,7 +663,7 @@ const AbschussplanWildgruppe = (() => {
         const positionen = await AbschussplanService.getPositionen(plan.id);
 
         table.className = "person-table";
-        klasseHeader.textContent = "Klasse";
+        klasseHeader.textContent = "Wildklasse";
         sollHeader.textContent = "Soll";
         header.append(klasseHeader, sollHeader);
         thead.appendChild(header);
@@ -218,13 +671,14 @@ const AbschussplanWildgruppe = (() => {
         klassen.forEach((klasseEintrag) => {
           const position = positionen.find(
             (eintrag) =>
-              String(eintrag.klasse_id) === String(klasseEintrag.id),
+              String(eintrag.planperiode_planposition_id) ===
+                String(klasseEintrag.id),
           );
           const tr = document.createElement("tr");
           const klasse = document.createElement("td");
           const soll = document.createElement("td");
 
-          klasse.textContent = klasseEintrag.bezeichnung || "";
+          klasse.textContent = formatPlanposition(klasseEintrag);
           soll.textContent = position?.soll ?? 0;
           tr.append(klasse, soll);
           tbody.appendChild(tr);
@@ -313,7 +767,13 @@ const AbschussplanWildgruppe = (() => {
 
     tableContainer.style.display = "block";
 
-    const klassen = await AbschussplanService.getWildklassen(wildgruppeId);
+    const klassen = (
+      await AbschussplanService.getPlanperiodePlanpositionen(planperiode.id)
+    ).filter(
+      (eintrag) =>
+        eintrag.aktiv === true &&
+        String(eintrag.wildgruppe_id) === String(wildgruppeId),
+    );
 
     const positionen = await AbschussplanService.getPositionen(plan.id);
 
@@ -321,19 +781,20 @@ const AbschussplanWildgruppe = (() => {
 
     for (const klasse of klassen) {
       const position = positionen.find(
-        (p) => String(p.klasse_id) === String(klasse.id),
+        (p) =>
+          String(p.planperiode_planposition_id) === String(klasse.id),
       );
 
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
-      <td>${klasse.bezeichnung}</td>
+      <td>${formatPlanposition(klasse)}</td>
       <td>
         <input
           type="number"
           class="kj-plan-soll"
           data-position-id="${position?.id ?? ""}"
-          data-klasse-id="${klasse.id}"
+          data-planposition-id="${klasse.id}"
           value="${position?.soll ?? 0}">
       </td>
     `;
@@ -420,26 +881,28 @@ const AbschussplanWildgruppe = (() => {
     empty.style.display = "none";
     tableContainer.style.display = "block";
 
-    const klassen = await AbschussplanService.getWildklassen(
-      wildgruppeId,
-      false,
+    const klassen = (
+      await AbschussplanService.getPlanperiodePlanpositionen(planperiode.id)
+    ).filter(
+      (eintrag) => String(eintrag.wildgruppe_id) === String(wildgruppeId),
     );
     const positionen = await AbschussplanService.getPositionen(plan.id);
 
     for (const klasse of klassen) {
       const position = positionen.find(
-        (eintrag) => String(eintrag.klasse_id) === String(klasse.id),
+        (eintrag) =>
+          String(eintrag.planperiode_planposition_id) === String(klasse.id),
       );
       const tr = document.createElement("tr");
       const klasseCell = document.createElement("td");
       const sollCell = document.createElement("td");
       const input = document.createElement("input");
 
-      klasseCell.textContent = klasse.bezeichnung;
+      klasseCell.textContent = formatPlanposition(klasse);
       input.type = "number";
       input.className = "intern-plan-soll";
       input.dataset.positionId = position?.id || "";
-      input.dataset.klasseId = klasse.id;
+      input.dataset.planpositionId = klasse.id;
       input.value = position?.soll ?? 0;
       sollCell.appendChild(input);
       tr.append(klasseCell, sollCell);
@@ -484,7 +947,7 @@ const AbschussplanWildgruppe = (() => {
     for (const input of inputs) {
       const payload = {
         plan_id: plan.id,
-        klasse_id: input.dataset.klasseId,
+        planperiode_planposition_id: input.dataset.planpositionId,
         soll: Number(input.value) || 0,
       };
       const positionId = input.dataset.positionId;
@@ -514,6 +977,7 @@ const AbschussplanWildgruppe = (() => {
 
     closeInternModal();
     await window.Abschussplan.renderAll();
+    AppFeedback.success("Abschussplan gespeichert.");
   }
 
   function wireInternModal() {
@@ -562,13 +1026,13 @@ const AbschussplanWildgruppe = (() => {
     for (const input of inputs) {
       const positionId = input.dataset.positionId;
 
-      const klasseId = input.dataset.klasseId;
+      const planpositionId = input.dataset.planpositionId;
 
       const soll = Number(input.value) || 0;
 
       const payload = {
         plan_id: plan.id,
-        klasse_id: klasseId,
+        planperiode_planposition_id: planpositionId,
         soll: soll,
       };
 
@@ -597,10 +1061,14 @@ const AbschussplanWildgruppe = (() => {
     closeKJModal();
 
     await window.Abschussplan.renderAll();
+    AppFeedback.success("Abschussplan gespeichert.");
   }
 
   async function deleteKJPlan() {
-    if (!confirm("KJ-Abschussplan wirklich löschen?")) {
+    if (!await AppFeedback.confirmDelete(
+      "KJ-Abschussplan löschen?",
+      "Diese Aktion kann nicht rückgängig gemacht werden.",
+    )) {
       return;
     }
 
@@ -612,6 +1080,7 @@ const AbschussplanWildgruppe = (() => {
       closeKJModal();
 
       await window.Abschussplan.renderAll();
+      AppFeedback.success("Datensatz gelöscht.");
     }
   }
 

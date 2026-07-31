@@ -122,8 +122,20 @@
 
                     <button
                         type="button"
+                        data-page="planpositionen">
+                        Planpositionen
+                    </button>
+
+                    <button
+                        type="button"
                         data-page="wildhaendler">
                         Wildhändler
+                    </button>
+
+                    <button
+                        type="button"
+                        data-page="import-export">
+                        Import / Export
                     </button>
 
                 </div>
@@ -154,10 +166,15 @@
     <div id="sidebarOverlay" aria-hidden="true"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/router.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/components/wildklasseColors.js"></script>
+    <script src="js/services/dashboardService.js"></script>
+    <script src="js/dashboard.js"></script>
     <script src="js/personen.js"></script>
     <script src="js/services/abschussplanService.js"></script>
     <script src="js/abschussplanWildgruppe.js"></script>
@@ -166,13 +183,19 @@
     <script src="js/wildgruppen.js"></script>
     <script src="js/services/wildklassenService.js"></script>
     <script src="js/stammdaten.js"></script>
+    <script src="js/services/planpositionService.js"></script>
+    <script src="js/planpositionen.js"></script>
     <script src="js/components/searchDropdown.js"></script>
     <script src="js/components/detailMode.js"></script>
+    <script src="js/components/clientFilter.js"></script>
+    <script src="js/components/appFeedback.js"></script>
     <script src="js/mobile.js"></script>
     <script src="js/services/wildhaendlerService.js"></script>
     <script src="js/wildhaendler.js"></script>
     <script src="js/services/abschussService.js"></script>
     <script src="js/abschuss.js"></script>
+    <script src="js/services/importExportService.js"></script>
+    <script src="js/import-export.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

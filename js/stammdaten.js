@@ -79,6 +79,7 @@ window.Stammdaten = (() => {
 
     daten.forEach((klasse) => {
       const tr = document.createElement("tr");
+      tr.dataset.id = klasse.id;
 
       tr.innerHTML = `
           <td>${klasse.reihenfolge}</td>
@@ -180,7 +181,10 @@ window.Stammdaten = (() => {
   }
 
   async function loeschen(klasse) {
-    if (!confirm(`Wildklasse "${klasse.bezeichnung}" löschen?`)) {
+    if (!await AppFeedback.confirmDelete(
+      "Wildklasse löschen?",
+      `„${klasse.bezeichnung}“ wird dauerhaft gelöscht.`,
+    )) {
       return;
     }
 
@@ -188,6 +192,8 @@ window.Stammdaten = (() => {
       await WildklassenService.deleteWildklasse(klasse.id);
 
       await ladeWildklassen();
+      document.getElementById("sdWildklasseModal").style.display = "none";
+      AppFeedback.success("Datensatz gelöscht.");
     } catch (error) {
       if (error.code === "23503") {
         alert(
@@ -239,8 +245,12 @@ window.Stammdaten = (() => {
           ? String(klasse.id) === String(aktuelleKlasse)
           : klasse.code === daten.code,
       );
-      if (gespeichert) bearbeiten(gespeichert, "read");
-      else document.getElementById("sdWildklasseModal").style.display = "none";
+      document.getElementById("sdWildklasseModal").style.display = "none";
+      AppFeedback.success("Wildklasse gespeichert.");
+      if (gespeichert)
+        AppFeedback.focusRow(
+          `#sdWildklassenBody tr[data-id="${gespeichert.id}"]`,
+        );
     } catch (error) {
       console.error(error);
       alert(error.message);

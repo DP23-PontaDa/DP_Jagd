@@ -211,6 +211,7 @@ function persRenderTable() {
 
   persons.forEach(function(person) {
     const row = document.createElement('tr');
+    row.dataset.id = person.personId;
     persAddCell(row, person.personenNr || '');
     persAddCell(row, person.vorname);
     persAddCell(row, person.nachname);
@@ -800,10 +801,12 @@ function persSavePerson() {
           }
           return String(item.personenNr) === String(person.personenNr);
         });
+        persClosePersonModal();
+        AppFeedback.success('Person gespeichert.');
         if (gespeichert) {
-          persOpenEditPersonModal(gespeichert.personId, 'read');
-        } else {
-          persClosePersonModal();
+          AppFeedback.focusRow(
+            '#persTableBody tr[data-id="' + gespeichert.personId + '"]'
+          );
         }
     })
     .catch(function(error) {
@@ -815,14 +818,17 @@ function persSavePerson() {
 }
 
 // TODO: Centralize destructive actions once more data modules need the same cleanup flow.
-function persDeletePersonConfirm(personId) {
+async function persDeletePersonConfirm(personId) {
   const person = persAllPersons.find(function(item) {
     return String(item.personId || '') === String(personId || '');
   });
 
   if (!person) return;
 
-  const confirmed = window.confirm('Person wirklich löschen?');
+  const confirmed = await AppFeedback.confirmDelete(
+    'Person löschen?',
+    'Diese Aktion kann nicht rückgängig gemacht werden.'
+  );
   if (!confirmed) return;
 
   persShowProcessing('Löschen...');
@@ -831,6 +837,7 @@ function persDeletePersonConfirm(personId) {
     .then(function(data) {
       persApplyData(data);
       persClosePersonModal();
+      AppFeedback.success('Datensatz gelöscht.');
     })
     .catch(function(error) {
       persShowError(error);

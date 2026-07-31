@@ -20,7 +20,8 @@ const AbschussService = (() => {
         wildklassen (id, bezeichnung, wildgruppe_id),
         wildhaendler (id, bezeichnung)
       `)
-      .order("datum", { ascending: false });
+      .order("datum", { ascending: false })
+      .order("nr", { ascending: false });
     if (error) throw fehler(error, "Das Laden der Abschüsse");
     return data || [];
   }
@@ -96,9 +97,9 @@ const AbschussService = (() => {
   async function getAktiveWildhaendler() {
     const { data, error } = await db
       .from("wildhaendler")
-      .select("id, bezeichnung, preis_pro_kg")
+      .select("id, bezeichnung, preis_pro_kg, reihenfolge")
       .eq("aktiv", true)
-      .order("bezeichnung", { ascending: true });
+      .order("reihenfolge", { ascending: true });
     if (error) throw fehler(error, "Das Laden der Wildhändler");
     return data || [];
   }

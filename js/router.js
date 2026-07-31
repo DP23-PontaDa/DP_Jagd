@@ -12,10 +12,12 @@ const Router = {
     dashboard: "pages/dashboard.html",
     personen: "pages/personen.html",
     abschuss: "pages/abschuss.html",
+    "import-export": "pages/import-export.html",
     abschussplan: "pages/abschussplan.html",
     wildgruppen: "pages/wildgruppen.html",
     stammdaten: "pages/stammdaten.html",
     wildhaendler: "pages/wildhaendler.html",
+    planpositionen: "pages/planpositionen.html",
   },
 
   async open(page) {
@@ -56,16 +58,12 @@ const Router = {
         Auth.updateHeader();
       }
 
-      this.initializePage(requestedPage);
-      if (requestedPage === "abschussplan" && this.pendingPanel) {
-        if (
-          window.Abschussplan &&
-          typeof window.Abschussplan.activateTab === "function"
-        ) {
-          window.Abschussplan.activateTab(this.pendingPanel);
-        }
-        this.pendingPanel = null;
-      }
+      const initialPanel =
+        requestedPage === "abschussplan"
+          ? this.pendingPanel || "ap-overview"
+          : null;
+      this.pendingPanel = null;
+      this.initializePage(requestedPage, initialPanel);
     } catch (error) {
       console.error("Seite konnte nicht geladen werden:", error);
       content.textContent =
@@ -84,7 +82,15 @@ const Router = {
     }
   },
 
-  initializePage(page) {
+  initializePage(page, initialPanel = null) {
+    if (
+      page === "dashboard" &&
+      window.Dashboard &&
+      typeof window.Dashboard.init === "function"
+    ) {
+      window.Dashboard.init();
+    }
+
     if (
       page === "personen" &&
       window.Personen &&
@@ -98,7 +104,7 @@ const Router = {
       window.Abschussplan &&
       typeof window.Abschussplan.init === "function"
     ) {
-      window.Abschussplan.init();
+      window.Abschussplan.init(initialPanel);
     }
 
     if (
@@ -123,6 +129,22 @@ const Router = {
       typeof window.Wildhaendler.init === "function"
     ) {
       window.Wildhaendler.init();
+    }
+
+    if (
+      page === "planpositionen" &&
+      window.Planpositionen &&
+      typeof window.Planpositionen.init === "function"
+    ) {
+      window.Planpositionen.init();
+    }
+
+    if (
+      page === "import-export" &&
+      window.ImportExport &&
+      typeof window.ImportExport.init === "function"
+    ) {
+      window.ImportExport.init();
     }
 
     if (

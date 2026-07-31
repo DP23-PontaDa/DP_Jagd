@@ -85,13 +85,6 @@ window.Wildgruppen = (() => {
   async function ladeWildgruppen() {
     try {
       wildgruppen = await WildgruppenService.getWildgruppen();
-      wildgruppen.sort((a, b) =>
-        String(a.bezeichnung || "").localeCompare(
-          String(b.bezeichnung || ""),
-          "de",
-          { sensitivity: "base" },
-        ),
-      );
       renderTabelle();
     } catch (error) {
       console.error("Wildgruppen konnten nicht geladen werden:", error);
@@ -108,6 +101,7 @@ window.Wildgruppen = (() => {
     wildgruppen.forEach((wildgruppe) => {
       const tr = document.createElement("tr");
       tr.dataset.id = wildgruppe.id;
+      const reihenfolge = document.createElement("td");
       const code = document.createElement("td");
       const bezeichnung = document.createElement("td");
       const aktiv = document.createElement("td");
@@ -116,6 +110,7 @@ window.Wildgruppen = (() => {
       const bearbeitenButton = document.createElement("button");
       const loeschenButton = document.createElement("button");
 
+      reihenfolge.textContent = wildgruppe.reihenfolge ?? "";
       code.textContent = wildgruppe.code || "";
       bezeichnung.textContent = wildgruppe.bezeichnung || "";
       aktiv.textContent = wildgruppe.aktiv ? "✓" : "—";
@@ -138,7 +133,7 @@ window.Wildgruppen = (() => {
 
       buttonGruppe.append(bearbeitenButton, loeschenButton);
       aktionen.appendChild(buttonGruppe);
-      tr.append(code, bezeichnung, aktiv, aktionen);
+      tr.append(reihenfolge, code, bezeichnung, aktiv, aktionen);
       tbody.appendChild(tr);
     });
   }
@@ -146,6 +141,7 @@ window.Wildgruppen = (() => {
   function neueWildgruppe() {
     aktuelleWildgruppe = null;
     element("wgModalTitel").textContent = "Neue Wildgruppe";
+    element("wgReihenfolge").value = "";
     element("wgCode").value = "";
     element("wgBezeichnung").value = "";
     element("wgAktiv").checked = true;
@@ -157,6 +153,7 @@ window.Wildgruppen = (() => {
     aktuelleWildgruppe = wildgruppe;
     element("wgModalTitel").textContent =
       mode === "read" ? "Wildgruppe" : "Wildgruppe bearbeiten";
+    element("wgReihenfolge").value = wildgruppe.reihenfolge ?? "";
     element("wgCode").value = wildgruppe.code || "";
     element("wgBezeichnung").value = wildgruppe.bezeichnung || "";
     element("wgAktiv").checked = wildgruppe.aktiv === true;
@@ -168,10 +165,17 @@ window.Wildgruppen = (() => {
 
   async function speichern() {
     const daten = {
+      reihenfolge: Number(element("wgReihenfolge").value),
       code: element("wgCode").value.trim().toUpperCase(),
       bezeichnung: element("wgBezeichnung").value.trim(),
       aktiv: element("wgAktiv").checked,
     };
+
+    if (!Number.isInteger(daten.reihenfolge) || daten.reihenfolge <= 0) {
+      alert("Bitte eine positive ganze Reihenfolge eingeben.");
+      element("wgReihenfolge").focus();
+      return;
+    }
 
     if (!daten.code) {
       alert("Bitte einen Code eingeben.");
@@ -205,8 +209,10 @@ window.Wildgruppen = (() => {
           ? String(item.id) === String(bisherigeId)
           : item.code === daten.code,
       );
-      if (gespeichert) bearbeiten(gespeichert, "read");
-      else modalSchliessen();
+      modalSchliessen();
+      AppFeedback.success("Wildgruppe gespeichert.");
+      if (gespeichert)
+        AppFeedback.focusRow(`#wgTabelleBody tr[data-id="${gespeichert.id}"]`);
     } catch (error) {
       console.error("Wildgruppe konnte nicht gespeichert werden:", error);
       alert(error.message);
@@ -216,13 +222,18 @@ window.Wildgruppen = (() => {
   }
 
   async function loeschen(wildgruppe) {
-    if (!confirm(`Wildgruppe "${wildgruppe.bezeichnung}" löschen?`)) {
+    if (!await AppFeedback.confirmDelete(
+      "Wildgruppe löschen?",
+      `„${wildgruppe.bezeichnung}“ wird dauerhaft gelöscht.`,
+    )) {
       return;
     }
 
     try {
       await WildgruppenService.deleteWildgruppe(wildgruppe.id);
       await ladeWildgruppen();
+      modalSchliessen();
+      AppFeedback.success("Datensatz gelöscht.");
     } catch (error) {
       console.error("Wildgruppe konnte nicht gelöscht werden:", error);
 

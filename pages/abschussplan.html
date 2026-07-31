@@ -14,42 +14,33 @@
   <div id="ap-content">
     <div id="ap-overview" class="ap-pane">
       <h2>Übersicht</h2>
-      <p>Kurze Zusammenfassung der Wildgruppen (Platzhalterdaten).</p>
-      <table class="ap-table">
-        <thead>
-          <tr><th>Wildgruppe</th><th>Soll (2 J.)</th><th>Intern (J. 1)</th><th>Ist (J. 1)</th><th>Vorschlag (J. 2)</th></tr>
-        </thead>
-        <tbody id="ap-overview-body"></tbody>
-      </table>
+      <div id="ap-overview-content"></div>
     </div>
 
     <template id="ap-species-template">
       <div class="ap-species">
         <div class="action-bar">
-          <div></div>
+          <div>
+            <div class="ap-planperiode-info" hidden></div>
+            <h2 class="ap-species-title"></h2>
+          </div>
           <div class="action-cell">
-            <button class="action-btn edit-btn ap-edit-kj" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button>
+            <button class="btn btn-secondary ap-matrix-edit" type="button">Bearbeiten</button>
             <button class="action-btn delete-btn ap-delete-kj" type="button" title="Löschen" aria-label="Löschen"></button>
           </div>
         </div>
-
-        <div class="ap-planperiode-info" hidden></div>
-        <h2 class="ap-species-title"></h2>
-
-        <div>
-          <div class="no-data ap-no-data-message">Es wurde noch kein KJ-Abschussplan angelegt.</div>
-          <table class="person-table ap-species-table" hidden>
-            <thead>
-              <tr>
-                <th>Klasse</th>
-                <th>Soll (2 J.)</th>
-              </tr>
-            </thead>
-            <tbody class="ap-species-body"></tbody>
-          </table>
+        <div class="no-data ap-no-data-message">Keine Abschusspläne vorhanden.</div>
+        <div class="ap-matrix-scroll" hidden>
+          <div class="ap-planning-matrix"></div>
         </div>
-
-        <div class="ap-intern-plaene"></div>
+        <div class="modal-footer ap-matrix-footer" hidden>
+          <button class="btn btn-outline ap-matrix-cancel" type="button">
+            Abbrechen
+          </button>
+          <button class="btn btn-primary ap-matrix-save" type="button" disabled>
+            Änderungen speichern
+          </button>
+        </div>
       </div>
     </template>
 
@@ -75,9 +66,11 @@
           <tr>
             <th>Zeitraum</th>
             <th>Status</th>
-            <th>Rotwild</th>
-            <th>Rehwild</th>
-            <th>Gamswild</th>
+            <th class="ap-number-column">Rotwild Soll / Ist</th>
+            <th class="ap-number-column">Rehwild Soll / Ist</th>
+            <th class="ap-number-column">Gamswild Soll / Ist</th>
+            <th>Planpositionen</th>
+            <th>Abschusspläne</th>
             <th class="col-actions">Aktion</th>
           </tr>
         </thead>
@@ -123,85 +116,54 @@
     </div>
   </div>
 
-  <div id="kjPlanModal" class="modal" aria-hidden="true">
+  <div id="apPlanpositionenModal" class="modal" aria-hidden="true">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="kjModalTitle">KJ Abschussplan</h2>
-        <span class="close-btn" id="kjModalClose">×</span>
+        <h2>Planpositionen</h2>
+        <span class="close-btn" id="apPlanpositionenClose">×</span>
       </div>
-
-      <div class="form-grid">
-        <div class="form-group full-width">
-          <label>Planperiode</label>
-          <input type="text" id="kjPlanperiode" class="form-control" disabled>
-        </div>
-        <div class="form-group full-width">
-          <label>Wildgruppe</label>
-          <input type="text" id="kjWildgruppe" class="form-control" disabled>
-        </div>
-      </div>
-
-      <div id="kjPlanEmpty" class="no-data">Es wurde noch kein KJ-Abschussplan angelegt.</div>
-      <div id="kjPlanTableContainer" style="display:none; margin-top: 16px;">
-        <table class="person-table">
-          <thead>
-            <tr>
-              <th>Klasse</th>
-              <th>Soll (2 J.)</th>
-            </tr>
-          </thead>
-          <tbody id="kjPlanPositionsBody"></tbody>
-        </table>
-      </div>
-
+      <div id="apPlanpositionenListe" class="ap-wizard-wildklassen"></div>
       <div class="modal-footer">
-        <button class="action-btn delete-btn" id="kjPlanDelete" type="button" title="Löschen" aria-label="Löschen"></button>
-        <button class="btn btn-primary" id="kjPlanSave" type="button">Speichern</button>
+        <button class="btn btn-outline" id="apPlanpositionenSync" type="button">Aus Stammdaten übernehmen</button>
+        <button class="btn btn-outline" id="apPlanpositionenCancel" type="button">Abbrechen</button>
+        <button class="btn btn-primary" id="apPlanpositionenSave" type="button">Speichern</button>
       </div>
     </div>
   </div>
 
-  <div id="internPlanModal" class="modal" aria-hidden="true">
+  <div id="apPlaeneErzeugenModal" class="modal" aria-hidden="true">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="internModalTitle">INTERN Abschussplan</h2>
-        <span class="close-btn" id="internModalClose">×</span>
+        <h2>Abschusspläne erzeugen</h2>
+        <span class="close-btn" id="apPlaeneErzeugenClose">×</span>
       </div>
-
+      <p>Planpositionen gespeichert.</p>
+      <p>Jetzt Abschusspläne erzeugen?</p>
       <div class="form-grid">
-        <div class="form-group full-width">
-          <label>Planperiode</label>
-          <input type="text" id="internPlanperiode" class="form-control" disabled>
-        </div>
-        <div class="form-group">
-          <label>Jahr</label>
-          <input type="text" id="internJahr" class="form-control" disabled>
-        </div>
-        <div class="form-group">
-          <label>Wildgruppe</label>
-          <input type="text" id="internWildgruppe" class="form-control" disabled>
-        </div>
+        <label class="ap-wizard-choice"><input type="radio" name="apPlanTyp" value="KJ"> KJ</label>
+        <label class="ap-wizard-choice"><input type="radio" name="apPlanTyp" value="INTERN"> INTERN</label>
+        <label class="ap-wizard-choice"><input type="radio" name="apPlanTyp" value="ALLE" checked> Alle</label>
       </div>
-
-      <div id="internPlanEmpty" class="no-data">Es wurde noch kein INTERN-Abschussplan angelegt.</div>
-      <div id="internPlanTableContainer" style="display:none; margin-top: 16px;">
-        <table class="person-table">
-          <thead>
-            <tr>
-              <th>Klasse</th>
-              <th>Soll</th>
-            </tr>
-          </thead>
-          <tbody id="internPlanPositionsBody"></tbody>
-        </table>
-      </div>
-
       <div class="modal-footer">
-        <button class="btn btn-outline" id="internPlanCancel" type="button">Schließen</button>
-        <button class="btn btn-primary" id="internPlanSave" type="button">Speichern</button>
+        <button class="btn btn-outline" id="apPlaeneErzeugenCancel" type="button">Abbrechen</button>
+        <button class="btn btn-primary" id="apPlaeneErzeugenStart" type="button">Erzeugen</button>
       </div>
     </div>
   </div>
+
+  <div id="apPlaeneAktualisierenModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Abschusspläne aktualisieren</h2>
+      </div>
+      <p>Sollen die Abschusspläne dieser Planperiode aktualisiert werden?</p>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="apPlaeneAktualisierenNein" type="button">Nein</button>
+        <button class="btn btn-primary" id="apPlaeneAktualisierenJa" type="button">Ja</button>
+      </div>
+    </div>
+  </div>
+
 </section>
 
 
