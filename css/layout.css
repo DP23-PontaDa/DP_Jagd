@@ -1404,18 +1404,31 @@ textarea.form-control {
     }
 
     #app-content .abschuss-page {
+        display: block !important;
         width: 100%;
         min-width: 0;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     #app-content .abschuss-filter-bar {
-        display: grid;
+        display: grid !important;
+        position: static !important;
         width: 100%;
         min-width: 0;
+        height: auto !important;
+        max-height: none !important;
         grid-template-columns: minmax(0, 1fr);
         gap: 10px;
         align-items: stretch;
-        overflow: visible;
+        margin: 18px 0 10px;
+        overflow: visible !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
     }
 
     #app-content .abschuss-filter-bar .abschuss-search,
@@ -1425,6 +1438,8 @@ textarea.form-control {
         width: 100%;
         min-width: 0;
         max-width: 100%;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     #app-content .abschuss-filter-action {
@@ -1434,15 +1449,29 @@ textarea.form-control {
     }
 
     #app-content .abschuss-filter-action .btn {
+        display: inline-flex !important;
+        position: static !important;
         width: 100%;
         min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
     }
 
     #app-content .abschuss-quick-filters {
-        display: flex;
+        display: flex !important;
+        position: static !important;
         width: 100%;
         min-width: 0;
+        height: auto !important;
+        max-height: none !important;
         flex-wrap: wrap;
+        overflow: visible !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
     }
 
     #app-content .abschuss-quick-filters .filter-chip {
