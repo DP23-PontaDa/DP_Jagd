@@ -462,14 +462,24 @@ window.Abschuss = (() => {
   }
 
   function oeffnen() {
-    el("asModal").style.display = "block";
-    el("asModal").setAttribute("aria-hidden", "false");
-    el("asNr").focus();
+    const modal = el("asModal");
+    modal.style.display = "block";
+    modal.setAttribute("aria-hidden", "false");
+    const inhalt = modal.querySelector(".modal-content");
+    if (inhalt) inhalt.scrollTop = 0;
+    const mobil = window.matchMedia("(max-width: 768px)").matches;
+    if (mobil) {
+      document.body.classList.add("abschuss-modal-open");
+    } else {
+      el("asNr").focus();
+    }
   }
 
   function schliessen() {
-    el("asModal").style.display = "none";
-    el("asModal").setAttribute("aria-hidden", "true");
+    const modal = el("asModal");
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("abschuss-modal-open");
     aktuell = null;
     nummerJahr = null;
   }

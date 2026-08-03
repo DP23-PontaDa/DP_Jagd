@@ -1399,6 +1399,63 @@ textarea.form-control {
         font-size: 1.55rem;
     }
 
+    body.abschuss-modal-open {
+        overflow: hidden;
+    }
+
+    #app-content .abschuss-page {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #app-content .abschuss-filter-bar {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        align-items: stretch;
+        overflow: visible;
+    }
+
+    #app-content .abschuss-filter-bar .abschuss-search,
+    #app-content .abschuss-filter-bar .search-input,
+    #app-content .abschuss-filter-bar .search-select {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #app-content .abschuss-filter-action {
+        width: 100%;
+        margin-left: 0;
+        white-space: normal;
+    }
+
+    #app-content .abschuss-filter-action .btn {
+        width: 100%;
+        min-height: 48px;
+    }
+
+    #app-content .abschuss-quick-filters {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    #app-content .abschuss-quick-filters .filter-chip {
+        min-width: 0;
+        min-height: 44px;
+        flex: 1 1 145px;
+        white-space: normal;
+    }
+
+    #app-content .abschuss-table-status {
+        text-align: left;
+    }
+
     #app-content .form-grid {
         grid-template-columns: minmax(0, 1fr);
         gap: 12px;
@@ -1471,6 +1528,42 @@ textarea.form-control {
         border-radius: 12px;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
+    }
+
+    #app-content #asModal {
+        height: 100dvh;
+        padding: 0;
+    }
+
+    #app-content #asModal .modal-content {
+        width: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+        padding: 14px;
+        border-radius: 0;
+    }
+
+    #app-content #asModal .modal-header {
+        top: -14px;
+        padding-top: 14px;
+    }
+
+    #app-content #asModal .modal-footer {
+        bottom: -14px;
+        margin-top: auto;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    #app-content #asModal textarea.form-control {
+        min-height: 96px;
+        resize: vertical;
+    }
+
+    #app-content #asModal .search-dropdown,
+    #app-content #asModal .search-dropdown-input {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
 
     #app-content .modal-header {
