@@ -30,7 +30,7 @@
   <div class="table-wrap">
     <table class="ap-table">
       <thead>
-        <tr>
+        <tr id="asTabelleKopf">
           <th class="col-number">Nr.</th><th class="col-date">Datum</th><th>Jäger</th><th>Wildgruppe</th><th>Wildklasse</th>
           <th>Gewicht</th><th>Preis/kg</th><th>Gesamtpreis</th>
           <th>Wildhändler</th><th class="col-boolean">Fallwild</th><th class="col-actions">Aktion</th>
@@ -73,23 +73,23 @@
         <label id="asWildklasseLabel" class="required">Wildklasse</label>
         <div id="asWildklasse" aria-labelledby="asWildklasseLabel"></div>
       </div>
-      <div class="form-group" data-read-suffix=" kg">
-        <label for="asGewicht" class="required">Gewicht (kg)</label>
+      <div id="asGewichtGruppe" class="form-group" data-read-suffix=" kg">
+        <label for="asGewicht">Gewicht (kg)</label>
         <input id="asGewicht" class="form-control" type="number" min="0.01" step="0.01">
       </div>
-      <div class="form-group" data-read-currency="EUR">
+      <div id="asPreisGruppe" class="form-group" data-read-currency="EUR">
         <label for="asPreis">Preis/kg</label>
         <input id="asPreis" class="form-control" type="number" min="0" step="0.01">
       </div>
-      <div class="form-group" data-read-currency="EUR">
+      <div id="asGesamtpreisGruppe" class="form-group" data-read-currency="EUR">
         <label for="asGesamtpreis">Gesamtpreis</label>
         <input id="asGesamtpreis" class="form-control" type="number" step="0.01" readonly>
       </div>
-      <div class="form-group">
-        <label id="asWildhaendlerLabel" class="required">Wildhändler</label>
+      <div id="asWildhaendlerGruppe" class="form-group">
+        <label id="asWildhaendlerLabel">Wildhändler</label>
         <div id="asWildhaendler" aria-labelledby="asWildhaendlerLabel"></div>
       </div>
-      <div class="form-group">
+      <div id="asZahlungseingangGruppe" class="form-group">
         <label for="asZahlungseingang">Zahlungseingangsdatum</label>
         <input id="asZahlungseingang" class="form-control" type="date">
       </div>

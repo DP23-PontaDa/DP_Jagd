@@ -9,13 +9,31 @@ window.Abschuss = (() => {
   let jaeger = [];
   let wildgruppen = [];
   let wildhaendler = [];
+  let planWildklassen = [];
+  let nichtPlanWildklassen = [];
+  let planWildklasseIds = new Set();
+  let erfassungsmodus = "plan";
   let filterInitialisiert = false;
   let aktuelleFilter = null;
   const el = (id) => document.getElementById(id);
   const aktuellesJahr = String(new Date().getFullYear());
 
-  async function init() {
+  async function init(modus = "plan") {
+    erfassungsmodus = modus === "ausserhalb-plan" ? "ausserhalb-plan" : "plan";
+    filterInitialisiert = false;
+    const seitenTitel = document.querySelector(".abschuss-page h1");
+    if (seitenTitel) {
+      seitenTitel.textContent = erfassungsmodus === "plan"
+        ? "Abschuss"
+        : "Haar- und Federwild";
+    }
+    const reduzierteAnsicht = erfassungsmodus === "ausserhalb-plan";
+    ["asGewichtGruppe", "asPreisGruppe", "asGesamtpreisGruppe",
+      "asWildhaendlerGruppe", "asZahlungseingangGruppe"]
+      .forEach((id) => { el(id).hidden = reduzierteAnsicht; });
+    tabelleKonfigurieren();
     el("asNeu").disabled = true;
+    let initialisierungErfolgreich = false;
 
     jaegerDropdown = new SearchDropdown(el("asJaeger"), {
       placeholder: "Jäger suchen",
@@ -64,12 +82,52 @@ window.Abschuss = (() => {
     filterZuruecksetzen(false);
 
     try {
+      await ladePlanfreigaben();
       await Promise.all([ladeStammdaten(), laden()]);
       filterOptionenAufbauen();
       rendern();
+      initialisierungErfolgreich = true;
+    } catch (error) {
+      console.error("Planfreigaben konnten nicht geladen werden:", error);
+      alert(
+        "Die Wildklassen der aktiven Planperiode konnten nicht geladen werden.",
+      );
     } finally {
-      el("asNeu").disabled = false;
+      el("asNeu").disabled = !initialisierungErfolgreich;
     }
+  }
+
+  async function ladePlanfreigaben() {
+    planWildklassen = await WildklassenService.getAktivePlanWildklassen();
+    planWildklasseIds = new Set(
+      planWildklassen.map((wildklasse) => String(wildklasse.id)),
+    );
+    const aktiveWildklassen = await WildklassenService.getAktiveWildklassen();
+    nichtPlanWildklassen = aktiveWildklassen.filter(
+      (wildklasse) => !planWildklasseIds.has(String(wildklasse.id)),
+    );
+  }
+
+  function abschuesseFuerModul() {
+    return abschuesse.filter((abschuss) => {
+      const istPlanrelevant = planWildklasseIds.has(
+        String(abschuss.wildklasse_id),
+      );
+      return erfassungsmodus === "plan" ? istPlanrelevant : !istPlanrelevant;
+    });
+  }
+
+  async function wildklassenFuerModul(wildgruppeId) {
+    if (erfassungsmodus === "plan") {
+      return planWildklassen.filter(
+        (wildklasse) =>
+          String(wildklasse.wildgruppe_id) === String(wildgruppeId),
+      );
+    }
+    return nichtPlanWildklassen.filter(
+      (wildklasse) =>
+        String(wildklasse.wildgruppe_id) === String(wildgruppeId),
+    );
   }
 
   async function ladeStammdaten() {
@@ -101,6 +159,12 @@ window.Abschuss = (() => {
 
   async function ladeWildgruppen() {
     wildgruppen = await WildklassenService.getWildgruppen();
+    const erlaubteWildgruppen = new Set(
+      (erfassungsmodus === "plan" ? planWildklassen : nichtPlanWildklassen)
+        .map((wildklasse) => String(wildklasse.wildgruppe_id)),
+    );
+    wildgruppen = wildgruppen.filter((wildgruppe) =>
+      erlaubteWildgruppen.has(String(wildgruppe.id)));
     wildgruppeDropdown.setOptions(wildgruppen);
   }
 
@@ -133,7 +197,8 @@ window.Abschuss = (() => {
       wildhaendlerId: el("asFilterWildhaendler").value,
       fallwild: el("asFilterFallwild").value,
     };
-    const gefiltert = ClientFilter.filter(abschuesse, {
+    const modulAbschuesse = abschuesseFuerModul();
+    const gefiltert = ClientFilter.filter(modulAbschuesse, {
       search: aktuelleFilter.search,
       searchFields: [
         (item) => item.nr,
@@ -164,27 +229,24 @@ window.Abschuss = (() => {
     gefiltert.forEach((abschuss) => {
       const row = document.createElement("tr");
       row.dataset.id = abschuss.id;
-      const werte = [
-        abschuss.nr,
-        formatDatum(abschuss.datum),
-        [abschuss.jaeger?.vorname, abschuss.jaeger?.nachname]
-          .filter(Boolean)
-          .join(" "),
-        abschuss.wildgruppen?.bezeichnung,
-        abschuss.wildklassen?.bezeichnung,
-        abschuss.gewicht == null ? "—" : formatZahl(abschuss.gewicht) + " kg",
-        abschuss.preis_pro_kg == null ? "—" : formatGeld(abschuss.preis_pro_kg),
-        formatGeld(abschuss.gesamtpreis),
-        abschuss.wildhaendler?.bezeichnung,
-        abschuss.fallwild ? "Ja" : "Nein",
-      ];
-      werte.forEach((wert) => {
+      const gewichtFehlt =
+        abschuss.gewicht === null || abschuss.gewicht === undefined ||
+        abschuss.gewicht === "";
+      const wildhaendlerFehlt = !abschuss.wildhaendler_id;
+      row.classList.toggle(
+        "abschuss-missing-data",
+        erfassungsmodus === "plan" && !abschuss.fallwild &&
+          gewichtFehlt && wildhaendlerFehlt,
+      );
+      tabellenSpalten().forEach((spalte) => {
         const cell = document.createElement("td");
-        cell.textContent = wert ?? "";
+        cell.textContent = spalte.wert(abschuss) ?? "";
+        cell.dataset.label = spalte.label;
         row.appendChild(cell);
       });
       const actions = document.createElement("td");
       actions.className = "action-cell";
+      actions.dataset.label = "Aktionen";
       actions.innerHTML =
         `<button class="action-btn edit-btn" type="button" data-aktion="bearbeiten" data-id="${abschuss.id}" title="Bearbeiten" aria-label="Bearbeiten"></button>` +
         `<button class="action-btn delete-btn" type="button" data-aktion="loeschen" data-id="${abschuss.id}" title="Löschen" aria-label="Löschen"></button>`;
@@ -192,7 +254,74 @@ window.Abschuss = (() => {
       body.appendChild(row);
     });
     el("asFilterStatus").textContent =
-      `${gefiltert.length} von ${abschuesse.length} Abschüssen angezeigt`;
+      `${gefiltert.length} von ${modulAbschuesse.length} Abschüssen angezeigt`;
+  }
+
+  function tabellenSpalten() {
+    const basis = [
+      {
+        label: erfassungsmodus === "ausserhalb-plan" ? "Nr" : "Nr.",
+        wert: (abschuss) => abschuss.nr,
+      },
+      { label: "Datum", wert: (abschuss) => formatDatum(abschuss.datum) },
+      {
+        label: "Jäger",
+        wert: (abschuss) =>
+          [abschuss.jaeger?.vorname, abschuss.jaeger?.nachname]
+            .filter(Boolean).join(" "),
+      },
+      {
+        label: "Wildgruppe",
+        wert: (abschuss) => abschuss.wildgruppen?.bezeichnung,
+      },
+      {
+        label: "Wildklasse",
+        wert: (abschuss) => abschuss.wildklassen?.bezeichnung,
+      },
+    ];
+    if (erfassungsmodus === "ausserhalb-plan") {
+      return basis.concat([
+        { label: "Zusatzinfo", wert: (abschuss) => abschuss.zusatzinfo },
+        { label: "Bemerkung", wert: (abschuss) => abschuss.bemerkung },
+        { label: "Fallwild", wert: (abschuss) => abschuss.fallwild ? "Ja" : "Nein" },
+      ]);
+    }
+    return basis.concat([
+      {
+        label: "Gewicht",
+        wert: (abschuss) =>
+          abschuss.gewicht == null ? "—" : `${formatZahl(abschuss.gewicht)} kg`,
+      },
+      {
+        label: "Preis/kg",
+        wert: (abschuss) =>
+          abschuss.preis_pro_kg == null ? "—" : formatGeld(abschuss.preis_pro_kg),
+      },
+      { label: "Gesamtpreis", wert: (abschuss) => formatGeld(abschuss.gesamtpreis) },
+      {
+        label: "Wildhändler",
+        wert: (abschuss) => abschuss.wildhaendler?.bezeichnung,
+      },
+      { label: "Fallwild", wert: (abschuss) => abschuss.fallwild ? "Ja" : "Nein" },
+    ]);
+  }
+
+  function tabelleKonfigurieren() {
+    const kopf = el("asTabelleKopf");
+    kopf.innerHTML = "";
+    tabellenSpalten().forEach((spalte, index) => {
+      const th = document.createElement("th");
+      th.textContent = spalte.label;
+      if (index === 0) th.className = "col-number";
+      if (spalte.label === "Datum") th.className = "col-date";
+      if (spalte.label === "Fallwild") th.className = "col-boolean";
+      kopf.appendChild(th);
+    });
+    const aktionen = document.createElement("th");
+    aktionen.className = "col-actions";
+    aktionen.textContent =
+      erfassungsmodus === "ausserhalb-plan" ? "Aktionen" : "Aktion";
+    kopf.appendChild(aktionen);
   }
 
   function selectFuellen(select, label, options) {
@@ -214,8 +343,9 @@ window.Abschuss = (() => {
   }
 
   function filterOptionenAufbauen() {
+    const modulAbschuesse = abschuesseFuerModul();
     const jahre = ClientFilter.uniqueOptions(
-      abschuesse,
+      modulAbschuesse,
       (item) => String(item.datum || "").slice(0, 4),
       (item) => String(item.datum || "").slice(0, 4),
       (a, b) => Number(b.value) - Number(a.value),
@@ -298,11 +428,9 @@ window.Abschuss = (() => {
     if (!option) return;
     try {
       const klassen =
-        await WildklassenService.getAktiveWildklassenByWildgruppe(
-          option.value,
-        );
+        await wildklassenFuerModul(option.value);
       wildklasseDropdown.setOptions(klassen);
-      wildklasseDropdown.setDisabled(false);
+      wildklasseDropdown.setDisabled(!klassen.length);
     } catch (error) {
       console.error("Wildklassen konnten nicht geladen werden:", error);
       meldung("Die Wildklassen konnten nicht geladen werden.");
@@ -312,11 +440,12 @@ window.Abschuss = (() => {
   function wildhaendlerGeaendert(option, preisUebernehmen = true) {
     const kleinWildhaendler =
       option && option.label.trim().toLocaleLowerCase("de") === "klein wildhändler";
-    el("asProtokollGruppe").hidden = !kleinWildhaendler;
+    el("asProtokollGruppe").hidden =
+      erfassungsmodus === "ausserhalb-plan" || !kleinWildhaendler;
     const protokollLabel = el("asProtokollGruppe").querySelector("label");
     protokollLabel.classList.toggle(
       "required",
-      Boolean(kleinWildhaendler),
+      erfassungsmodus === "plan" && Boolean(kleinWildhaendler),
     );
     if (!kleinWildhaendler) el("asProtokoll").value = "";
 
@@ -344,9 +473,6 @@ window.Abschuss = (() => {
 
   function fallwildGeaendert() {
     const istFallwild = el("asFallwild").checked;
-    el("asGewicht").closest(".form-group")
-      .querySelector("label").classList.toggle("required", !istFallwild);
-    el("asWildhaendlerLabel").classList.toggle("required", !istFallwild);
 
     if (istFallwild) {
       el("asGesamtpreis").value = "0.00";
@@ -391,7 +517,12 @@ window.Abschuss = (() => {
     nummerJahr = jahr;
     try {
       el("asNr").value =
-        await AbschussService.getNaechsteAbschussnummer(jahr);
+        await AbschussService.getNaechsteAbschussnummer(
+          jahr,
+          erfassungsmodus === "ausserhalb-plan"
+            ? { von: 901, bis: 999 }
+            : null,
+        );
     } catch (error) {
       console.error("Abschussnummer konnte nicht ermittelt werden:", error);
       nummerJahr = null;
@@ -425,11 +556,9 @@ window.Abschuss = (() => {
       el("asFallwild").checked = abschuss.fallwild === true;
       wildgruppeDropdown.setValue(abschuss.wildgruppe_id, false);
       const klassen =
-        await WildklassenService.getAktiveWildklassenByWildgruppe(
-          abschuss.wildgruppe_id,
-        );
+        await wildklassenFuerModul(abschuss.wildgruppe_id);
       wildklasseDropdown.setOptions(klassen);
-      wildklasseDropdown.setDisabled(false);
+      wildklasseDropdown.setDisabled(!klassen.length);
       wildklasseDropdown.setValue(abschuss.wildklasse_id, false);
       wildhaendlerDropdown.setValue(abschuss.wildhaendler_id, false);
       wildhaendlerGeaendert(wildhaendlerDropdown.getSelected(), false);
@@ -504,19 +633,20 @@ window.Abschuss = (() => {
     if (!daten.nr) return meldung("Bitte eine Nummer eingeben.", el("asNr"));
     if (!Number.isInteger(Number(daten.nr)) || Number(daten.nr) <= 0)
       return meldung("Bitte eine positive ganze Abschussnummer eingeben.", el("asNr"));
+    if (erfassungsmodus === "ausserhalb-plan" &&
+        (Number(daten.nr) < 901 || Number(daten.nr) > 999))
+      return meldung(
+        "Die Nummer für Haar- und Federwild muss zwischen 901 und 999 liegen.",
+        el("asNr"),
+      );
     if (!daten.datum) return meldung("Bitte ein Datum auswählen.", el("asDatum"));
     if (!daten.jaeger_id)
       return meldung("Bitte einen Jäger auswählen.", jaegerDropdown.input);
     if (!daten.wildgruppe_id) return meldung("Bitte eine Wildgruppe auswählen.", wildgruppeDropdown.input);
     if (!daten.wildklasse_id) return meldung("Bitte eine passende Wildklasse auswählen.", wildklasseDropdown.input);
-    if (!daten.fallwild &&
+    if (daten.gewicht !== null &&
         (!Number.isFinite(daten.gewicht) || daten.gewicht <= 0))
       return meldung("Bitte ein gültiges Gewicht größer als 0 eingeben.", el("asGewicht"));
-    if (daten.fallwild && daten.gewicht !== null &&
-        (!Number.isFinite(daten.gewicht) || daten.gewicht <= 0))
-      return meldung("Bitte ein gültiges Gewicht größer als 0 eingeben.", el("asGewicht"));
-    if (!daten.fallwild && !daten.wildhaendler_id)
-      return meldung("Bitte einen Wildhändler auswählen.", wildhaendlerDropdown.input);
     if (!el("asProtokollGruppe").hidden &&
         !daten.untersuchungsprotokoll_nr)
       return meldung("Bitte die Untersuchungsprotokoll Nr eingeben.", el("asProtokoll"));
@@ -537,7 +667,7 @@ window.Abschuss = (() => {
         : Number(el("asGewicht").value),
       preis_pro_kg: preisText === "" ? null : Number(preisText),
       gesamtpreis: Number(el("asGesamtpreis").value || 0),
-      wildhaendler_id: wildhaendlerDropdown.getValue(),
+      wildhaendler_id: wildhaendlerDropdown.getValue() || null,
       zahlungseingang: el("asZahlungseingang").value || null,
       zusatzinfo: el("asZusatzinfo").value.trim() || null,
       bemerkung: el("asBemerkung").value.trim() || null,

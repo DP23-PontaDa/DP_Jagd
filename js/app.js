@@ -95,7 +95,9 @@ async function init() {
 
         document.addEventListener('click', function (event) {
             const pageButton = event.target.closest('[data-page]');
-            if (pageButton && pageButton.dataset.page === 'abschussplan') {
+            if (pageButton &&
+                (pageButton.dataset.page === 'abschussplan' ||
+                 pageButton.dataset.page === 'dashboard')) {
                 const submenu = pageButton.closest('.sidebar-submenu');
                 if (submenu) {
                     const groupName = submenu.dataset.group;
@@ -106,6 +108,10 @@ async function init() {
 
         if (Router.currentPage === 'abschussplan') {
             openGroup('abschussplan');
+        }
+
+        if (Router.currentPage === 'dashboard') {
+            openGroup('dashboard');
         }
 
         // Close sidebar automatically after selecting a menu item on mobile

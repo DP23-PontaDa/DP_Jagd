@@ -5,6 +5,7 @@ const Dashboard = (() => {
     gamswild: "gamswild",
   };
   let charts = [];
+  let sectionObserver = null;
 
   function withAlpha(color, alpha) {
     if (/^#[0-9a-f]{6}$/i.test(color)) {
@@ -22,6 +23,10 @@ const Dashboard = (() => {
   function destroyCharts() {
     charts.forEach((chart) => chart.destroy());
     charts = [];
+    if (sectionObserver) {
+      sectionObserver.disconnect();
+      sectionObserver = null;
+    }
   }
 
   function numberValue(value) {
@@ -163,69 +168,414 @@ const Dashboard = (() => {
     return card;
   }
 
-  function createJaegerChart(container, rows) {
-    const card = createElement("section", "dashboard-card");
-    card.appendChild(createElement("h2", "", "Abschüsse nach Jäger"));
+  const hunterValueLabels = {
+    id: "hunterValueLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea, data, scales } = chart;
+      ctx.save();
+      ctx.fillStyle = "#243342";
+      ctx.font = "600 12px sans-serif";
+      ctx.textBaseline = "middle";
+      data.labels.forEach((label, index) => {
+        const total = data.datasets.reduce(
+          (sum, dataset) => sum + numberValue(dataset.data[index]),
+          0,
+        );
+        const bar = data.datasets
+          .map((dataset, datasetIndex) => chart.getDatasetMeta(datasetIndex).data[index])
+          .find(Boolean);
+        if (!bar) return;
+        const valueX = scales.x.getPixelForValue(total);
+        const placeInside = valueX > chartArea.right - 28;
+        ctx.textAlign = placeInside ? "right" : "left";
+        ctx.fillText(
+          String(total),
+          placeInside ? chartArea.right - 4 : valueX + 6,
+          bar.y,
+        );
+      });
+      ctx.restore();
+    },
+  };
+
+  function normalizeGroup(value) {
+    return String(value || "").trim().toLocaleLowerCase("de");
+  }
+
+  function getSortedHunters(rows) {
+    const hunters = new Map();
+    rows.forEach((row) => {
+      const id = String(row.jaeger_id);
+      const current = hunters.get(id) || {
+        id,
+        name: row.jaeger || "Unbekannt",
+        number: row.jaeger_nr,
+        total: 0,
+      };
+      current.total += numberValue(row.anzahl);
+      hunters.set(id, current);
+    });
+    return [...hunters.values()]
+      .filter((hunter) => hunter.total > 0)
+      .sort((left, right) => {
+        const totalDifference = right.total - left.total;
+        if (totalDifference) return totalDifference;
+
+        const leftNumber = Number(left.number);
+        const rightNumber = Number(right.number);
+        const leftHasNumber = left.number !== null && left.number !== "" &&
+          Number.isFinite(leftNumber);
+        const rightHasNumber = right.number !== null && right.number !== "" &&
+          Number.isFinite(rightNumber);
+        if (leftHasNumber && rightHasNumber && leftNumber !== rightNumber) {
+          return leftNumber - rightNumber;
+        }
+        if (leftHasNumber !== rightHasNumber) return leftHasNumber ? -1 : 1;
+        return left.id.localeCompare(right.id, "de", { numeric: true });
+      });
+  }
+
+  function aggregateForHunter(rows, hunterId, predicate) {
+    return rows.reduce((sum, row) => {
+      if (String(row.jaeger_id) !== hunterId || !predicate(row)) return sum;
+      return sum + numberValue(row.anzahl);
+    }, 0);
+  }
+
+  function createClassDatasets(rows, hunters, groupName) {
+    const groupKey = normalizeGroup(groupName);
+    const classes = new Map();
+    rows.forEach((row) => {
+      if (normalizeGroup(row.wildgruppe) !== groupKey) return;
+      const id = String(row.wildklasse_id);
+      if (!classes.has(id)) classes.set(id, row);
+    });
+    return [...classes.values()]
+      .sort(
+        (left, right) =>
+          numberValue(left.wildklasse_reihenfolge) -
+            numberValue(right.wildklasse_reihenfolge) ||
+          String(left.wildklasse).localeCompare(String(right.wildklasse), "de"),
+      )
+      .map((wildklasse) => ({
+        label: wildklasse.wildklasse,
+        tooltipCategory: `${groupName} / ${wildklasse.wildklasse}`,
+        data: hunters.map((hunter) =>
+          aggregateForHunter(
+            rows,
+            hunter.id,
+            (row) =>
+              normalizeGroup(row.wildgruppe) === groupKey &&
+              String(row.wildklasse_id) === String(wildklasse.wildklasse_id),
+          )),
+        backgroundColor: WildklasseColors.get(
+          groupName,
+          wildklasse.wildklasse,
+        ),
+      }));
+  }
+
+  function createTotalDatasets(rows, hunters) {
+    return ["Rotwild", "Rehwild", "Gamswild"].map((groupName) => ({
+      label: groupName,
+      tooltipCategory: groupName,
+      data: hunters.map((hunter) =>
+        aggregateForHunter(
+          rows,
+          hunter.id,
+          (row) => normalizeGroup(row.wildgruppe) === normalizeGroup(groupName),
+        )),
+      backgroundColor: WildklasseColors.getGroup(groupName),
+    }));
+  }
+
+  function createHunterCard(grid, definition, rows) {
+    const card = createElement(
+      "section",
+      `dashboard-card dashboard-hunter-card dashboard-hunter-${definition.key}`,
+    );
+    card.appendChild(createElement("h2", "", definition.title));
+    grid.appendChild(card);
+
+    const cardRows = definition.key === "gesamt"
+      ? rows.filter((row) =>
+          ["rotwild", "rehwild", "gamswild"].includes(
+            normalizeGroup(row.wildgruppe),
+          ))
+      : rows.filter(
+          (row) =>
+            normalizeGroup(row.wildgruppe) === normalizeGroup(definition.group),
+        );
+    const hunters = getSortedHunters(cardRows);
+    if (!hunters.length) {
+      card.appendChild(createElement(
+        "div",
+        "dashboard-chart-empty",
+        "Keine regulären Abschüsse vorhanden.",
+      ));
+      return;
+    }
+    const datasets = definition.key === "gesamt"
+      ? createTotalDatasets(cardRows, hunters)
+      : createClassDatasets(cardRows, hunters, definition.group);
+
     const chartWrap = createElement("div", "dashboard-hunter-chart");
+    chartWrap.style.minHeight = `${Math.min(720, Math.max(320, hunters.length * 38 + 120))}px`;
     const canvas = document.createElement("canvas");
     canvas.setAttribute("role", "img");
-    canvas.setAttribute(
-      "aria-label",
-      "Reguläre Abschüsse nach Jäger und Wildgruppe",
-    );
+    canvas.setAttribute("aria-label", definition.title);
     chartWrap.appendChild(canvas);
     card.appendChild(chartWrap);
-    container.appendChild(card);
-
-    const hunters = [];
-    const hunterIds = new Set();
-    const classes = [];
-    const classIds = new Set();
-    rows.forEach((row) => {
-      if (!hunterIds.has(row.jaeger_id)) {
-        hunterIds.add(row.jaeger_id);
-        hunters.push({ id: row.jaeger_id, name: row.jaeger });
-      }
-      if (!classIds.has(row.wildklasse_id)) {
-        classIds.add(row.wildklasse_id);
-        classes.push(row);
-      }
-    });
 
     charts.push(new Chart(canvas, {
       type: "bar",
       data: {
         labels: hunters.map((hunter) => hunter.name),
-        datasets: classes.map((wildklasse) => ({
-          label: `${wildklasse.wildgruppe} – ${wildklasse.wildklasse}`,
-          data: hunters.map((hunter) => {
-            const value = rows.find(
-              (row) =>
-                row.jaeger_id === hunter.id &&
-                row.wildklasse_id === wildklasse.wildklasse_id,
-            );
-            return numberValue(value?.anzahl);
-          }),
-          backgroundColor: WildklasseColors.get(
-            wildklasse.wildgruppe,
-            wildklasse.wildklasse,
-          ),
-        })),
+        datasets,
       },
+      plugins: [hunterValueLabels],
       options: {
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" } },
+        interaction: { mode: "index", intersect: false },
+        layout: { padding: { right: 28 } },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0]?.label || "",
+              label: (context) =>
+                `${context.dataset.tooltipCategory}: ${numberValue(context.raw)}`,
+            },
+          },
+        },
         scales: {
-          x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+          x: {
+            stacked: true,
+            beginAtZero: true,
+            title: { display: true, text: "Anzahl Abschüsse" },
+            ticks: { precision: 0 },
+          },
           y: { stacked: true, grid: { display: false } },
         },
       },
     }));
   }
 
-  async function init() {
+  function createHunterCharts(container, rows) {
+    const relevantGroups = new Set(["rotwild", "rehwild", "gamswild", "raubwild"]);
+    const relevantRows = rows.filter((row) =>
+      relevantGroups.has(normalizeGroup(row.wildgruppe)));
+    const section = createElement("section", "dashboard-hunter-section");
+    section.id = "dashboard-jaeger";
+    section.appendChild(createElement("h2", "", "Abschüsse nach Jäger"));
+    const grid = createElement("div", "dashboard-hunter-grid");
+    section.appendChild(grid);
+    container.appendChild(section);
+
+    [
+      { key: "rotwild", title: "Abschüsse Jäger Rotwild", group: "Rotwild" },
+      { key: "rehwild", title: "Abschüsse Jäger Rehwild", group: "Rehwild" },
+      { key: "gesamt", title: "Abschüsse Jäger Gesamt" },
+      { key: "raubwild", title: "Abschüsse Jäger Raubwild", group: "Raubwild" },
+    ].forEach((definition) =>
+      createHunterCard(grid, definition, relevantRows));
+  }
+
+  function formatDealerValue(value, metric) {
+    const number = numberValue(value);
+    if (metric === "price") {
+      return `${number.toLocaleString("de-AT", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} €`;
+    }
+    if (metric === "weight") {
+      return `${number.toLocaleString("de-AT", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })} kg`;
+    }
+    return number.toLocaleString("de-AT", { maximumFractionDigits: 0 });
+  }
+
+  const dealerValueLabels = {
+    id: "dealerValueLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx, data } = chart;
+      ctx.save();
+      ctx.fillStyle = "#243342";
+      ctx.font = "600 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      data.datasets.forEach((dataset, datasetIndex) => {
+        const elements = chart.getDatasetMeta(datasetIndex).data;
+        elements.forEach((bar, index) => {
+          ctx.fillText(
+            formatDealerValue(dataset.data[index], dataset.metric),
+            bar.x,
+            Math.max(12, bar.y - 8),
+          );
+        });
+      });
+      ctx.restore();
+    },
+  };
+
+  function cssVariable(name) {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+  }
+
+  function createDealerCard(grid, definition, rows) {
+    const card = createElement(
+      "section",
+      `dashboard-card dashboard-dealer-card dashboard-dealer-${definition.key}`,
+    );
+    card.appendChild(createElement("h2", "", definition.title));
+    grid.appendChild(card);
+    if (!rows.length) {
+      card.appendChild(createElement(
+        "div",
+        "dashboard-chart-empty",
+        "Keine regulären Abschüsse mit Wildhändler vorhanden.",
+      ));
+      return;
+    }
+
+    const chartWrap = createElement("div", "dashboard-dealer-chart");
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", definition.title);
+    chartWrap.appendChild(canvas);
+    card.appendChild(chartWrap);
+
+    charts.push(new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: rows.map((row) => row.wildhaendler),
+        datasets: [
+          {
+            label: "Anzahl an Wild",
+            metric: "count",
+            data: rows.map((row) => numberValue(row.anzahl)),
+            backgroundColor: cssVariable("--dashboard-dealer-count"),
+            yAxisID: "yCount",
+          },
+          {
+            label: "Gesamtpreis",
+            metric: "price",
+            data: rows.map((row) => numberValue(row.gesamtpreis)),
+            backgroundColor: cssVariable("--dashboard-dealer-price"),
+            yAxisID: "yValue",
+          },
+          {
+            label: "Gesamtgewicht",
+            metric: "weight",
+            data: rows.map((row) => numberValue(row.gewicht)),
+            backgroundColor: cssVariable("--dashboard-dealer-weight"),
+            yAxisID: "yValue",
+          },
+        ],
+      },
+      plugins: [dealerValueLabels],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        layout: { padding: { top: 32 } },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0]?.label || "",
+              label: (context) =>
+                `${context.dataset.label}: ${formatDealerValue(
+                  context.raw,
+                  context.dataset.metric,
+                )}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { maxRotation: 45, minRotation: 0 },
+          },
+          yCount: {
+            type: "linear",
+            position: "left",
+            beginAtZero: true,
+            grace: "15%",
+            title: { display: true, text: "Anzahl" },
+            ticks: { precision: 0 },
+          },
+          yValue: {
+            type: "linear",
+            position: "right",
+            beginAtZero: true,
+            grace: "15%",
+            title: { display: true, text: "Preis / Gewicht" },
+            grid: { drawOnChartArea: false },
+          },
+        },
+      },
+    }));
+  }
+
+  function createDealerCharts(container, data) {
+    const section = createElement("section", "dashboard-dealer-section");
+    section.id = "dashboard-wildhaendler";
+    section.appendChild(createElement("h2", "", "Wildhändler"));
+    const grid = createElement("div", "dashboard-dealer-grid");
+    section.appendChild(grid);
+    container.appendChild(section);
+
+    [
+      { key: "gesamt", title: "Wildfleisch Gesamt" },
+      { key: "rotwild", title: "Wildfleisch Rotwild" },
+      { key: "rehwild", title: "Wildfleisch Rehwild" },
+    ].forEach((definition) =>
+      createDealerCard(grid, definition, data?.[definition.key] || []));
+  }
+
+  function scrollToSection(sectionId) {
+    const target = document.getElementById(sectionId || "dashboard-abschuss");
+    if (!target) return false;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    return true;
+  }
+
+  function observeDashboardSections() {
+    const sections = [
+      "dashboard-abschuss",
+      "dashboard-jaeger",
+      "dashboard-wildhaendler",
+    ].map((id) => document.getElementById(id)).filter(Boolean);
+    if (!sections.length || typeof IntersectionObserver !== "function") return;
+
+    sectionObserver = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort(
+          (left, right) =>
+            Math.abs(left.boundingClientRect.top - 76) -
+            Math.abs(right.boundingClientRect.top - 76),
+        );
+      const activeId = visible[0]?.target.id;
+      if (!activeId || typeof Router === "undefined") return;
+      Router.currentDashboardSection = activeId;
+      Router.updateMenu("dashboard");
+    }, {
+      rootMargin: "-76px 0px -55% 0px",
+      threshold: [0, 0.01],
+    });
+    sections.forEach((section) => sectionObserver.observe(section));
+  }
+
+  async function init(initialSection = null) {
     const content = document.getElementById("dashboardContent");
     const period = document.getElementById("dashboardPeriod");
     const error = document.getElementById("dashboardError");
@@ -250,26 +600,37 @@ const Dashboard = (() => {
       period.textContent =
         `Aktive Planperiode: ${data.planperiode.startjahr} / ` +
         data.planperiode.endjahr;
+      const harvestSection = createElement(
+        "section",
+        "dashboard-harvest-section",
+      );
+      harvestSection.id = "dashboard-abschuss";
+      content.appendChild(harvestSection);
       const groupNames = ["Rotwild", "Rehwild", "Gamswild"];
       groupNames.forEach((groupName) => {
         const rows = data.planpositionen.filter(
           (row) => row.wildgruppe === groupName,
         );
-        content.appendChild(createGroupCard(
+        harvestSection.appendChild(createGroupCard(
           groupName,
           rows,
           data.planperiode,
         ));
       });
 
-      createJaegerChart(content, data.jaeger);
+      createHunterCharts(content, data.jaeger);
+      createDealerCharts(content, data.wildhaendler);
+      observeDashboardSections();
+      if (initialSection) {
+        requestAnimationFrame(() => scrollToSection(initialSection));
+      }
     } catch (loadError) {
       console.error("Dashboard konnte nicht geladen werden:", loadError);
       error.hidden = false;
     }
   }
 
-  return { init };
+  return { init, scrollToSection };
 })();
 
 window.Dashboard = Dashboard;

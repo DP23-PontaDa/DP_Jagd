@@ -130,17 +130,12 @@ create table if not exists public.abschuesse (
   constraint abschuesse_jahr_nr_unique unique (jahr, nr),
   constraint abschuesse_nr_positive_ganzzahl check (nr > 0),
   constraint abschuesse_gewicht_fachlogik check (
-    (fallwild and (gewicht is null or gewicht > 0))
-    or
-    (not fallwild and gewicht > 0)
+    gewicht is null or gewicht > 0
   ),
   constraint abschuesse_preis_nonnegative
     check (preis_pro_kg is null or preis_pro_kg >= 0),
   constraint abschuesse_gesamtpreis_nonnegative
     check (gesamtpreis >= 0),
-  constraint abschuesse_wildhaendler_fachlogik
-    check (fallwild or wildhaendler_id is not null),
-
   constraint abschuesse_jaeger_fk
     foreign key (jaeger_id)
     references public.personen (id)
@@ -216,12 +211,7 @@ alter table public.abschuesse
 
 alter table public.abschuesse
   add constraint abschuesse_gewicht_fachlogik check (
-    (fallwild and (gewicht is null or gewicht > 0))
-    or
-    (not fallwild and gewicht > 0)
-  ),
-  add constraint abschuesse_wildhaendler_fachlogik check (
-    fallwild or wildhaendler_id is not null
+    gewicht is null or gewicht > 0
   ),
   add constraint abschuesse_jaeger_fk
     foreign key (jaeger_id)

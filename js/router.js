@@ -6,12 +6,15 @@
 const Router = {
   currentPage: null,
   pendingPanel: null,
+  pendingDashboardSection: null,
+  currentDashboardSection: "dashboard-abschuss",
 
   routes: {
     login: "pages/login.html",
     dashboard: "pages/dashboard.html",
     personen: "pages/personen.html",
     abschuss: "pages/abschuss.html",
+    "haar-federwild": "pages/abschuss.html",
     "import-export": "pages/import-export.html",
     abschussplan: "pages/abschussplan.html",
     wildgruppen: "pages/wildgruppen.html",
@@ -88,7 +91,10 @@ const Router = {
       window.Dashboard &&
       typeof window.Dashboard.init === "function"
     ) {
-      window.Dashboard.init();
+      const section = this.pendingDashboardSection;
+      this.pendingDashboardSection = null;
+      if (section) this.currentDashboardSection = section;
+      window.Dashboard.init(section);
     }
 
     if (
@@ -154,11 +160,31 @@ const Router = {
     ) {
       window.Abschuss.init();
     }
+
+    if (
+      page === "haar-federwild" &&
+      window.Abschuss &&
+      typeof window.Abschuss.init === "function"
+    ) {
+      window.Abschuss.init("ausserhalb-plan");
+    }
   },
 
   updateMenu(page) {
     const sidebarButtons = document.querySelectorAll("#sidebar [data-page]");
     sidebarButtons.forEach(function (button) {
+      if (page === "dashboard") {
+        if (button.dataset.page !== "dashboard") {
+          button.classList.remove("active");
+          return;
+        }
+        button.classList.toggle(
+          "active",
+          button.dataset.dashboardSection === Router.currentDashboardSection,
+        );
+        return;
+      }
+
       if (page !== "abschussplan") {
         button.classList.toggle("active", button.dataset.page === page);
         return;
@@ -195,6 +221,24 @@ document.addEventListener("click", function (event) {
   const pageButton = event.target.closest("[data-page]");
 
   if (pageButton) {
+    if (
+      pageButton.dataset.page === "dashboard" &&
+      pageButton.dataset.dashboardSection
+    ) {
+      const section = pageButton.dataset.dashboardSection;
+      if (
+        Router.currentPage === "dashboard" &&
+        window.Dashboard &&
+        typeof window.Dashboard.scrollToSection === "function"
+      ) {
+        Router.currentDashboardSection = section;
+        Router.updateMenu("dashboard");
+        window.Dashboard.scrollToSection(section);
+        return;
+      }
+      Router.pendingDashboardSection = section;
+      Router.currentDashboardSection = section;
+    }
     if (
       pageButton.dataset.page === "abschussplan" &&
       pageButton.dataset.panel

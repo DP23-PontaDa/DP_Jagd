@@ -21,6 +21,20 @@ const WildklasseColors = (() => {
     "gamswild|kitz": "--wildklasse-ga-kitz",
   };
 
+  const groupColors = {
+    rotwild: "--wild-rotwild",
+    rehwild: "--wild-rehwild",
+    gamswild: "--wild-gamswild",
+    raubwild: "--wild-raubwild",
+  };
+
+  const raubwildColors = [
+    "--wildklasse-raubwild-1",
+    "--wildklasse-raubwild-2",
+    "--wildklasse-raubwild-3",
+    "--wildklasse-raubwild-4",
+  ];
+
   function normalize(value) {
     return String(value || "").trim().toLocaleLowerCase("de");
   }
@@ -37,6 +51,9 @@ const WildklasseColors = (() => {
     for (let index = 0; index < key.length; index += 1) {
       hash = ((hash << 5) - hash + key.charCodeAt(index)) | 0;
     }
+    if (normalize(wildgruppe) === "raubwild") {
+      return cssColor(raubwildColors[Math.abs(hash) % raubwildColors.length]);
+    }
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue} 48% 45%)`;
   }
@@ -47,8 +64,14 @@ const WildklasseColors = (() => {
     return variable ? cssColor(variable) : fallbackColor(wildgruppe, wildklasse);
   }
 
+  function getGroup(wildgruppe) {
+    const variable = groupColors[normalize(wildgruppe)];
+    return variable ? cssColor(variable) : fallbackColor(wildgruppe, wildgruppe);
+  }
+
   return {
     get,
+    getGroup,
     variables: { ...namedColors },
   };
 })();

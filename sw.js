@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v26";
+const CACHE_NAME = "dp-jagd-shell-v36";
 const APP_SHELL = [
   "./",
   "./index.html",

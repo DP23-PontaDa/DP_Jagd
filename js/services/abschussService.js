@@ -62,19 +62,29 @@ const AbschussService = (() => {
     if (error) throw fehler(error, "Das Löschen des Abschusses");
   }
 
-  async function getNaechsteAbschussnummer(jahr) {
-    const { data, error } = await db
+  async function getNaechsteAbschussnummer(jahr, bereich = null) {
+    let query = db
       .from("abschuesse")
       .select("nr")
       .eq("jahr", Number(jahr));
+    if (bereich?.von != null) query = query.gte("nr", Number(bereich.von));
+    if (bereich?.bis != null) query = query.lte("nr", Number(bereich.bis));
+    const { data, error } = await query;
     if (error) throw fehler(error, "Das Ermitteln der nächsten Abschussnummer");
 
+    const startwert = bereich?.von != null ? Number(bereich.von) - 1 : 0;
     const hoechsteNummer = (data || []).reduce((maximum, eintrag) => {
       const nummer = Number(eintrag.nr);
       return Number.isFinite(nummer) ? Math.max(maximum, nummer) : maximum;
-    }, 0);
+    }, startwert);
 
-    return hoechsteNummer + 1;
+    const naechsteNummer = hoechsteNummer + 1;
+    if (bereich?.bis != null && naechsteNummer > Number(bereich.bis)) {
+      const error = new Error("Der Nummernbereich ist ausgeschöpft.");
+      error.code = "NUMMERNBEREICH_AUSGESCHOEPFT";
+      throw error;
+    }
+    return naechsteNummer;
   }
 
   async function istAbschussnummerVergeben(jahr, nr, aktuellerDatensatz) {

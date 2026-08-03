@@ -29,6 +29,15 @@
     --wild-rotwild: #9f3b3b;
     --wild-rehwild: #167c68;
     --wild-gamswild: #476579;
+    --wild-raubwild: #6f6256;
+    --wild-gesamt: #465b73;
+    --wildklasse-raubwild-1: #4f5963;
+    --wildklasse-raubwild-2: #78685a;
+    --wildklasse-raubwild-3: #9a8b7d;
+    --wildklasse-raubwild-4: #b0a69d;
+    --dashboard-dealer-count: #1f4e79;
+    --dashboard-dealer-price: #1f6b45;
+    --dashboard-dealer-weight: #4b5563;
     --wildklasse-rw-hirsch-1: #6f1d1b;
     --wildklasse-rw-hirsch-2: #a33a32;
     --wildklasse-rw-hirsch-3: #cf6a5f;
@@ -1042,6 +1051,13 @@ textarea.form-control {
     color: #e74c3c;
 }
 
+.ap-table tbody tr.abschuss-missing-data,
+.ap-table tbody tr.abschuss-missing-data:hover,
+.ap-table tbody tr.abschuss-missing-data > td {
+    background: #fde8e8;
+    color: #a9323b;
+}
+
 .full-width {
     grid-column: 1 / -1;
 }
@@ -1280,6 +1296,18 @@ textarea.form-control {
     gap: 24px;
 }
 
+.dashboard-harvest-section {
+    display: grid;
+    min-width: 0;
+    scroll-margin-top: 76px;
+    gap: 24px;
+}
+
+#dashboard-jaeger,
+#dashboard-wildhaendler {
+    scroll-margin-top: 76px;
+}
+
 .dashboard-card {
     min-width: 0;
     padding: 20px;
@@ -1320,6 +1348,76 @@ textarea.form-control {
     min-height: clamp(320px, 55vh, 680px);
 }
 
+.dashboard-hunter-section {
+    min-width: 0;
+}
+
+.dashboard-hunter-section > h2 {
+    margin: 0 0 18px;
+}
+
+.dashboard-hunter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.dashboard-hunter-card {
+    border-top: 4px solid var(--color-border-strong);
+}
+
+.dashboard-hunter-rotwild {
+    border-top-color: var(--wild-rotwild);
+}
+
+.dashboard-hunter-rehwild {
+    border-top-color: var(--wild-rehwild);
+}
+
+.dashboard-hunter-gesamt {
+    border-top-color: var(--wild-gesamt);
+}
+
+.dashboard-hunter-raubwild {
+    border-top-color: var(--wild-raubwild);
+}
+
+.dashboard-chart-empty {
+    display: grid;
+    min-height: 220px;
+    place-items: center;
+    color: #596775;
+    text-align: center;
+}
+
+.dashboard-dealer-section {
+    min-width: 0;
+}
+
+.dashboard-dealer-section > h2 {
+    margin: 0 0 18px;
+}
+
+.dashboard-dealer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.dashboard-dealer-card {
+    border-top: 4px solid var(--dashboard-dealer-count);
+}
+
+.dashboard-dealer-gesamt {
+    grid-column: 1 / -1;
+}
+
+.dashboard-dealer-chart {
+    position: relative;
+    width: 100%;
+    min-height: 380px;
+}
+
 .dashboard-table-wrap {
     width: 100%;
     margin-top: 20px;
@@ -1338,6 +1436,18 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
+    .dashboard-hunter-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-dealer-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-dealer-gesamt {
+        grid-column: auto;
+    }
+
     html,
     body {
         max-width: 100%;
@@ -1694,6 +1804,12 @@ textarea.form-control {
         border-radius: 12px;
         background: #fff;
         box-shadow: 0 2px 7px rgba(0, 0, 0, 0.07);
+    }
+
+    #app-content table.ap-table tbody tr.abschuss-missing-data,
+    #app-content table.ap-table tbody tr.abschuss-missing-data > td {
+        background: #fde8e8;
+        color: #a9323b;
     }
 
     #app-content table.person-table tbody td,

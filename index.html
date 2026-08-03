@@ -71,9 +71,25 @@
         <div class="logo">DP Jagd</div>
 
         <nav>
-            <button type="button" data-page="dashboard">Dashboard</button>
+            <div class="sidebar-group">
+                <button
+                    type="button"
+                    class="sidebar-group-toggle"
+                    data-toggle="submenu"
+                    data-group="dashboard"
+                    aria-expanded="false">
+                    Dashboard
+                </button>
+
+                <div class="sidebar-submenu" data-group="dashboard">
+                    <button type="button" data-page="dashboard" data-dashboard-section="dashboard-abschuss">Abschuss</button>
+                    <button type="button" data-page="dashboard" data-dashboard-section="dashboard-jaeger">Jäger</button>
+                    <button type="button" data-page="dashboard" data-dashboard-section="dashboard-wildhaendler">Wildhändler</button>
+                </div>
+            </div>
             <button type="button" data-page="personen">Personen</button>
             <button type="button" data-page="abschuss">Abschuss</button>
+            <button type="button" data-page="haar-federwild">Haar- und Federwild</button>
 
             <div class="sidebar-group">
                 <button
