@@ -188,6 +188,55 @@ const AbschussplanWildgruppe = (() => {
     return input;
   }
 
+  function createRevierIstInput(
+    plan,
+    position,
+    planpositionId,
+    saveButton,
+    field,
+  ) {
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.step = "1";
+    input.inputMode = "numeric";
+    input.className = "ap-matrix-input ap-matrix-revier-input";
+    input.value = String(Number(position?.[field] ?? 0));
+    input.dataset.originalValue = input.value;
+    input.dataset.planId = plan?.id || "";
+    input.dataset.positionId = position?.id || "";
+    input.dataset.planpositionId = planpositionId;
+    input.dataset.revierField = field;
+    input.disabled = !plan;
+
+    input.addEventListener("input", () => {
+      if (
+        input.value !== "" &&
+        (!Number.isInteger(Number(input.value)) || Number(input.value) < 0)
+      ) {
+        input.value = "";
+      }
+      updateMatrixDirtyState(input, saveButton);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (["-", "+", ".", ",", "e", "E"].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
+    return input;
+  }
+
+  function appendMatrixMetric(matrix, wert, klasse = "") {
+    const cell = document.createElement("div");
+    cell.className = "ap-matrix-cell ap-matrix-value ap-matrix-metric";
+    if (klasse) cell.classList.add(klasse);
+    const display = document.createElement("span");
+    display.className = "ap-matrix-display";
+    display.textContent = wert;
+    cell.appendChild(display);
+    matrix.appendChild(cell);
+  }
+
   function setMatrixEditMode(card, editing) {
     card.classList.toggle("is-editing", editing);
     card.querySelector(".ap-matrix-edit").hidden =
@@ -217,11 +266,16 @@ const AbschussplanWildgruppe = (() => {
     button.disabled = true;
     try {
       for (const input of inputs) {
+        const revierField = input.dataset.revierField;
         const payload = {
           plan_id: input.dataset.planId,
           planperiode_planposition_id: input.dataset.planpositionId,
-          soll: Number(input.value) || 0,
         };
+        if (revierField) {
+          payload[revierField] = Number(input.value) || 0;
+        } else {
+          payload.soll = Number(input.value) || 0;
+        }
         if (input.dataset.positionId) {
           const gespeichert = await AbschussplanService.updatePosition(
             input.dataset.positionId,
@@ -229,16 +283,29 @@ const AbschussplanWildgruppe = (() => {
           );
           if (!gespeichert) throw new Error("Fehler beim Speichern.");
         } else {
+          const createPayload = revierField
+            ? { ...payload, soll: 0 }
+            : payload;
           const gespeichert =
-            await AbschussplanService.createPosition(payload);
+            await AbschussplanService.createPosition(createPayload);
           if (!gespeichert) throw new Error("Fehler beim Speichern.");
           input.dataset.positionId = gespeichert.id;
+          if (revierField) {
+            card.querySelectorAll(
+              `.ap-matrix-revier-input[data-planposition-id="${input.dataset.planpositionId}"]`,
+            ).forEach((revierInput) => {
+              revierInput.dataset.positionId = gespeichert.id;
+            });
+          }
         }
-        input.dataset.originalValue = String(payload.soll);
+        const gespeicherterWert = revierField
+          ? payload[revierField]
+          : payload.soll;
+        input.dataset.originalValue = String(gespeicherterWert);
         const display = input.parentElement.querySelector(
           ".ap-matrix-display",
         );
-        if (display) display.textContent = String(payload.soll);
+        if (display) display.textContent = String(gespeicherterWert);
         if (display) {
           display.classList.add("is-saved");
           window.setTimeout(() => display.classList.remove("is-saved"), 2000);
@@ -278,6 +345,9 @@ const AbschussplanWildgruppe = (() => {
     const cancelButton = card.querySelector(".ap-matrix-cancel");
     const deleteButton = card.querySelector(".ap-delete-kj");
     const groupName = resolveWildgruppe(groupCode);
+    const istGamswild =
+      String(groupName).trim().toLocaleLowerCase("de") === "gamswild";
+    matrix.classList.toggle("ap-matrix-gamswild", istGamswild);
     card._planwertStates = [];
 
     title.textContent = groupName;
@@ -305,7 +375,8 @@ const AbschussplanWildgruppe = (() => {
         ? "endjahr"
         : "readonly";
     card._planwertEditable =
-      planwertMode === "startjahr" || planwertMode === "endjahr";
+      planwertMode === "startjahr" || planwertMode === "endjahr" ||
+      istGamswild;
     const wildgruppeId = await getWildgruppeId(groupName);
     const kjPlan = await getKJPlan(planperiode.id, wildgruppeId);
     const internPlaene = await getInternPlaene(
@@ -351,11 +422,7 @@ const AbschussplanWildgruppe = (() => {
       ),
     );
 
-    matrix.style.setProperty(
-      "--ap-matrix-columns",
-      "220px repeat(9, minmax(100px, 1fr))",
-    );
-    [
+    const headers = [
       "Planposition",
       "Soll KJ",
       `Soll ${planperiode.startjahr}`,
@@ -363,16 +430,31 @@ const AbschussplanWildgruppe = (() => {
       "Ist KJ",
       `Ist ${planperiode.startjahr}`,
       `Ist ${planperiode.endjahr}`,
+      ...(istGamswild
+        ? [
+            `Ist Reviere ${planperiode.startjahr}`,
+            `Ist Reviere ${planperiode.endjahr}`,
+          ]
+        : []),
       "Rest",
       "%",
       "Fallwild",
-    ]
+    ];
+    const istDividerIndex = istGamswild ? 8 : 6;
+    matrix.style.setProperty(
+      "--ap-matrix-columns",
+      `220px repeat(${headers.length - 1}, minmax(100px, 1fr))`,
+    );
+    headers
       .forEach((text, index) => {
         const header = document.createElement("div");
         header.className =
           "ap-matrix-cell ap-matrix-header" +
           (index === 0 ? " ap-matrix-sticky-column" : "");
-        if (index === 3 || index === 6) {
+        if (index === headers.length - 1) {
+          header.classList.add("ap-matrix-row-end");
+        }
+        if (index === 3 || index === istDividerIndex) {
           header.classList.add("ap-matrix-divider-after");
         }
         header.textContent = text;
@@ -442,13 +524,42 @@ const AbschussplanWildgruppe = (() => {
       const prozentWert = Number(kjPosition?.erfuellung_prozent ?? 0);
       const fallwildWert = Number(kjPosition?.fallwild ?? 0);
 
-      [
+      const metriken = [
         { wert: String(istWert) },
         { wert: String(istStartjahr) },
         {
           wert: String(istEndjahr),
-          klasse: "ap-matrix-divider-after",
+          klasse: istGamswild ? "" : "ap-matrix-divider-after",
         },
+      ];
+      metriken.forEach(({ wert, klasse }) =>
+        appendMatrixMetric(matrix, wert, klasse));
+      metriken.length = 0;
+
+      if (istGamswild) {
+        ["ist_reviere_startjahr", "ist_reviere_endjahr"]
+          .forEach((field, index) => {
+            const cell = document.createElement("div");
+            cell.className =
+              "ap-matrix-cell ap-matrix-value ap-matrix-metric " +
+              "ap-matrix-revier";
+            if (index === 1) cell.classList.add("ap-matrix-divider-after");
+            const display = document.createElement("span");
+            display.className = "ap-matrix-display";
+            display.textContent = String(Number(kjPosition?.[field] ?? 0));
+            const input = createRevierIstInput(
+              kjPlan,
+              kjPosition,
+              klasse.id,
+              saveButton,
+              field,
+            );
+            cell.append(display, input);
+            matrix.appendChild(cell);
+          });
+      }
+
+      metriken.push(
         {
           wert: String(restWert),
           klasse: restWert > 0
@@ -461,17 +572,10 @@ const AbschussplanWildgruppe = (() => {
             maximumFractionDigits: 1,
           })} %`,
         },
-        { wert: String(fallwildWert) },
-      ].forEach(({ wert, klasse }) => {
-        const cell = document.createElement("div");
-        cell.className = "ap-matrix-cell ap-matrix-value ap-matrix-metric";
-        if (klasse) cell.classList.add(klasse);
-        const display = document.createElement("span");
-        display.className = "ap-matrix-display";
-        display.textContent = wert;
-        cell.appendChild(display);
-        matrix.appendChild(cell);
-      });
+        { wert: String(fallwildWert), klasse: "ap-matrix-row-end" },
+      );
+      metriken.forEach(({ wert, klasse }) =>
+        appendMatrixMetric(matrix, wert, klasse));
     });
 
     noData.style.display = "none";

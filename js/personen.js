@@ -76,6 +76,7 @@ function persTabTitle(kat) {
   if (kat === 'Mitglied') return 'Mitglieder';
   if (kat === 'Jagdgast') return 'Jagdgäste';
   if (kat === 'Jagdgastkarten') return 'Jagdgastkarten';
+  if (kat === 'Hundefuehrer') return 'Hundeführer';
   if (kat === 'Hegering') return 'Hegering';
   return kat || 'Personen';
 }
@@ -100,7 +101,8 @@ function persComparePersons(a, b) {
   const activeDiff = Number(b.aktiv === true) - Number(a.aktiv === true);
   if (activeDiff !== 0) return activeDiff;
 
-  if (persActiveKat === 'Mitglied' || persActiveKat === 'Hegering') {
+  if (persActiveKat === 'Mitglied' || persActiveKat === 'Hegering' ||
+      persActiveKat === 'Hundefuehrer') {
     return persCompareByIdNumber(a, b);
   }
 
@@ -182,7 +184,9 @@ function persRenderTable() {
   if (query) {
     persons = persons.filter(function(person) {
       if (criteria === 'all') {
-        return [person.personenNr, person.vorname, person.nachname, person.kjNr, person.jagdgastkarte, persJaegerGastDisplay(person), person.adresse, person.plz, person.ort]
+        return [person.personenNr, person.vorname, person.nachname,
+          person.kjNr, person.jagdgastkarte, persJaegerGastDisplay(person),
+          person.adresse, person.plz, person.ort]
           .join(' ')
           .toLowerCase()
           .indexOf(query) !== -1;
@@ -212,6 +216,20 @@ function persRenderTable() {
   persons.forEach(function(person) {
     const row = document.createElement('tr');
     row.dataset.id = person.personId;
+    if (persActiveKat === 'Hundefuehrer') {
+      persAddCell(row, person.vorname);
+      persAddCell(row, person.nachname);
+      const actionCell = persCreatePersonActionCell(person);
+      row.appendChild(actionCell);
+      row.addEventListener('click', function(event) {
+        if (!event.target.closest('button')) {
+          persOpenEditPersonModal(person.personId, 'read');
+        }
+      });
+      tbody.appendChild(row);
+      return;
+    }
+
     persAddCell(row, person.personenNr || '');
     persAddCell(row, person.vorname);
     persAddCell(row, person.nachname);
@@ -235,28 +253,7 @@ function persRenderTable() {
       persAddCell(row, persLastActiveJagdYear(person.personId));
     }
 
-    const actionCell = document.createElement('td');
-    actionCell.className = 'action-cell';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'action-btn edit-btn';
-    editBtn.title = 'Bearbeiten';
-    editBtn.setAttribute('aria-label', 'Bearbeiten');
-    editBtn.innerHTML = '';
-    editBtn.onclick = function() {
-      persOpenEditPersonModal(person.personId);
-    };
-    actionCell.appendChild(editBtn);
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'action-btn delete-btn';
-    deleteBtn.title = 'Löschen';
-    deleteBtn.setAttribute('aria-label', 'Löschen');
-    deleteBtn.innerHTML = '';
-    deleteBtn.onclick = function() {
-      persDeletePersonConfirm(person.personId);
-    };
-    actionCell.appendChild(deleteBtn);
+    const actionCell = persCreatePersonActionCell(person);
 
     row.appendChild(actionCell);
     row.addEventListener('click', function(event) {
@@ -268,7 +265,42 @@ function persRenderTable() {
   });
 }
 
+function persCreatePersonActionCell(person) {
+  const actionCell = document.createElement('td');
+  actionCell.className = 'action-cell';
+  const editBtn = document.createElement('button');
+  editBtn.className = 'action-btn edit-btn';
+  editBtn.title = 'Bearbeiten';
+  editBtn.setAttribute('aria-label', 'Bearbeiten');
+  editBtn.onclick = function() { persOpenEditPersonModal(person.personId); };
+  actionCell.appendChild(editBtn);
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'action-btn delete-btn';
+  deleteBtn.title = 'Löschen';
+  deleteBtn.setAttribute('aria-label', 'Löschen');
+  deleteBtn.onclick = function() { persDeletePersonConfirm(person.personId); };
+  actionCell.appendChild(deleteBtn);
+  return actionCell;
+}
+
 function persRenderTableHead() {
+  if (persActiveKat === 'Hundefuehrer') {
+    const headers = ['Vorname', 'Nachname', 'Aktion'];
+    const row = document.createElement('tr');
+    headers.forEach(function(header, index) {
+      const th = document.createElement('th');
+      th.textContent = header;
+      if (index === 0) th.className = 'col-number';
+      if (header === 'Aktion') th.className = 'col-actions';
+      row.appendChild(th);
+    });
+    const head = document.getElementById('persTableHead');
+    if (head) {
+      head.innerHTML = '';
+      head.appendChild(row);
+    }
+    return;
+  }
   const headers = ['Nr.', 'Vorname', 'Nachname'];
   if (persActiveKat === 'Jagdgastkarten') {
     headers.push('Jagdgastkarte');
@@ -383,12 +415,22 @@ function persOpenNewPersonModal() {
   document.getElementById('persModalTitle').textContent = 'Person hinzufügen';
   persClearModal();
   document.getElementById('persNameKat').value = persActiveKat;
+  if (persActiveKat === 'Hundefuehrer') {
+    const nummern = persAllPersons.map(persPersonenNrValue)
+      .filter(function(value) {
+        return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER;
+      });
+    document.getElementById('persPersonenNr').value =
+      (nummern.length ? Math.max.apply(null, nummern) : 0) + 1;
+  }
   document.getElementById('persAktiv').checked = true;
   persHandleNameKatChange();
   DetailMode.setMode(document.getElementById('persPersonModal'), 'edit');
   document.getElementById('persPersonModal').style.display = 'block';
   setTimeout(function() {
-    const input = document.getElementById('persPersonenNr');
+    const input = document.getElementById(
+      persActiveKat === 'Hundefuehrer' ? 'persVorname' : 'persPersonenNr'
+    );
     if (input) input.focus();
   }, 50);
 }
@@ -534,6 +576,7 @@ function persHandleNameKatChange() {
   const nameKat = document.getElementById('persNameKat').value;
   const isJagd = persIsJagdKategorie(nameKat);
   const isJagdgastkarten = nameKat === 'Jagdgastkarten';
+  const isHundefuehrer = nameKat === 'Hundefuehrer';
   const aktiv = document.getElementById('persAktiv');
   const note = document.getElementById('persAktivNote');
   const aktivText = document.getElementById('persAktivText');
@@ -541,8 +584,19 @@ function persHandleNameKatChange() {
   const jagdgastkarteGroup = document.getElementById('persJagdgastkarteGroup');
   const jaegerGastGroup = document.getElementById('persJaegerGastGroup');
   const jaegerGastSelect = document.getElementById('persJaegerGast');
+  const personenNrGroup = document.getElementById('persPersonenNrGroup');
+  const aktivGroup = document.getElementById('persAktivGroup');
+  const nameKatGroup = document.getElementById('persNameKatGroup');
 
-  if (kjNrGroup) kjNrGroup.style.display = isJagdgastkarten ? 'none' : 'block';
+  if (kjNrGroup) kjNrGroup.style.display =
+    isJagdgastkarten || isHundefuehrer ? 'none' : 'block';
+  if (personenNrGroup) personenNrGroup.style.display = isHundefuehrer ? 'none' : '';
+  if (aktivGroup) aktivGroup.style.display = isHundefuehrer ? 'none' : '';
+  if (nameKatGroup) nameKatGroup.style.display = isHundefuehrer ? 'none' : '';
+  ['persAdresseGroup', 'persPlzGroup', 'persOrtGroup'].forEach(function(id) {
+    const group = document.getElementById(id);
+    if (group) group.style.display = isHundefuehrer ? 'none' : '';
+  });
   if (jagdgastkarteGroup) jagdgastkarteGroup.style.display = isJagdgastkarten ? 'block' : 'none';
   if (jaegerGastGroup) jaegerGastGroup.style.display = isJagdgastkarten ? 'block' : 'none';
 
@@ -756,7 +810,9 @@ function persSavePerson() {
     return;
   }
 
-  const allowedNameKats = ['Mitglied', 'Jagdgast', 'Jagdgastkarten', 'Hegering'];
+  const allowedNameKats = [
+    'Mitglied', 'Jagdgast', 'Jagdgastkarten', 'Hundefuehrer', 'Hegering'
+  ];
   if (allowedNameKats.indexOf(person.nameKat) === -1) {
     alert('Name_Kat ist ungültig.');
     return;

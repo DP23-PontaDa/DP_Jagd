@@ -62,8 +62,20 @@ async function init() {
         }
 
         const submenuToggles = document.querySelectorAll('[data-toggle="submenu"]');
+        function isPermanentGroup(group) {
+            return group && group.dataset.permanentOpen === 'true';
+        }
+
         function closeAllGroups() {
             document.querySelectorAll('.sidebar-group').forEach(group => {
+                if (isPermanentGroup(group)) {
+                    group.classList.add('open');
+                    const permanentToggle = group.querySelector('[data-toggle="submenu"]');
+                    if (permanentToggle) {
+                        permanentToggle.setAttribute('aria-expanded', 'true');
+                    }
+                    return;
+                }
                 group.classList.remove('open');
                 const toggle = group.querySelector('[data-toggle="submenu"]');
                 if (toggle) toggle.setAttribute('aria-expanded', 'false');
@@ -82,6 +94,12 @@ async function init() {
 
         submenuToggles.forEach(btn => {
             btn.addEventListener('click', () => {
+                const root = btn.closest('.sidebar-group');
+                if (isPermanentGroup(root)) {
+                    root.classList.add('open');
+                    btn.setAttribute('aria-expanded', 'true');
+                    return;
+                }
                 const groupName = btn.dataset.group;
                 const isOpen = btn.getAttribute('aria-expanded') === 'true';
                 if (isOpen) {
@@ -93,11 +111,15 @@ async function init() {
             });
         });
 
+        closeAllGroups();
+
         document.addEventListener('click', function (event) {
             const pageButton = event.target.closest('[data-page]');
             if (pageButton &&
                 (pageButton.dataset.page === 'abschussplan' ||
-                 pageButton.dataset.page === 'dashboard')) {
+                 pageButton.dataset.page === 'dashboard' ||
+                 ['nachsuchen', 'fehlschuesse', 'probeschuesse']
+                   .includes(pageButton.dataset.page))) {
                 const submenu = pageButton.closest('.sidebar-submenu');
                 if (submenu) {
                     const groupName = submenu.dataset.group;
@@ -112,6 +134,11 @@ async function init() {
 
         if (Router.currentPage === 'dashboard') {
             openGroup('dashboard');
+        }
+
+        if (['nachsuchen', 'fehlschuesse', 'probeschuesse']
+            .includes(Router.currentPage)) {
+            openGroup('nachsuchen');
         }
 
         // Close sidebar automatically after selecting a menu item on mobile

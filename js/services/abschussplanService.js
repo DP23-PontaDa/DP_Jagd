@@ -184,6 +184,7 @@ const AbschussplanService = (() => {
       .from(TABLE.WILDGRUPPEN)
       .select("*")
       .eq("aktiv", true)
+      .eq("abschussplan", true)
       .order("reihenfolge", { ascending: true });
 
     return handle(result, "Fehler in getWildgruppen") || [];
@@ -623,6 +624,8 @@ const AbschussplanService = (() => {
             rest,
             erfuellung_prozent,
             fallwild,
+            ist_reviere_startjahr,
+            ist_reviere_endjahr,
             code,
             bezeichnung,
             reihenfolge,

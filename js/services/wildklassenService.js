@@ -82,9 +82,10 @@ const WildklassenService = (() => {
         wildklasse_id,
         wildklasse_code,
         wildklasse_bezeichnung,
-        wildklassen (id, wildgruppe_id, code, bezeichnung, reihenfolge)
+        wildklassen!inner (aktiv)
       `)
       .eq("planperiode_id", periodenResult.data.id)
+      .eq("wildklassen.aktiv", true)
       .in("planperiode_planposition_id", positionen.map((position) => position.id));
     if (mappingResult.error) throw mappingResult.error;
 
@@ -93,27 +94,28 @@ const WildklassenService = (() => {
         const position = positionById.get(
           String(mapping.planperiode_planposition_id),
         );
-        const wildklasse = Array.isArray(mapping.wildklassen)
-          ? mapping.wildklassen[0]
-          : mapping.wildklassen;
         return {
           id: mapping.wildklasse_id,
           value: mapping.wildklasse_id,
-          code: mapping.wildklasse_code || wildklasse?.code || "",
-          bezeichnung:
-            mapping.wildklasse_bezeichnung || wildklasse?.bezeichnung || "",
-          label:
-            mapping.wildklasse_bezeichnung || wildklasse?.bezeichnung || "",
-          wildgruppe_id: position?.wildgruppe_id || wildklasse?.wildgruppe_id,
+          code: mapping.wildklasse_code || "",
+          bezeichnung: mapping.wildklasse_bezeichnung || "",
+          label: mapping.wildklasse_bezeichnung || "",
+          wildgruppe_id: position?.wildgruppe_id,
           planposition_reihenfolge: Number(position?.reihenfolge) || 0,
-          reihenfolge: Number(wildklasse?.reihenfolge) || 0,
         };
       })
       .sort(
         (left, right) =>
-          left.planposition_reihenfolge - right.planposition_reihenfolge ||
-          left.reihenfolge - right.reihenfolge,
+          left.planposition_reihenfolge - right.planposition_reihenfolge,
       );
+  }
+
+  async function getAktivePlanWildklassenByWildgruppe(wildgruppeId) {
+    const wildklassen = await getAktivePlanWildklassen();
+    return wildklassen.filter(
+      (wildklasse) =>
+        String(wildklasse.wildgruppe_id) === String(wildgruppeId),
+    );
   }
 
   async function updateWildklasse(id, daten) {
@@ -140,6 +142,7 @@ const WildklassenService = (() => {
     getAktiveWildklassenByWildgruppe,
     getAktiveWildklassen,
     getAktivePlanWildklassen,
+    getAktivePlanWildklassenByWildgruppe,
     createWildklasse,
     updateWildklasse,
     deleteWildklasse

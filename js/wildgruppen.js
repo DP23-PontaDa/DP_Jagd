@@ -104,6 +104,7 @@ window.Wildgruppen = (() => {
       const reihenfolge = document.createElement("td");
       const code = document.createElement("td");
       const bezeichnung = document.createElement("td");
+      const abschussplan = document.createElement("td");
       const aktiv = document.createElement("td");
       const aktionen = document.createElement("td");
       const buttonGruppe = document.createElement("div");
@@ -113,6 +114,7 @@ window.Wildgruppen = (() => {
       reihenfolge.textContent = wildgruppe.reihenfolge ?? "";
       code.textContent = wildgruppe.code || "";
       bezeichnung.textContent = wildgruppe.bezeichnung || "";
+      abschussplan.textContent = wildgruppe.abschussplan ? "Ja" : "Nein";
       aktiv.textContent = wildgruppe.aktiv ? "✓" : "—";
 
       buttonGruppe.className = "action-cell";
@@ -133,7 +135,7 @@ window.Wildgruppen = (() => {
 
       buttonGruppe.append(bearbeitenButton, loeschenButton);
       aktionen.appendChild(buttonGruppe);
-      tr.append(reihenfolge, code, bezeichnung, aktiv, aktionen);
+      tr.append(reihenfolge, code, bezeichnung, abschussplan, aktiv, aktionen);
       tbody.appendChild(tr);
     });
   }
@@ -144,6 +146,7 @@ window.Wildgruppen = (() => {
     element("wgReihenfolge").value = "";
     element("wgCode").value = "";
     element("wgBezeichnung").value = "";
+    element("wgAbschussplan").checked = false;
     element("wgAktiv").checked = true;
     DetailMode.setMode(element("wgModal"), "edit");
     modalOeffnen();
@@ -156,6 +159,7 @@ window.Wildgruppen = (() => {
     element("wgReihenfolge").value = wildgruppe.reihenfolge ?? "";
     element("wgCode").value = wildgruppe.code || "";
     element("wgBezeichnung").value = wildgruppe.bezeichnung || "";
+    element("wgAbschussplan").checked = wildgruppe.abschussplan === true;
     element("wgAktiv").checked = wildgruppe.aktiv === true;
     DetailMode.setMode(element("wgModal"), mode, {
       capture: mode === "edit",
@@ -168,6 +172,7 @@ window.Wildgruppen = (() => {
       reihenfolge: Number(element("wgReihenfolge").value),
       code: element("wgCode").value.trim().toUpperCase(),
       bezeichnung: element("wgBezeichnung").value.trim(),
+      abschussplan: element("wgAbschussplan").checked,
       aktiv: element("wgAktiv").checked,
     };
 

@@ -41,6 +41,20 @@ const WildgruppenService = (() => {
     }
   }
 
+  async function getAktiveWildgruppenNachAbschussplan(abschussplan) {
+    const { data, error } = await db
+      .from("wildgruppen")
+      .select("*")
+      .eq("aktiv", true)
+      .eq("abschussplan", abschussplan === true)
+      .order("reihenfolge", { ascending: true });
+
+    if (error) {
+      throw datenbankfehler(error, "Das Laden der Wildgruppen");
+    }
+    return data || [];
+  }
+
   async function updateWildgruppe(id, daten) {
     const { error } = await db.from("wildgruppen").update(daten).eq("id", id);
 
@@ -59,6 +73,7 @@ const WildgruppenService = (() => {
 
   return {
     getWildgruppen,
+    getAktiveWildgruppenNachAbschussplan,
     createWildgruppe,
     updateWildgruppe,
     deleteWildgruppe,

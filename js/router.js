@@ -15,6 +15,9 @@ const Router = {
     personen: "pages/personen.html",
     abschuss: "pages/abschuss.html",
     "haar-federwild": "pages/abschuss.html",
+    nachsuchen: "pages/nachsuchen.html",
+    fehlschuesse: "pages/nachsuchen.html",
+    probeschuesse: "pages/nachsuchen.html",
     "import-export": "pages/import-export.html",
     abschussplan: "pages/abschussplan.html",
     wildgruppen: "pages/wildgruppen.html",
@@ -167,6 +170,21 @@ const Router = {
       typeof window.Abschuss.init === "function"
     ) {
       window.Abschuss.init("ausserhalb-plan");
+    }
+
+    if (
+      page === "nachsuchen" &&
+      window.Nachsuchen &&
+      typeof window.Nachsuchen.init === "function"
+    ) {
+      window.Nachsuchen.init();
+    }
+
+    if (
+      (page === "fehlschuesse" || page === "probeschuesse") &&
+      window.Nachsuchen && typeof window.Nachsuchen.init === "function"
+    ) {
+      window.Nachsuchen.init(page);
     }
   },
 

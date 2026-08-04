@@ -19,6 +19,17 @@ const DashboardService = (() => {
     return handle(result, "Fehler in Dashboard.getAktivePlanperiode");
   }
 
+  async function getAbschussplanWildgruppen() {
+    const result = await db
+      .from("wildgruppen")
+      .select("id, code, bezeichnung, reihenfolge")
+      .eq("aktiv", true)
+      .eq("abschussplan", true)
+      .order("reihenfolge", { ascending: true });
+
+    return handle(result, "Fehler in Dashboard.getAbschussplanWildgruppen") || [];
+  }
+
   async function getPlanpositionen(planperiodeId) {
     const result = await db
       .from("vw_dashboard_planpositionen")
@@ -99,13 +110,12 @@ const DashboardService = (() => {
     return Array.isArray(value) ? value[0] : value;
   }
 
-  function aggregateWildhaendler(rows, allowedGroups) {
+  function aggregateWildhaendler(rows, allowedGroupIds) {
     const grouped = new Map();
     rows.forEach((row) => {
       const wildgruppe = relationValue(row.wildgruppen);
       const wildhaendler = relationValue(row.wildhaendler);
-      const groupName = String(wildgruppe?.bezeichnung || "").toLocaleLowerCase("de");
-      if (!wildhaendler || !allowedGroups.has(groupName)) return;
+      if (!wildhaendler || !allowedGroupIds.has(String(wildgruppe?.id))) return;
 
       const id = String(wildhaendler.id);
       const current = grouped.get(id) || {
@@ -130,7 +140,7 @@ const DashboardService = (() => {
     );
   }
 
-  async function getWildhaendler(planperiode) {
+  async function getWildhaendler(planperiode, wildgruppen) {
     const pageSize = 1000;
     const rows = [];
     let offset = 0;
@@ -143,7 +153,7 @@ const DashboardService = (() => {
           gewicht,
           gesamtpreis,
           wildhaendler:wildhaendler (id, bezeichnung),
-          wildgruppen (id, bezeichnung)
+          wildgruppen (id, bezeichnung, abschussplan)
         `)
         .eq("fallwild", false)
         .not("wildhaendler_id", "is", null)
@@ -155,13 +165,23 @@ const DashboardService = (() => {
       offset += pageSize;
     } while (page.length === pageSize);
 
+    const ids = new Set(wildgruppen.map((wildgruppe) => String(wildgruppe.id)));
+    const idNachName = new Map(
+      wildgruppen.map((wildgruppe) => [
+        String(wildgruppe.bezeichnung || "").toLocaleLowerCase("de"),
+        String(wildgruppe.id),
+      ]),
+    );
     return {
-      gesamt: aggregateWildhaendler(
+      gesamt: aggregateWildhaendler(rows, ids),
+      rotwild: aggregateWildhaendler(
         rows,
-        new Set(["rotwild", "rehwild", "gamswild"]),
+        new Set([idNachName.get("rotwild")].filter(Boolean)),
       ),
-      rotwild: aggregateWildhaendler(rows, new Set(["rotwild"])),
-      rehwild: aggregateWildhaendler(rows, new Set(["rehwild"])),
+      rehwild: aggregateWildhaendler(
+        rows,
+        new Set([idNachName.get("rehwild")].filter(Boolean)),
+      ),
     };
   }
 
@@ -172,21 +192,31 @@ const DashboardService = (() => {
         planperiode: null,
         planpositionen: [],
         jaeger: [],
+        wildgruppen: [],
         wildhaendler: { gesamt: [], rotwild: [], rehwild: [] },
       };
     }
 
-    const [planpositionen, jaeger, wildhaendler] = await Promise.all([
+    const wildgruppen = await getAbschussplanWildgruppen();
+    const wildgruppenIds = new Set(
+      wildgruppen.map((wildgruppe) => String(wildgruppe.id)),
+    );
+    const [allePlanpositionen, alleJaeger, wildhaendler] = await Promise.all([
       getPlanpositionen(planperiode.id),
       getJaeger(planperiode.id),
-      getWildhaendler(planperiode),
+      getWildhaendler(planperiode, wildgruppen),
     ]);
-    return { planperiode, planpositionen, jaeger, wildhaendler };
+    const planpositionen = allePlanpositionen.filter((row) =>
+      wildgruppenIds.has(String(row.wildgruppe_id)));
+    const jaeger = alleJaeger.filter((row) =>
+      wildgruppenIds.has(String(row.wildgruppe_id)));
+    return { planperiode, wildgruppen, planpositionen, jaeger, wildhaendler };
   }
 
   return {
     loadDashboard,
     getAktivePlanperiode,
+    getAbschussplanWildgruppen,
     getPlanpositionen,
     getJaeger,
     getWildhaendler,

@@ -1,0 +1,47 @@
+<section class="abschuss-page">
+  <h1 id="nsSeitentitel">Nachsuchen</h1>
+  <div class="abschuss-filter-bar">
+    <label class="abschuss-search">
+      <span class="visually-hidden">Suche</span>
+      <input id="nsSuche" class="search-input" type="search" placeholder="🔍 Suche">
+    </label>
+    <div class="abschuss-filter-action">
+      <button id="nsNeu" class="btn btn-primary" type="button">+ Neue Nachsuche</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="ap-table">
+      <thead><tr id="nsTabelleKopf">
+        <th>Nr</th><th>Datum</th><th>Jäger</th><th>Hundeführer</th>
+        <th>Wildgruppe</th><th>Wildklasse</th><th>Ort</th><th>Info</th>
+        <th>Wild gefunden</th><th>Aktionen</th>
+      </tr></thead>
+      <tbody id="nsTabelleBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="nsModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="nsModalTitel">Nachsuche</h2>
+      <span id="nsSchliessen" class="close-btn" role="button" tabindex="0">&times;</span>
+    </div>
+    <p id="nsFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label class="required">Nr</label><input id="nsNr" class="form-control" type="number" min="1" step="1"></div>
+      <div class="form-group"><label class="required">Datum</label><input id="nsDatum" class="form-control" type="date"></div>
+      <div class="form-group"><label id="nsJaegerLabel" class="required">Jäger</label><div id="nsJaeger" aria-labelledby="nsJaegerLabel"></div></div>
+      <div id="nsHundefuehrerGruppe" class="form-group"><label id="nsHundefuehrerLabel" class="required">Hundeführer</label><div id="nsHundefuehrer" aria-labelledby="nsHundefuehrerLabel"></div></div>
+      <div id="nsWildgruppeGruppe" class="form-group"><label id="nsWildgruppeLabel" class="required">Wildgruppe</label><div id="nsWildgruppe" aria-labelledby="nsWildgruppeLabel"></div></div>
+      <div id="nsWildklasseGruppe" class="form-group"><label id="nsWildklasseLabel" class="required">Wildklasse</label><div id="nsWildklasse" aria-labelledby="nsWildklasseLabel"></div></div>
+      <div class="form-group full-width"><label>Ort</label><input id="nsOrt" class="form-control" type="text" maxlength="250"></div>
+      <div class="form-group full-width"><label>Info</label><textarea id="nsInfo" class="form-control"></textarea></div>
+      <div id="nsWildGefundenGruppe" class="form-group"><label>Wild gefunden</label><div class="checkbox-row"><input id="nsWildGefunden" type="checkbox"><span>Ja / Nein</span></div></div>
+    </div>
+    <div class="modal-footer">
+      <button id="nsSpeichern" class="btn btn-primary" type="button">Speichern</button>
+      <button id="nsAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>

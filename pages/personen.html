@@ -276,6 +276,7 @@
     <button class="pers-tab-btn active" data-kat="Mitglied" onclick="persSwitchTab('Mitglied')">Mitglieder</button>
     <button class="pers-tab-btn" data-kat="Jagdgast" onclick="persSwitchTab('Jagdgast')">Jagdgäste</button>
     <button class="pers-tab-btn" data-kat="Jagdgastkarten" onclick="persSwitchTab('Jagdgastkarten')">Jagdgastkarten</button>
+    <button class="pers-tab-btn" data-kat="Hundefuehrer" onclick="persSwitchTab('Hundefuehrer')">Hundeführer</button>
     <button class="pers-tab-btn" data-kat="Hegering" onclick="persSwitchTab('Hegering')">Hegering</button>
   </div>
 
@@ -332,7 +333,7 @@
     <input type="hidden" id="persOriginalPersonId">
 
     <div class="form-grid">
-      <div class="form-group full-width">
+      <div id="persPersonenNrGroup" class="form-group full-width">
         <label class="required">Personen_Nr</label>
         <input type="number" id="persPersonenNr" class="form-control" placeholder="Nummer eingeben">
       </div>
@@ -362,7 +363,7 @@
         <select id="persJaegerGast" class="form-control"></select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="persAktivGroup">
         <label>Aktiv</label>
         <div class="checkbox-row">
           <input type="checkbox" id="persAktiv">
@@ -371,27 +372,28 @@
         <div id="persAktivNote" class="small-note"></div>
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group full-width" id="persAdresseGroup">
         <label>Adresse</label>
         <input type="text" id="persAdresse" class="form-control" placeholder="Straße und Hausnummer">
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="persPlzGroup">
         <label>PLZ</label>
         <input type="text" id="persPlz" class="form-control">
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="persOrtGroup">
         <label>Ort</label>
         <input type="text" id="persOrt" class="form-control">
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group full-width" id="persNameKatGroup">
         <label class="required">Name_Kat</label>
         <select id="persNameKat" class="form-control" onchange="persHandleNameKatChange()">
           <option value="Mitglied">Mitglied</option>
           <option value="Jagdgast">Jagdgast</option>
           <option value="Jagdgastkarten">Jagdgastkarten</option>
+          <option value="Hundefuehrer">Hundeführer</option>
           <option value="Hegering">Hegering</option>
         </select>
       </div>

@@ -621,7 +621,7 @@ textarea.form-control {
     background: var(--color-surface);
 }
 
-.ap-matrix-cell:nth-child(10n) {
+.ap-matrix-cell.ap-matrix-row-end {
     border-right: 0;
 }
 
@@ -725,6 +725,10 @@ textarea.form-control {
 
 .ap-species.is-editing .ap-matrix-metric .ap-matrix-display {
     display: block;
+}
+
+.ap-species.is-editing .ap-matrix-revier .ap-matrix-display {
+    display: none;
 }
 
 .ap-species.is-editing .ap-matrix-input {

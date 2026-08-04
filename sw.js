@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v36";
+const CACHE_NAME = "dp-jagd-shell-v46";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -21,6 +21,7 @@ const APP_SHELL = [
   "./js/planpositionen.js",
   "./js/wildhaendler.js",
   "./js/abschuss.js",
+  "./js/nachsuchen.js",
   "./js/import-export.js",
   "./js/mobile.js",
   "./js/components/searchDropdown.js",
@@ -35,6 +36,7 @@ const APP_SHELL = [
   "./js/services/planpositionService.js",
   "./js/services/wildhaendlerService.js",
   "./js/services/abschussService.js",
+  "./js/services/nachsuchenService.js",
   "./js/services/importExportService.js",
   "./pages/login.html",
   "./pages/dashboard.html",
@@ -45,6 +47,7 @@ const APP_SHELL = [
   "./pages/planpositionen.html",
   "./pages/wildhaendler.html",
   "./pages/abschuss.html",
+  "./pages/nachsuchen.html",
   "./pages/import-export.html"
 ];
 

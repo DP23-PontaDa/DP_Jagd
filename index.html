@@ -71,13 +71,13 @@
         <div class="logo">DP Jagd</div>
 
         <nav>
-            <div class="sidebar-group">
+            <div class="sidebar-group open" data-permanent-open="true">
                 <button
                     type="button"
                     class="sidebar-group-toggle"
                     data-toggle="submenu"
                     data-group="dashboard"
-                    aria-expanded="false">
+                    aria-expanded="true">
                     Dashboard
                 </button>
 
@@ -90,14 +90,25 @@
             <button type="button" data-page="personen">Personen</button>
             <button type="button" data-page="abschuss">Abschuss</button>
             <button type="button" data-page="haar-federwild">Haar- und Federwild</button>
+            <div class="sidebar-group open" data-permanent-open="true">
+                <button type="button" class="sidebar-group-toggle"
+                    data-toggle="submenu" data-group="nachsuchen" aria-expanded="true">
+                    Nachsuchen
+                </button>
+                <div class="sidebar-submenu" data-group="nachsuchen">
+                    <button type="button" data-page="nachsuchen">Nachsuchen</button>
+                    <button type="button" data-page="fehlschuesse">Fehlschüsse</button>
+                    <button type="button" data-page="probeschuesse">Probeschüsse</button>
+                </div>
+            </div>
 
-            <div class="sidebar-group">
+            <div class="sidebar-group open" data-permanent-open="true">
                 <button
                     type="button"
                     class="sidebar-group-toggle"
                     data-toggle="submenu"
                     data-group="abschussplan"
-                    aria-expanded="false">
+                    aria-expanded="true">
                     Abschussplan
                 </button>
 
@@ -210,6 +221,8 @@
     <script src="js/wildhaendler.js"></script>
     <script src="js/services/abschussService.js"></script>
     <script src="js/abschuss.js"></script>
+    <script src="js/services/nachsuchenService.js"></script>
+    <script src="js/nachsuchen.js"></script>
     <script src="js/services/importExportService.js"></script>
     <script src="js/import-export.js"></script>
     <script src="js/app.js"></script>

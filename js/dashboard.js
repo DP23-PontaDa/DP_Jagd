@@ -275,8 +275,8 @@ const Dashboard = (() => {
       }));
   }
 
-  function createTotalDatasets(rows, hunters) {
-    return ["Rotwild", "Rehwild", "Gamswild"].map((groupName) => ({
+  function createTotalDatasets(rows, hunters, groupNames) {
+    return groupNames.map((groupName) => ({
       label: groupName,
       tooltipCategory: groupName,
       data: hunters.map((hunter) =>
@@ -289,7 +289,7 @@ const Dashboard = (() => {
     }));
   }
 
-  function createHunterCard(grid, definition, rows) {
+  function createHunterCard(grid, definition, rows, groupNames) {
     const card = createElement(
       "section",
       `dashboard-card dashboard-hunter-card dashboard-hunter-${definition.key}`,
@@ -298,10 +298,7 @@ const Dashboard = (() => {
     grid.appendChild(card);
 
     const cardRows = definition.key === "gesamt"
-      ? rows.filter((row) =>
-          ["rotwild", "rehwild", "gamswild"].includes(
-            normalizeGroup(row.wildgruppe),
-          ))
+      ? rows
       : rows.filter(
           (row) =>
             normalizeGroup(row.wildgruppe) === normalizeGroup(definition.group),
@@ -316,7 +313,7 @@ const Dashboard = (() => {
       return;
     }
     const datasets = definition.key === "gesamt"
-      ? createTotalDatasets(cardRows, hunters)
+      ? createTotalDatasets(cardRows, hunters, groupNames)
       : createClassDatasets(cardRows, hunters, definition.group);
 
     const chartWrap = createElement("div", "dashboard-hunter-chart");
@@ -363,8 +360,9 @@ const Dashboard = (() => {
     }));
   }
 
-  function createHunterCharts(container, rows) {
-    const relevantGroups = new Set(["rotwild", "rehwild", "gamswild", "raubwild"]);
+  function createHunterCharts(container, rows, wildgruppen) {
+    const groupNames = wildgruppen.map((wildgruppe) => wildgruppe.bezeichnung);
+    const relevantGroups = new Set(groupNames.map(normalizeGroup));
     const relevantRows = rows.filter((row) =>
       relevantGroups.has(normalizeGroup(row.wildgruppe)));
     const section = createElement("section", "dashboard-hunter-section");
@@ -374,13 +372,14 @@ const Dashboard = (() => {
     section.appendChild(grid);
     container.appendChild(section);
 
-    [
-      { key: "rotwild", title: "Abschüsse Jäger Rotwild", group: "Rotwild" },
-      { key: "rehwild", title: "Abschüsse Jäger Rehwild", group: "Rehwild" },
-      { key: "gesamt", title: "Abschüsse Jäger Gesamt" },
-      { key: "raubwild", title: "Abschüsse Jäger Raubwild", group: "Raubwild" },
-    ].forEach((definition) =>
-      createHunterCard(grid, definition, relevantRows));
+    const definitionen = groupNames.map((groupName) => ({
+      key: normalizeGroup(groupName),
+      title: `Abschüsse Jäger ${groupName}`,
+      group: groupName,
+    }));
+    definitionen.push({ key: "gesamt", title: "Abschüsse Jäger Gesamt" });
+    definitionen.forEach((definition) =>
+      createHunterCard(grid, definition, relevantRows, groupNames));
   }
 
   function formatDealerValue(value, metric) {
@@ -606,7 +605,9 @@ const Dashboard = (() => {
       );
       harvestSection.id = "dashboard-abschuss";
       content.appendChild(harvestSection);
-      const groupNames = ["Rotwild", "Rehwild", "Gamswild"];
+      const groupNames = data.wildgruppen.map(
+        (wildgruppe) => wildgruppe.bezeichnung,
+      );
       groupNames.forEach((groupName) => {
         const rows = data.planpositionen.filter(
           (row) => row.wildgruppe === groupName,
@@ -618,7 +619,7 @@ const Dashboard = (() => {
         ));
       });
 
-      createHunterCharts(content, data.jaeger);
+      createHunterCharts(content, data.jaeger, data.wildgruppen);
       createDealerCharts(content, data.wildhaendler);
       observeDashboardSections();
       if (initialSection) {

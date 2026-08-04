@@ -10,8 +10,6 @@ window.Abschuss = (() => {
   let wildgruppen = [];
   let wildhaendler = [];
   let planWildklassen = [];
-  let nichtPlanWildklassen = [];
-  let planWildklasseIds = new Set();
   let erfassungsmodus = "plan";
   let filterInitialisiert = false;
   let aktuelleFilter = null;
@@ -99,21 +97,14 @@ window.Abschuss = (() => {
 
   async function ladePlanfreigaben() {
     planWildklassen = await WildklassenService.getAktivePlanWildklassen();
-    planWildklasseIds = new Set(
-      planWildklassen.map((wildklasse) => String(wildklasse.id)),
-    );
-    const aktiveWildklassen = await WildklassenService.getAktiveWildklassen();
-    nichtPlanWildklassen = aktiveWildklassen.filter(
-      (wildklasse) => !planWildklasseIds.has(String(wildklasse.id)),
-    );
   }
 
   function abschuesseFuerModul() {
+    const erlaubteWildgruppen = new Set(
+      wildgruppen.map((wildgruppe) => String(wildgruppe.id)),
+    );
     return abschuesse.filter((abschuss) => {
-      const istPlanrelevant = planWildklasseIds.has(
-        String(abschuss.wildklasse_id),
-      );
-      return erfassungsmodus === "plan" ? istPlanrelevant : !istPlanrelevant;
+      return erlaubteWildgruppen.has(String(abschuss.wildgruppe_id));
     });
   }
 
@@ -124,10 +115,7 @@ window.Abschuss = (() => {
           String(wildklasse.wildgruppe_id) === String(wildgruppeId),
       );
     }
-    return nichtPlanWildklassen.filter(
-      (wildklasse) =>
-        String(wildklasse.wildgruppe_id) === String(wildgruppeId),
-    );
+    return WildklassenService.getAktiveWildklassenByWildgruppe(wildgruppeId);
   }
 
   async function ladeStammdaten() {
@@ -158,13 +146,8 @@ window.Abschuss = (() => {
   }
 
   async function ladeWildgruppen() {
-    wildgruppen = await WildklassenService.getWildgruppen();
-    const erlaubteWildgruppen = new Set(
-      (erfassungsmodus === "plan" ? planWildklassen : nichtPlanWildklassen)
-        .map((wildklasse) => String(wildklasse.wildgruppe_id)),
-    );
-    wildgruppen = wildgruppen.filter((wildgruppe) =>
-      erlaubteWildgruppen.has(String(wildgruppe.id)));
+    wildgruppen = await WildgruppenService
+      .getAktiveWildgruppenNachAbschussplan(erfassungsmodus === "plan");
     wildgruppeDropdown.setOptions(wildgruppen);
   }
 
@@ -520,8 +503,16 @@ window.Abschuss = (() => {
         await AbschussService.getNaechsteAbschussnummer(
           jahr,
           erfassungsmodus === "ausserhalb-plan"
-            ? { von: 901, bis: 999 }
-            : null,
+            ? {
+                von: 901,
+                bis: 999,
+                wildgruppeIds: wildgruppen.map((wildgruppe) => wildgruppe.id),
+              }
+            : {
+                von: 1,
+                bis: 900,
+                wildgruppeIds: wildgruppen.map((wildgruppe) => wildgruppe.id),
+              },
         );
     } catch (error) {
       console.error("Abschussnummer konnte nicht ermittelt werden:", error);
@@ -614,11 +605,6 @@ window.Abschuss = (() => {
   }
 
   function abbrechen() {
-    if (aktuell) {
-      DetailMode.cancel(el("asModal"));
-      fallwildGeaendert();
-      return;
-    }
     schliessen();
   }
 

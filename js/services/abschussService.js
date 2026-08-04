@@ -69,6 +69,9 @@ const AbschussService = (() => {
       .eq("jahr", Number(jahr));
     if (bereich?.von != null) query = query.gte("nr", Number(bereich.von));
     if (bereich?.bis != null) query = query.lte("nr", Number(bereich.bis));
+    if (bereich?.wildgruppeIds?.length) {
+      query = query.in("wildgruppe_id", bereich.wildgruppeIds);
+    }
     const { data, error } = await query;
     if (error) throw fehler(error, "Das Ermitteln der nächsten Abschussnummer");
 
