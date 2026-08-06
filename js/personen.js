@@ -78,6 +78,7 @@ function persTabTitle(kat) {
   if (kat === 'Jagdgastkarten') return 'Jagdgastkarten';
   if (kat === 'Hundefuehrer') return 'Hundeführer';
   if (kat === 'Hegering') return 'Hegering';
+  if (kat === 'Wildfleisch') return 'Wildfleisch';
   return kat || 'Personen';
 }
 
@@ -102,7 +103,7 @@ function persComparePersons(a, b) {
   if (activeDiff !== 0) return activeDiff;
 
   if (persActiveKat === 'Mitglied' || persActiveKat === 'Hegering' ||
-      persActiveKat === 'Hundefuehrer') {
+      persActiveKat === 'Wildfleisch' || persActiveKat === 'Hundefuehrer') {
     return persCompareByIdNumber(a, b);
   }
 
@@ -230,6 +231,21 @@ function persRenderTable() {
       return;
     }
 
+    if (persActiveKat === 'Wildfleisch') {
+      persAddCell(row, person.personenNr || '');
+      persAddCell(row, person.vorname);
+      persAddCell(row, person.nachname);
+      persAddCell(row, person.adresse);
+      persAddCell(row, person.plz);
+      persAddCell(row, person.ort);
+      row.appendChild(persCreatePersonActionCell(person));
+      row.addEventListener('click', function(event) {
+        if (!event.target.closest('button')) persOpenEditPersonModal(person.personId, 'read');
+      });
+      tbody.appendChild(row);
+      return;
+    }
+
     persAddCell(row, person.personenNr || '');
     persAddCell(row, person.vorname);
     persAddCell(row, person.nachname);
@@ -299,6 +315,20 @@ function persRenderTableHead() {
       head.innerHTML = '';
       head.appendChild(row);
     }
+    return;
+  }
+  if (persActiveKat === 'Wildfleisch') {
+    const headers = ['Nr.', 'Vorname', 'Nachname', 'Adresse', 'PLZ', 'Ort', 'Aktion'];
+    const row = document.createElement('tr');
+    headers.forEach(function(header, index) {
+      const th = document.createElement('th');
+      th.textContent = header;
+      if (index === 0) th.className = 'col-number';
+      if (header === 'Aktion') th.className = 'col-actions';
+      row.appendChild(th);
+    });
+    const head = document.getElementById('persTableHead');
+    if (head) { head.innerHTML = ''; head.appendChild(row); }
     return;
   }
   const headers = ['Nr.', 'Vorname', 'Nachname'];
@@ -577,6 +607,7 @@ function persHandleNameKatChange() {
   const isJagd = persIsJagdKategorie(nameKat);
   const isJagdgastkarten = nameKat === 'Jagdgastkarten';
   const isHundefuehrer = nameKat === 'Hundefuehrer';
+  const isWildfleisch = nameKat === 'Wildfleisch';
   const aktiv = document.getElementById('persAktiv');
   const note = document.getElementById('persAktivNote');
   const aktivText = document.getElementById('persAktivText');
@@ -585,14 +616,16 @@ function persHandleNameKatChange() {
   const jaegerGastGroup = document.getElementById('persJaegerGastGroup');
   const jaegerGastSelect = document.getElementById('persJaegerGast');
   const personenNrGroup = document.getElementById('persPersonenNrGroup');
+  const personenNrLabel = document.getElementById('persPersonenNrLabel');
   const aktivGroup = document.getElementById('persAktivGroup');
   const nameKatGroup = document.getElementById('persNameKatGroup');
 
   if (kjNrGroup) kjNrGroup.style.display =
-    isJagdgastkarten || isHundefuehrer ? 'none' : 'block';
+    isJagdgastkarten || isHundefuehrer || isWildfleisch ? 'none' : 'block';
   if (personenNrGroup) personenNrGroup.style.display = isHundefuehrer ? 'none' : '';
-  if (aktivGroup) aktivGroup.style.display = isHundefuehrer ? 'none' : '';
-  if (nameKatGroup) nameKatGroup.style.display = isHundefuehrer ? 'none' : '';
+  if (personenNrLabel) personenNrLabel.textContent = isWildfleisch ? 'Nr.' : 'Personen_Nr';
+  if (aktivGroup) aktivGroup.style.display = isHundefuehrer || isWildfleisch ? 'none' : '';
+  if (nameKatGroup) nameKatGroup.style.display = isHundefuehrer || isWildfleisch ? 'none' : '';
   ['persAdresseGroup', 'persPlzGroup', 'persOrtGroup'].forEach(function(id) {
     const group = document.getElementById(id);
     if (group) group.style.display = isHundefuehrer ? 'none' : '';
@@ -811,7 +844,7 @@ function persSavePerson() {
   }
 
   const allowedNameKats = [
-    'Mitglied', 'Jagdgast', 'Jagdgastkarten', 'Hundefuehrer', 'Hegering'
+    'Mitglied', 'Jagdgast', 'Jagdgastkarten', 'Hundefuehrer', 'Hegering', 'Wildfleisch'
   ];
   if (allowedNameKats.indexOf(person.nameKat) === -1) {
     alert('Name_Kat ist ungültig.');

@@ -511,6 +511,147 @@ textarea.form-control {
     margin: 18px 0 10px;
 }
 
+.invoice-action-btn,
+.invoice-pdf-btn {
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.invoice-action-btn {
+    width: auto;
+    flex-basis: auto;
+    padding: 0 10px;
+}
+
+.invoice-pdf-btn {
+    width: 42px;
+    flex-basis: 42px;
+}
+
+.page-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.page-title-row h1,
+.rechnungsvorlage-page h1 {
+    margin-bottom: 4px;
+}
+
+.page-subtitle,
+.field-help {
+    margin: 0;
+    color: var(--color-text-muted, #667085);
+}
+
+.field-help {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.invoice-selection {
+    display: grid;
+    gap: 8px;
+    max-height: 330px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.invoice-choice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border: 1px solid #d8dfdd;
+    border-radius: 9px;
+    cursor: pointer;
+    background: #fff;
+}
+
+.invoice-choice:has(input:checked) {
+    border-color: var(--color-primary);
+    background: #f2faf7;
+}
+
+.invoice-choice input {
+    width: 19px;
+    height: 19px;
+}
+
+.invoice-choice span,
+.invoice-choice small {
+    display: block;
+}
+
+.invoice-choice small {
+    margin-top: 3px;
+    color: #667085;
+}
+
+.invoice-total-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 18px;
+    padding-top: 10px;
+    border-top: 1px solid #d8dfdd;
+    font-size: 1.05rem;
+}
+
+.invoice-total-row strong {
+    font-size: 1.2rem;
+}
+
+.invoice-template-card {
+    max-width: 920px;
+}
+
+.rechnungsvorlage-page .invoice-template-card + .invoice-template-card {
+    margin-top: 20px;
+}
+
+.template-actions {
+    padding-top: 18px;
+}
+
+.color-input {
+    min-height: 42px;
+    padding: 4px;
+}
+
+.modal-close-button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .page-title-row {
+        flex-direction: column;
+    }
+
+    .page-title-row .btn {
+        width: 100%;
+    }
+
+    .invoice-choice {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .invoice-choice > b {
+        grid-column: 2;
+    }
+}
+
 .planpositionen-action-btn {
     background-color: var(--color-primary);
 }

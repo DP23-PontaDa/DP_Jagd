@@ -62,27 +62,15 @@ async function init() {
         }
 
         const submenuToggles = document.querySelectorAll('[data-toggle="submenu"]');
-        function isPermanentGroup(group) {
-            return group && group.dataset.permanentOpen === 'true';
-        }
-
         function closeAllGroups() {
             document.querySelectorAll('.sidebar-group').forEach(group => {
-                if (isPermanentGroup(group)) {
-                    group.classList.add('open');
-                    const permanentToggle = group.querySelector('[data-toggle="submenu"]');
-                    if (permanentToggle) {
-                        permanentToggle.setAttribute('aria-expanded', 'true');
-                    }
-                    return;
-                }
                 group.classList.remove('open');
                 const toggle = group.querySelector('[data-toggle="submenu"]');
                 if (toggle) toggle.setAttribute('aria-expanded', 'false');
             });
         }
 
-        function openGroup(name) {
+        function openGroup(name, activateFirst = false) {
             closeAllGroups();
             const group = document.querySelector(`.sidebar-group [data-group="${name}"]`);
             if (!group) return;
@@ -90,24 +78,25 @@ async function init() {
             if (!root) return;
             root.classList.add('open');
             group.setAttribute('aria-expanded', 'true');
+            const firstItem = root.querySelector('.sidebar-submenu [data-page]');
+            if (activateFirst && firstItem) {
+                firstItem.scrollIntoView({ block: 'nearest' });
+                firstItem.focus({ preventScroll: true });
+                firstItem.click();
+            }
         }
 
         submenuToggles.forEach(btn => {
             btn.addEventListener('click', () => {
-                const root = btn.closest('.sidebar-group');
-                if (isPermanentGroup(root)) {
-                    root.classList.add('open');
-                    btn.setAttribute('aria-expanded', 'true');
-                    return;
-                }
                 const groupName = btn.dataset.group;
+                const root = btn.closest('.sidebar-group');
                 const isOpen = btn.getAttribute('aria-expanded') === 'true';
                 if (isOpen) {
                     btn.setAttribute('aria-expanded', 'false');
-                    btn.closest('.sidebar-group').classList.remove('open');
-                } else {
-                    openGroup(groupName);
+                    if (root) root.classList.remove('open');
+                    return;
                 }
+                openGroup(groupName, true);
             });
         });
 
@@ -123,23 +112,10 @@ async function init() {
                 const submenu = pageButton.closest('.sidebar-submenu');
                 if (submenu) {
                     const groupName = submenu.dataset.group;
-                    openGroup(groupName);
+                    openGroup(groupName, false);
                 }
             }
         });
-
-        if (Router.currentPage === 'abschussplan') {
-            openGroup('abschussplan');
-        }
-
-        if (Router.currentPage === 'dashboard') {
-            openGroup('dashboard');
-        }
-
-        if (['nachsuchen', 'fehlschuesse', 'probeschuesse']
-            .includes(Router.currentPage)) {
-            openGroup('nachsuchen');
-        }
 
         // Close sidebar automatically after selecting a menu item on mobile
         document.addEventListener("click", function (event) {
@@ -158,6 +134,9 @@ async function init() {
             if (lastIsMobile && !nowMobile) {
                 // switched to desktop
                 closeSidebar();
+                closeAllGroups();
+            } else if (!lastIsMobile && nowMobile) {
+                closeAllGroups();
             }
             lastIsMobile = nowMobile;
         });

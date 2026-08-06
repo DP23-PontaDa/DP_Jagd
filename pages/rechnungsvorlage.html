@@ -1,0 +1,37 @@
+<section class="rechnungsvorlage-page">
+  <h1>Rechnungsvorlage</h1>
+  <p class="page-subtitle">Vereinsdaten pflegen und das Excel-Masterblatt der Rechnung austauschen.</p>
+  <p id="rvFehler" class="form-message" hidden></p>
+
+  <div class="content-card invoice-template-card">
+    <h2>Stammdaten Rechnung</h2>
+    <div class="form-grid">
+      <div class="form-group full-width"><label for="rvVereinsname" class="required">Vereinsname</label><input id="rvVereinsname" class="form-control" type="text"></div>
+      <div class="form-group full-width"><label for="rvStrasse" class="required">Straße</label><input id="rvStrasse" class="form-control" type="text"></div>
+      <div class="form-group"><label for="rvPlz" class="required">PLZ</label><input id="rvPlz" class="form-control" type="text"></div>
+      <div class="form-group"><label for="rvOrt" class="required">Ort</label><input id="rvOrt" class="form-control" type="text"></div>
+      <div class="form-group"><label for="rvObmann" class="required">Obmann</label><input id="rvObmann" class="form-control" type="text"></div>
+      <div class="form-group"><label for="rvKassier" class="required">Kassier</label><input id="rvKassier" class="form-control" type="text"></div>
+      <div class="form-group"><label for="rvTelefonObmann">Telefon Obmann</label><input id="rvTelefonObmann" class="form-control" type="tel"></div>
+      <div class="form-group"><label for="rvTelefonKassier">Telefon Kassier</label><input id="rvTelefonKassier" class="form-control" type="tel"></div>
+      <div class="form-group full-width"><label for="rvEmail">E-Mail</label><input id="rvEmail" class="form-control" type="email"></div>
+      <div class="form-group"><label for="rvBankName">Bank</label><input id="rvBankName" class="form-control" type="text"></div>
+      <div class="form-group"><label for="rvIban" class="required">IBAN</label><input id="rvIban" class="form-control" type="text" autocomplete="off"></div>
+      <div class="form-group"><label for="rvBic">BIC (optional)</label><input id="rvBic" class="form-control" type="text" autocomplete="off"></div>
+      <div class="form-group full-width"><label for="rvLogoDatei">Logo</label><input id="rvLogoDatei" class="form-control" type="file" accept="image/png,image/jpeg,image/svg+xml"><small id="rvLogoStatus" class="field-help">Standardlogo wird verwendet.</small></div>
+    </div>
+    <div class="modal-footer template-actions"><button id="rvSpeichern" class="btn btn-primary" type="button">Stammdaten speichern</button></div>
+  </div>
+
+  <div class="content-card invoice-template-card">
+    <h2>Excel-Rechnungsvorlage</h2>
+    <p>Die Datei muss das Layout-Masterblatt <strong>Tabelle1</strong> enthalten.</p>
+    <div class="form-grid">
+      <div class="form-group full-width"><label for="rvExcelDatei">Neue Excel-Vorlage</label><input id="rvExcelDatei" class="form-control" type="file" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"><small id="rvExcelStatus" class="field-help">Noch keine aktive Excel-Vorlage gespeichert.</small></div>
+    </div>
+    <div class="modal-footer template-actions">
+      <button id="rvExcelHochladen" class="btn btn-primary" type="button">Excel-Vorlage hochladen und aktivieren</button>
+      <button id="rvExcelHerunterladen" class="btn btn-outline" type="button" disabled>Aktive Vorlage herunterladen</button>
+    </div>
+  </div>
+</section>

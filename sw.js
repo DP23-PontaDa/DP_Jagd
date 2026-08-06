@@ -1,9 +1,10 @@
-const CACHE_NAME = "dp-jagd-shell-v46";
+const CACHE_NAME = "dp-jagd-shell-v78";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
   "./assets/app-icon.svg",
+  "./assets/rechnung-logo.png",
   "./css/layout.css",
   "./css/sidebar.css",
   "./css/login.css",
@@ -21,6 +22,8 @@ const APP_SHELL = [
   "./js/planpositionen.js",
   "./js/wildhaendler.js",
   "./js/abschuss.js",
+  "./js/rechnungen.js",
+  "./js/rechnungsvorlage.js",
   "./js/nachsuchen.js",
   "./js/import-export.js",
   "./js/mobile.js",
@@ -28,6 +31,7 @@ const APP_SHELL = [
   "./js/components/detailMode.js",
   "./js/components/clientFilter.js",
   "./js/components/appFeedback.js",
+  "./js/components/epcQr.js",
   "./js/components/wildklasseColors.js",
   "./js/services/abschussplanService.js",
   "./js/services/dashboardService.js",
@@ -36,6 +40,9 @@ const APP_SHELL = [
   "./js/services/planpositionService.js",
   "./js/services/wildhaendlerService.js",
   "./js/services/abschussService.js",
+  "./js/services/rechnungService.js",
+  "./js/services/rechnungPrintService.js",
+  "./js/services/rechnungsvorlageService.js",
   "./js/services/nachsuchenService.js",
   "./js/services/importExportService.js",
   "./pages/login.html",
@@ -47,6 +54,9 @@ const APP_SHELL = [
   "./pages/planpositionen.html",
   "./pages/wildhaendler.html",
   "./pages/abschuss.html",
+  "./pages/rechnungen.html",
+  "./pages/rechnung-print.html",
+  "./pages/rechnungsvorlage.html",
   "./pages/nachsuchen.html",
   "./pages/import-export.html"
 ];

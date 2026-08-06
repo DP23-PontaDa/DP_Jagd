@@ -52,6 +52,7 @@ window.Abschuss = (() => {
     el("asNeu").addEventListener("click", neu);
     el("asSpeichern").addEventListener("click", speichern);
     el("asAbbrechen").addEventListener("click", abbrechen);
+    el("asRechnung").addEventListener("click", () => rechnungStarten(aktuell));
     el("asSchliessen").addEventListener("click", schliessen);
     el("asDetailEdit").addEventListener("click", () =>
       DetailMode.setMode(el("asModal"), "edit"),
@@ -232,6 +233,9 @@ window.Abschuss = (() => {
       actions.dataset.label = "Aktionen";
       actions.innerHTML =
         `<button class="action-btn edit-btn" type="button" data-aktion="bearbeiten" data-id="${abschuss.id}" title="Bearbeiten" aria-label="Bearbeiten"></button>` +
+        (rechnungErlaubt(abschuss)
+          ? `<button class="action-btn invoice-action-btn" type="button" data-aktion="rechnung" data-id="${abschuss.id}" title="Rechnung erstellen">Rechnung erstellen</button>`
+          : "") +
         `<button class="action-btn delete-btn" type="button" data-aktion="loeschen" data-id="${abschuss.id}" title="Löschen" aria-label="Löschen"></button>`;
       row.appendChild(actions);
       body.appendChild(row);
@@ -476,7 +480,25 @@ window.Abschuss = (() => {
     const abschuss = abschuesse.find((item) => String(item.id) === button.dataset.id);
     if (!abschuss) return;
     if (button.dataset.aktion === "bearbeiten") bearbeiten(abschuss.id);
+    else if (button.dataset.aktion === "rechnung") rechnungStarten(abschuss);
     else loeschen(abschuss);
+  }
+
+  function rechnungErlaubt(abschuss) {
+    return erfassungsmodus === "plan" && typeof RechnungService !== "undefined" &&
+      RechnungService.istAbschussVerrechenbar(abschuss);
+  }
+
+  function rechnungStarten(abschuss) {
+    const listenEintrag = abschuesse.find((item) =>
+      String(item.id) === String(abschuss?.id));
+    if (!rechnungErlaubt(listenEintrag)) {
+      AppFeedback.warning("Für Fallwild oder Wildhändler „Klein“ darf keine Rechnung erstellt werden.");
+      return;
+    }
+    Router.pendingRechnungAbschussId = listenEintrag.id;
+    schliessen();
+    Router.open("rechnungen");
   }
 
   async function neu() {
@@ -555,6 +577,8 @@ window.Abschuss = (() => {
       wildhaendlerGeaendert(wildhaendlerDropdown.getSelected(), false);
       el("asProtokoll").value = abschuss.untersuchungsprotokoll_nr || "";
       fallwildGeaendert();
+      const listenEintrag = abschuesse.find((item) => String(item.id) === String(id));
+      el("asRechnung").hidden = mode !== "read" || !rechnungErlaubt(listenEintrag);
       DetailMode.setMode(el("asModal"), mode, {
         capture: mode === "edit",
       });
@@ -566,6 +590,7 @@ window.Abschuss = (() => {
   }
 
   function formularLeeren() {
+    el("asRechnung").hidden = true;
     ["asNr", "asDatum", "asGewicht", "asPreis", "asGesamtpreis",
       "asZahlungseingang", "asZusatzinfo", "asBemerkung", "asProtokoll"]
       .forEach((id) => { el(id).value = ""; });

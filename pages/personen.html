@@ -275,9 +275,9 @@
   <div class="pers-tabs">
     <button class="pers-tab-btn active" data-kat="Mitglied" onclick="persSwitchTab('Mitglied')">Mitglieder</button>
     <button class="pers-tab-btn" data-kat="Jagdgast" onclick="persSwitchTab('Jagdgast')">Jagdgäste</button>
-    <button class="pers-tab-btn" data-kat="Jagdgastkarten" onclick="persSwitchTab('Jagdgastkarten')">Jagdgastkarten</button>
     <button class="pers-tab-btn" data-kat="Hundefuehrer" onclick="persSwitchTab('Hundefuehrer')">Hundeführer</button>
     <button class="pers-tab-btn" data-kat="Hegering" onclick="persSwitchTab('Hegering')">Hegering</button>
+    <button class="pers-tab-btn" data-kat="Wildfleisch" onclick="persSwitchTab('Wildfleisch')">Wildfleisch</button>
   </div>
 
   <div class="action-bar">
@@ -334,7 +334,7 @@
 
     <div class="form-grid">
       <div id="persPersonenNrGroup" class="form-group full-width">
-        <label class="required">Personen_Nr</label>
+        <label id="persPersonenNrLabel" class="required">Personen_Nr</label>
         <input type="number" id="persPersonenNr" class="form-control" placeholder="Nummer eingeben">
       </div>
 
@@ -395,6 +395,7 @@
           <option value="Jagdgastkarten">Jagdgastkarten</option>
           <option value="Hundefuehrer">Hundeführer</option>
           <option value="Hegering">Hegering</option>
+          <option value="Wildfleisch">Wildfleisch</option>
         </select>
       </div>
     </div>

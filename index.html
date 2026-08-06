@@ -23,6 +23,12 @@
             left: 0;
             top: 0;
             height: 100dvh !important;
+            max-height: 100dvh;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
             transform: translateX(-110%);
             transition: transform 280ms ease;
             z-index: 1100;
@@ -71,13 +77,13 @@
         <div class="logo">DP Jagd</div>
 
         <nav>
-            <div class="sidebar-group open" data-permanent-open="true">
+            <div class="sidebar-group">
                 <button
                     type="button"
                     class="sidebar-group-toggle"
                     data-toggle="submenu"
                     data-group="dashboard"
-                    aria-expanded="true">
+                    aria-expanded="false">
                     Dashboard
                 </button>
 
@@ -90,9 +96,10 @@
             <button type="button" data-page="personen">Personen</button>
             <button type="button" data-page="abschuss">Abschuss</button>
             <button type="button" data-page="haar-federwild">Haar- und Federwild</button>
-            <div class="sidebar-group open" data-permanent-open="true">
+            <button type="button" data-page="rechnungen">Rechnungen</button>
+            <div class="sidebar-group">
                 <button type="button" class="sidebar-group-toggle"
-                    data-toggle="submenu" data-group="nachsuchen" aria-expanded="true">
+                    data-toggle="submenu" data-group="nachsuchen" aria-expanded="false">
                     Nachsuchen
                 </button>
                 <div class="sidebar-submenu" data-group="nachsuchen">
@@ -102,13 +109,13 @@
                 </div>
             </div>
 
-            <div class="sidebar-group open" data-permanent-open="true">
+            <div class="sidebar-group">
                 <button
                     type="button"
                     class="sidebar-group-toggle"
                     data-toggle="submenu"
                     data-group="abschussplan"
-                    aria-expanded="true">
+                    aria-expanded="false">
                     Abschussplan
                 </button>
 
@@ -157,6 +164,10 @@
                         type="button"
                         data-page="wildhaendler">
                         Wildhändler
+                    </button>
+
+                    <button type="button" data-page="rechnungsvorlage">
+                        Rechnungsvorlage
                     </button>
 
                     <button
@@ -216,11 +227,17 @@
     <script src="js/components/detailMode.js"></script>
     <script src="js/components/clientFilter.js"></script>
     <script src="js/components/appFeedback.js"></script>
+    <script src="js/components/epcQr.js"></script>
     <script src="js/mobile.js"></script>
     <script src="js/services/wildhaendlerService.js"></script>
     <script src="js/wildhaendler.js"></script>
     <script src="js/services/abschussService.js"></script>
     <script src="js/abschuss.js"></script>
+    <script src="js/services/rechnungPrintService.js"></script>
+    <script src="js/services/rechnungService.js"></script>
+    <script src="js/rechnungen.js"></script>
+    <script src="js/services/rechnungsvorlageService.js"></script>
+    <script src="js/rechnungsvorlage.js"></script>
     <script src="js/services/nachsuchenService.js"></script>
     <script src="js/nachsuchen.js"></script>
     <script src="js/services/importExportService.js"></script>

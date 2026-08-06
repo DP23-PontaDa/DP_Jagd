@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title id="printDocumentTitle">Rechnung</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #e9eceb; color: #000; font-family: Calibri, Arial, sans-serif; }
+    .print-toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: center; gap: 10px; padding: 10px; background: #243342; }
+    .print-toolbar button { min-height: 44px; padding: 10px 18px; border: 1px solid #fff; border-radius: 7px; background: #243342; color: #fff; font-size: 16px; font-weight: 700; }
+    .print-page { position: relative; width: 210mm; min-height: 297mm; margin: 14px auto; padding: 0; overflow: hidden; background: #fff; box-shadow: 0 3px 18px #0002; font-size: 11pt; line-height: 1.1; }
+    .print-brand { position: absolute; inset: 0; pointer-events: none; }
+    .print-sender-line { position: absolute; left: 25.8mm; top: 44.9mm; font-family: Arial, sans-serif; font-size: 8pt; text-decoration: underline; }
+    .print-logo { position: absolute; top: 11mm; right: 27.1mm; width: 37.3mm; height: 33.6mm; object-fit: contain; }
+    .print-address-area { position: absolute; top: 51.5mm; left: 25.8mm; right: 27.1mm; height: 51mm; display: grid; grid-template-columns: 55mm 1fr; column-gap: 28mm; }
+    .print-recipient, .print-club { font-size: 11pt; line-height: 1.1; }
+    .print-recipient { align-self: start; padding-top: 14mm; }
+    .print-club { position: relative; margin-left: 1mm; padding: 0; text-align: left; font-weight: 400; line-height: 1.05; }
+    .print-club > #printClubName { margin: 0 0 2mm 10mm; padding: 0; text-align: left; font-weight: 400; white-space: nowrap; }
+    .print-club-row { display: grid; grid-template-columns: 27mm minmax(0, 1fr); align-items: baseline; margin: 0 0 .25mm; padding: 0; text-align: left; }
+    .print-club-row > strong,
+    .print-club-row > span { margin: 0; padding: 0; text-align: left; font-weight: 400; }
+    .print-club-row > :first-child { padding-left: 10mm; }
+    .print-club-row.print-email-row { margin-bottom: 4mm; }
+    .print-club-row.print-date-row { position: absolute; top: 32.2mm; left: 0; width: 55mm; grid-template-columns: 27mm 1fr; }
+    .print-title { position: absolute; top: 106.5mm; left: 25.8mm; margin: 0; font-size: 16pt; line-height: 1.07; }
+    .print-number { position: absolute; top: 119.2mm; left: 25.8mm; display: grid; grid-template-columns: 62.5mm 1fr; width: 120mm; align-items: center; }
+    .print-number strong { font-weight: 700; }
+    .print-salutation { position: absolute; top: 130mm; left: 25.8mm; }
+    .print-intro { position: absolute; top: 137mm; left: 25.8mm; width: 157mm; line-height: 1.1; }
+    .print-table-frame { position: absolute; top: 154.8mm; left: 25.8mm; width: 157.1mm; }
+    .print-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11pt; }
+    .print-table th { height: 6.9mm; padding: 1mm; border-top: .3mm solid #000; border-bottom: .3mm solid #000; text-align: center; line-height: 1.05; white-space: nowrap; font-weight: 700; }
+    .print-table td { height: 10mm; padding: 2.5mm 1mm; border-bottom: .3mm solid #000; text-align: center; vertical-align: middle; line-height: 1.05; }
+    .print-table .number { text-align: right; }
+    .print-total { position: absolute; top: 181.8mm; left: 105.2mm; display: grid; grid-template-columns: 55mm 1fr; align-items: center; width: 77.7mm; height: 10mm; font-size: 12pt; font-weight: 700; }
+    .print-payment { position: absolute; inset: 0; line-height: 1.1; }
+    .print-payment-text { position: absolute; top: 197.9mm; left: 25.8mm; width: 157.1mm; line-height: 1.55; }
+    .print-purpose { margin-left: 4mm; font-weight: 700; white-space: nowrap; }
+    .print-qr { position: absolute; top: 220mm; left: 140.5mm; width: 30mm; height: 30mm; }
+    .print-qr svg { display: block; width: 30mm; height: 30mm; }
+    .print-closing { position: absolute; top: 216mm; left: 25.8mm; line-height: 1.2; }
+    .print-closing > div + div { margin-top: 4mm; }
+    .print-signature { margin: 0; font-family: "Segoe Script", "Brush Script MT", cursive; font-size: 19px; line-height: 1.1; }
+    .print-footer { position: absolute; left: 25.8mm; right: 27.1mm; top: 257mm; display: grid; grid-template-columns: 1.25fr .9fr 1.25fr; gap: 7mm; padding-top: 3mm; border-top: .3mm solid #000; font-size: 9pt; line-height: 1.3; }
+    .print-footer > :first-child,
+    .print-footer > :nth-child(3) { text-align: left; }
+    .print-footer > :nth-child(2) { text-align: center; }
+    .print-footer > :nth-child(3) { justify-self: end; width: max-content; }
+    .print-footer-contact-row { display: grid; grid-template-columns: 18mm auto; }
+    .print-footer-contact-label { transform: translateX(5mm); }
+    .print-footer-extra { grid-column: 1 / -1; text-align: center; }
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+      html, body { width: 210mm; height: 297mm; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-toolbar { display: none !important; }
+      .print-page { width: 210mm !important; height: 297mm !important; min-height: 297mm !important; max-height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; box-shadow: none !important; page-break-before: avoid !important; page-break-after: avoid !important; page-break-inside: avoid !important; break-before: avoid !important; break-after: avoid !important; break-inside: avoid-page !important; }
+      .print-brand, .print-address-area, .print-table, .print-table tr, .print-payment, .print-closing, .print-footer { page-break-inside: avoid !important; break-inside: avoid-page !important; }
+      body.print-multipage { height: auto !important; max-height: none !important; overflow: visible !important; }
+      .print-page.print-multipage { height: auto !important; min-height: 296mm !important; max-height: none !important; overflow: visible !important; page-break-inside: auto !important; break-inside: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-toolbar">
+    <button id="invoicePdfButton" type="button">PDF speichern</button>
+    <button id="invoicePrintButton" type="button">Drucken</button>
+    <button id="invoiceBackButton" type="button">Rechnungen</button>
+  </div>
+  <main id="printPage" class="print-page">
+    <header class="print-brand">
+      <div id="printSenderLine" class="print-sender-line"></div>
+      <img id="printLogo" class="print-logo" alt="">
+    </header>
+    <section class="print-address-area">
+      <div id="printRecipient" class="print-recipient"></div>
+      <div class="print-club">
+        <div id="printClubName"></div>
+        <div class="print-club-row"><strong>Obmann:</strong><span id="printObmann"></span></div>
+        <div class="print-club-row"><strong>Telefon:</strong><span id="printTelefonObmann"></span></div>
+        <div class="print-club-row print-email-row"><strong>E-Mail:</strong><span id="printEmail"></span></div>
+        <div class="print-club-row"><strong>Kassier:</strong><span id="printKassier"></span></div>
+        <div class="print-club-row print-date-row"><span>Datum:</span><span id="printDate"></span></div>
+      </div>
+    </section>
+    <h1 id="printTitle" class="print-title"></h1>
+    <div class="print-number"><span>Rechnungsnummer:</span><strong id="printInvoiceNumber"></strong></div>
+    <div id="printSalutation" class="print-salutation"></div>
+    <div id="printIntro" class="print-intro"></div>
+    <div class="print-table-frame"><table class="print-table">
+      <colgroup><col style="width:8%"><col style="width:31%"><col style="width:12%"><col style="width:11%"><col style="width:19%"><col style="width:19%"></colgroup>
+      <thead><tr><th>Pos.</th><th>Bezeichnung</th><th class="number">Menge</th><th>Einheit</th><th class="number">Preis/Einheit</th><th class="number">Gesamtpreis</th></tr></thead>
+      <tbody id="printPositions"></tbody>
+    </table></div>
+    <div class="print-total"><span>Rechnungsbetrag:</span><span id="printTotal"></span></div>
+    <section class="print-payment"><div id="printPaymentText" class="print-payment-text"></div><div id="printQr" class="print-qr"></div></section>
+    <section class="print-closing"><div id="printClosingText"></div><div id="printSignature" class="print-signature"></div><div id="printSigners"></div></section>
+    <footer class="print-footer"><div id="printFooterClub"></div><div id="printFooterBank"></div><div id="printFooterContacts"></div><div id="printFooterExtra" class="print-footer-extra" hidden></div></footer>
+  </main>
+</body>
+</html>

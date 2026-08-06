@@ -1,0 +1,35 @@
+<section class="rechnungen-page">
+  <div class="page-title-row">
+    <div><h1>Rechnungen</h1><p class="page-subtitle">Wildfleischrechnungen verwalten und als PDF speichern.</p></div>
+    <button id="reNeu" class="btn btn-primary" type="button">+ Neue Rechnung</button>
+  </div>
+  <p id="reSeitenFehler" class="form-message" hidden></p>
+  <div class="table-wrap">
+    <table class="ap-table">
+      <thead><tr><th>Rechnungsnummer</th><th>Datum</th><th>Empfänger</th><th>Abschuss Nr.</th><th class="number-cell">Gesamtbetrag</th><th class="col-actions">Aktion</th></tr></thead>
+      <tbody id="reTabelleBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="reModal" class="modal" aria-hidden="true">
+  <div class="modal-content invoice-modal-content" role="dialog" aria-modal="true" aria-labelledby="reModalTitel">
+    <div class="modal-header"><h2 id="reModalTitel">Rechnung</h2><button id="reSchliessen" class="modal-close-button" type="button" aria-label="Schließen">&times;</button></div>
+    <p id="reFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label for="reDatum" class="required">Rechnungsdatum</label><input id="reDatum" class="form-control" type="date"></div>
+      <div class="form-group"><label id="rePersonLabel" class="required">Rechnungsempfänger</label><div id="rePerson" aria-labelledby="rePersonLabel"></div></div>
+      <div class="form-group full-width">
+        <label class="required">Rechnungspositionen</label>
+        <p class="field-help">Bitte einen oder zwei Abschüsse auswählen. Fallwild, Wildhändler „Klein“ und bereits verrechnete Abschüsse werden nicht angeboten.</p>
+        <div id="reAbschussAuswahl" class="invoice-selection"></div>
+      </div>
+      <div class="form-group full-width invoice-total-row"><span>Voraussichtlicher Gesamtbetrag</span><strong id="reGesamtbetrag">0,00 €</strong></div>
+    </div>
+    <div class="modal-footer">
+      <button id="reSpeichern" class="btn btn-primary" type="button">Speichern</button>
+      <button id="reSpeichernDrucken" class="btn btn-secondary" type="button">Speichern und Drucken</button>
+      <button id="reAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>

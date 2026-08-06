@@ -8,6 +8,7 @@ const Router = {
   pendingPanel: null,
   pendingDashboardSection: null,
   currentDashboardSection: "dashboard-abschuss",
+  pendingRechnungAbschussId: null,
 
   routes: {
     login: "pages/login.html",
@@ -15,6 +16,7 @@ const Router = {
     personen: "pages/personen.html",
     abschuss: "pages/abschuss.html",
     "haar-federwild": "pages/abschuss.html",
+    rechnungen: "pages/rechnungen.html",
     nachsuchen: "pages/nachsuchen.html",
     fehlschuesse: "pages/nachsuchen.html",
     probeschuesse: "pages/nachsuchen.html",
@@ -24,6 +26,7 @@ const Router = {
     stammdaten: "pages/stammdaten.html",
     wildhaendler: "pages/wildhaendler.html",
     planpositionen: "pages/planpositionen.html",
+    rechnungsvorlage: "pages/rechnungsvorlage.html",
   },
 
   async open(page) {
@@ -170,6 +173,16 @@ const Router = {
       typeof window.Abschuss.init === "function"
     ) {
       window.Abschuss.init("ausserhalb-plan");
+    }
+
+    if (page === "rechnungen" && window.Rechnungen &&
+        typeof window.Rechnungen.init === "function") {
+      window.Rechnungen.init();
+    }
+
+    if (page === "rechnungsvorlage" && window.Rechnungsvorlage &&
+        typeof window.Rechnungsvorlage.init === "function") {
+      window.Rechnungsvorlage.init();
     }
 
     if (
