@@ -139,13 +139,15 @@ const RechnungPrintService = (() => {
     const vereinsname = v.vereinsname || v.absender_name || "";
     const adresse = (v.adresse || [v.absender_adresse, v.absender_plz_ort].filter(Boolean).join("\n"))
       .split(/\r?\n/).filter(Boolean);
-    const nummern = (rechnung.positionen || []).map((position) => position.abschuss_nr).join("_");
+    const abschussNummernText = (rechnung.positionen || [])
+      .map((position) => position.abschuss_nr)
+      .join("_");
     if ((rechnung.positionen || []).length > 2) {
       documentNode.body.classList.add("print-multipage");
       byId("printPage").classList.add("print-multipage");
     }
 
-    byId("printDocumentTitle").textContent = `RE_JV_Wildfleisch_${rechnung.rechnungsjahr}_${nummern}`;
+    byId("printDocumentTitle").textContent = `RE_JV_Wildfleisch_${rechnung.rechnungsjahr}_${abschussNummernText}`;
     byId("printLogo").src = logoDataUrl;
     byId("printSenderLine").textContent = `${vereinsname} - ${adresse.slice(0, 2).join(" - ")}`;
     zeilen(byId("printRecipient"), [anrede, `${person.vorname || ""} ${person.nachname || ""}`.trim(), person.adresse, `${person.plz || ""} ${person.ort || ""}`.trim(), "Österreich"]);

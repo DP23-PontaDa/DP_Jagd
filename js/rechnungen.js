@@ -54,12 +54,14 @@ window.Rechnungen = (() => {
       const row = document.createElement("tr");
       row.dataset.id = rechnung.id;
       const person = `${rechnung.person?.vorname || ""} ${rechnung.person?.nachname || ""}`.trim();
-      const nummern = (rechnung.positionen || []).map((p) => `${p.abschuss_nr}/${p.abschuss_jahr}`).join(", ");
+      const abschussNummernText = (rechnung.positionen || [])
+        .map((position) => `${position.abschuss_nr}/${position.abschuss_jahr}`)
+        .join(", ");
       row.innerHTML = `
         <td>${escapeHtml(rechnung.rechnungsnummer)}</td>
         <td>${formatDatum(rechnung.rechnungsdatum)}</td>
         <td>${escapeHtml(person)}</td>
-        <td>${escapeHtml(nummern)}</td>
+        <td>${escapeHtml(abschussNummernText)}</td>
         <td class="number-cell">${formatGeld(rechnung.gesamtbetrag)}</td>
         <td class="action-cell">
           <button class="action-btn edit-btn" type="button" data-aktion="bearbeiten" data-id="${rechnung.id}" title="Bearbeiten" aria-label="Bearbeiten"></button>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v84";
+const CACHE_NAME = "dp-jagd-shell-v85";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -22,7 +22,7 @@ const APP_SHELL = [
   "./js/planpositionen.js",
   "./js/wildhaendler.js",
   "./js/abschuss.js",
-  "./js/rechnungen.js",
+  "./js/rechnungen.js?v=85",
   "./js/rechnungsvorlage.js",
   "./js/nachsuchen.js",
   "./js/import-export.js",
@@ -40,8 +40,8 @@ const APP_SHELL = [
   "./js/services/planpositionService.js",
   "./js/services/wildhaendlerService.js",
   "./js/services/abschussService.js",
-  "./js/services/rechnungService.js",
-  "./js/services/rechnungPrintService.js",
+  "./js/services/rechnungService.js?v=85",
+  "./js/services/rechnungPrintService.js?v=85",
   "./js/services/rechnungsvorlageService.js",
   "./js/services/nachsuchenService.js",
   "./js/services/importExportService.js",
