@@ -211,15 +211,6 @@ const RechnungPrintService = (() => {
     return `<!doctype html>\n${documentNode.documentElement.outerHTML}`;
   }
 
-  function bildLaden(url) {
-    return new Promise((resolve, reject) => {
-      const bild = new Image();
-      bild.onload = () => resolve(bild);
-      bild.onerror = () => reject(new Error("Die Rechnung konnte nicht als PDF gerendert werden."));
-      bild.src = url;
-    });
-  }
-
   function jpegAlsPdf(jpegBytes, bildBreite, bildHoehe) {
     const encoder = new TextEncoder();
     const teile = [];
@@ -254,38 +245,131 @@ const RechnungPrintService = (() => {
     return new Blob(teile, { type: "application/pdf" });
   }
 
+  function zeichneTextNode(context, node, seitenRect, styles) {
+    const text = String(node.nodeValue || "").trim();
+    if (!text) return;
+    const range = node.ownerDocument.createRange();
+    range.selectNodeContents(node);
+    const rects = Array.from(range.getClientRects()).filter((rect) => rect.width && rect.height);
+    if (!rects.length) return;
+    context.fillStyle = styles.color;
+    context.font = `${styles.fontStyle} ${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
+    context.textBaseline = "alphabetic";
+    const woerter = text.split(/\s+/);
+    let index = 0;
+    rects.forEach((rect, rectIndex) => {
+      let zeile = "";
+      while (index < woerter.length) {
+        const kandidat = zeile ? `${zeile} ${woerter[index]}` : woerter[index];
+        if (zeile && context.measureText(kandidat).width > rect.width + 2 && rectIndex < rects.length - 1) break;
+        zeile = kandidat;
+        index += 1;
+      }
+      if (zeile) {
+        const fontSize = Number.parseFloat(styles.fontSize) || 16;
+        context.fillText(zeile, rect.left - seitenRect.left, rect.top - seitenRect.top + fontSize * 0.84);
+      }
+    });
+    range.detach();
+  }
+
+  function zeichneQr(context, svgElement, seitenRect) {
+    const rect = svgElement.getBoundingClientRect();
+    const viewBox = String(svgElement.getAttribute("viewBox") || "0 0 65 65").split(/\s+/).map(Number);
+    const breite = viewBox[2] || 65;
+    const hoehe = viewBox[3] || breite;
+    const x0 = rect.left - seitenRect.left;
+    const y0 = rect.top - seitenRect.top;
+    context.fillStyle = "#fff";
+    context.fillRect(x0, y0, rect.width, rect.height);
+    context.fillStyle = "#000";
+    const path = svgElement.querySelector("path")?.getAttribute("d") || "";
+    const moduleRegex = /M([\d.]+)\s+([\d.]+)h1v1h-1z/g;
+    let match;
+    while ((match = moduleRegex.exec(path))) {
+      context.fillRect(
+        x0 + (Number(match[1]) / breite) * rect.width,
+        y0 + (Number(match[2]) / hoehe) * rect.height,
+        rect.width / breite + 0.05,
+        rect.height / hoehe + 0.05,
+      );
+    }
+  }
+
+  async function zeichneDomAufCanvas(documentNode, seite, canvas) {
+    const seitenRect = seite.getBoundingClientRect();
+    const context = canvas.getContext("2d", { alpha: false });
+    const faktor = canvas.width / seitenRect.width;
+    context.setTransform(faktor, 0, 0, faktor, 0, 0);
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, seitenRect.width, seitenRect.height);
+    const view = documentNode.defaultView;
+    const elemente = [seite, ...seite.querySelectorAll("*")];
+
+    elemente.forEach((element) => {
+      const styles = view.getComputedStyle(element);
+      if (styles.display === "none" || styles.visibility === "hidden") return;
+      const rect = element.getBoundingClientRect();
+      const x = rect.left - seitenRect.left;
+      const y = rect.top - seitenRect.top;
+      if (styles.backgroundColor !== "rgba(0, 0, 0, 0)" && styles.backgroundColor !== "transparent") {
+        context.fillStyle = styles.backgroundColor;
+        context.fillRect(x, y, rect.width, rect.height);
+      }
+      const kanten = [
+        ["borderTopWidth", "borderTopColor", x, y, x + rect.width, y],
+        ["borderRightWidth", "borderRightColor", x + rect.width, y, x + rect.width, y + rect.height],
+        ["borderBottomWidth", "borderBottomColor", x, y + rect.height, x + rect.width, y + rect.height],
+        ["borderLeftWidth", "borderLeftColor", x, y, x, y + rect.height],
+      ];
+      kanten.forEach(([widthName, colorName, fromX, fromY, toX, toY]) => {
+        const width = Number.parseFloat(styles[widthName]);
+        if (!width || styles[colorName] === "transparent") return;
+        context.strokeStyle = styles[colorName];
+        context.lineWidth = width;
+        context.beginPath();
+        context.moveTo(fromX, fromY);
+        context.lineTo(toX, toY);
+        context.stroke();
+      });
+    });
+
+    for (const bild of seite.querySelectorAll("img")) {
+      if (!bild.complete && bild.decode) await bild.decode().catch(() => {});
+      if (!bild.naturalWidth) continue;
+      const rect = bild.getBoundingClientRect();
+      context.drawImage(bild, rect.left - seitenRect.left, rect.top - seitenRect.top, rect.width, rect.height);
+    }
+    seite.querySelectorAll("svg").forEach((svg) => zeichneQr(context, svg, seitenRect));
+
+    const walker = documentNode.createTreeWalker(seite, view.NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      const parent = node.parentElement;
+      const styles = parent ? view.getComputedStyle(parent) : null;
+      if (styles && styles.display !== "none" && styles.visibility !== "hidden") {
+        zeichneTextNode(context, node, seitenRect, styles);
+      }
+      node = walker.nextNode();
+    }
+  }
+
   async function erstellePdf(documentNode) {
     const seite = documentNode.getElementById("printPage");
     if (!seite) throw new Error("Die Rechnungsseite konnte nicht gefunden werden.");
     seite.classList.add("pdf-export-mode");
     try {
       if (documentNode.fonts?.ready) await documentNode.fonts.ready;
-      const kopie = seite.cloneNode(true);
-      kopie.style.margin = "0";
-      kopie.style.boxShadow = "none";
-      const styles = Array.from(documentNode.querySelectorAll("style"))
-        .map((element) => element.textContent).join("\n");
-      const inhalt = new XMLSerializer().serializeToString(kopie);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123"><foreignObject width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml"><style>${styles}</style>${inhalt}</div></foreignObject></svg>`;
-      const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-      try {
-        const bild = await bildLaden(svgUrl);
-        const canvas = documentNode.createElement("canvas");
-        canvas.width = 1588;
-        canvas.height = 2246;
-        const context = canvas.getContext("2d", { alpha: false });
-        context.fillStyle = "#fff";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(bild, 0, 0, canvas.width, canvas.height);
-        const jpegBlob = await new Promise((resolve, reject) => canvas.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error("Die PDF-Grafik konnte nicht erzeugt werden.")),
-          "image/jpeg", 0.94,
-        ));
-        const jpegBytes = new Uint8Array(await jpegBlob.arrayBuffer());
-        return jpegAlsPdf(jpegBytes, canvas.width, canvas.height);
-      } finally {
-        URL.revokeObjectURL(svgUrl);
-      }
+      const canvas = documentNode.createElement("canvas");
+      canvas.width = 1588;
+      canvas.height = 2246;
+      await zeichneDomAufCanvas(documentNode, seite, canvas);
+      const jpegBlob = await new Promise((resolve, reject) => canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("Die PDF-Grafik konnte nicht erzeugt werden.")),
+        "image/jpeg", 0.94,
+      ));
+      const jpegBytes = new Uint8Array(await jpegBlob.arrayBuffer());
+      return jpegAlsPdf(jpegBytes, canvas.width, canvas.height);
     } finally {
       seite.classList.remove("pdf-export-mode");
     }
