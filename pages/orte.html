@@ -1,0 +1,77 @@
+<section class="stammdaten-page orte-page">
+  <h1>Orte</h1>
+  <div class="tabs orte-tabs" role="tablist">
+    <button id="orteTabEinrichtungen" class="tab-button active" type="button">Reviereinrichtungen</button>
+    <button id="orteTabAbschussorte" class="tab-button" type="button">Abschussorte</button>
+  </div>
+
+  <div class="action-bar">
+    <div class="search-group">
+      <input id="orteSuche" class="search-input" type="search" placeholder="Orte durchsuchen">
+    </div>
+    <div class="btn-group">
+      <button id="orteKartenEinstellungen" class="btn btn-outline" type="button">Karteneinstellungen</button>
+      <button id="orteNeu" class="btn btn-primary" type="button">+ Neuer Ort</button>
+    </div>
+  </div>
+
+  <p id="orteFehler" class="form-message" hidden></p>
+  <div id="orteLeer" class="no-data" hidden>Keine Orte vorhanden.</div>
+  <div id="orteTabelleWrap" class="table-wrap">
+    <table class="person-table orte-table">
+      <thead id="orteKopf"></thead>
+      <tbody id="orteBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="orteModal" class="modal" aria-hidden="true">
+  <div class="modal-content orte-modal-content">
+    <div class="modal-header">
+      <h2 id="orteModalTitel">Ort</h2>
+      <span id="orteSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">&times;</span>
+    </div>
+    <p id="orteModalFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label for="orteNr">Nr.</label><input id="orteNr" class="form-control" type="number" readonly></div>
+      <div class="form-group"><label class="required" for="orteName">Name</label><input id="orteName" class="form-control" type="text"></div>
+      <div id="orteArtGruppe" class="form-group"><label class="required" for="orteArt">Art</label><select id="orteArt" class="form-control"><option value="">Bitte wählen</option><option>Bodensitz</option><option>Hochsitz</option><option>Sitzbank</option><option>Natur</option></select></div>
+      <div class="form-group full-width"><label for="orteInfo">Info</label><textarea id="orteInfo" class="form-control" rows="3"></textarea></div>
+      <div class="form-group full-width">
+        <label>Position / Karte</label>
+        <p class="field-help">Klick auf die Karte setzt oder verschiebt den Marker.</p>
+        <div id="orteKarte" class="orte-map" aria-label="Position des Ortes"></div>
+        <div class="orte-coordinates"><span>Latitude: <strong id="orteLatitude">–</strong></span><span>Longitude: <strong id="orteLongitude">–</strong></span><button id="ortePositionLoeschen" class="btn btn-outline" type="button">Position entfernen</button></div>
+      </div>
+      <div class="form-group full-width">
+        <label for="orteBilder">Bilder</label>
+        <input id="orteBilder" class="form-control" type="file" accept="image/*" multiple>
+        <div id="orteBilderVorschau" class="orte-image-grid"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="orteAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="orteSpeichern" class="btn btn-primary" type="button">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div id="orteKarteEinstellungenModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Karteneinstellungen</h2>
+      <span id="orteKarteEinstellungenSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">&times;</span>
+    </div>
+    <p id="orteKarteEinstellungenFehler" class="form-message" hidden></p>
+    <p class="field-help">Der Revier-Mittelpunkt bestimmt den Kartenausschnitt beim Anlegen eines neuen Ortes. Es wird dabei kein Marker gesetzt.</p>
+    <div class="form-grid">
+      <div class="form-group"><label class="required" for="orteMapLat">Standard Latitude</label><input id="orteMapLat" class="form-control" type="number" min="-90" max="90" step="0.000001"></div>
+      <div class="form-group"><label class="required" for="orteMapLng">Standard Longitude</label><input id="orteMapLng" class="form-control" type="number" min="-180" max="180" step="0.000001"></div>
+      <div class="form-group"><label class="required" for="orteMapZoom">Standard-Zoom</label><input id="orteMapZoom" class="form-control" type="number" min="1" max="19" step="1"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="orteKarteEinstellungenAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="orteKarteEinstellungenSpeichern" class="btn btn-primary" type="button">Speichern</button>
+    </div>
+  </div>
+</div>

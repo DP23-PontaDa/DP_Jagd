@@ -6,7 +6,7 @@ const BerechtigungService = (() => {
     "haar-federwild": "haar-federwild", rechnungen: "rechnungen",
     nachsuchen: "nachsuchen", fehlschuesse: "fehlschuesse",
     probeschuesse: "probeschuesse", abschussplan: "abschussplan",
-    wildgruppen: "wildgruppen", stammdaten: "wildklassen",
+    wildgruppen: "wildgruppen", orte: "wildgruppen", stammdaten: "wildklassen",
     planpositionen: "planpositionen", wildhaendler: "wildhaendler",
     rechnungsvorlage: "rechnungsvorlage", "import-export": "import-export",
     benutzerverwaltung: "benutzerverwaltung",

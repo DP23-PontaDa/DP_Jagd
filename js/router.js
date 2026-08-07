@@ -24,6 +24,7 @@ const Router = {
     "import-export": "pages/import-export.html",
     abschussplan: "pages/abschussplan.html",
     wildgruppen: "pages/wildgruppen.html",
+    orte: "pages/orte.html",
     stammdaten: "pages/stammdaten.html",
     wildhaendler: "pages/wildhaendler.html",
     planpositionen: "pages/planpositionen.html",
@@ -149,6 +150,10 @@ const Router = {
       typeof window.Wildgruppen.init === "function"
     ) {
       window.Wildgruppen.init();
+    }
+
+    if (page === "orte" && window.Orte && typeof window.Orte.init === "function") {
+      window.Orte.init();
     }
 
     if (

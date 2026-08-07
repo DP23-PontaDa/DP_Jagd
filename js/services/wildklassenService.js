@@ -82,7 +82,7 @@ const WildklassenService = (() => {
         wildklasse_id,
         wildklasse_code,
         wildklasse_bezeichnung,
-        wildklassen!inner (aktiv)
+        wildklassen!inner (aktiv, reihenfolge)
       `)
       .eq("planperiode_id", periodenResult.data.id)
       .eq("wildklassen.aktiv", true)
@@ -102,11 +102,13 @@ const WildklassenService = (() => {
           label: mapping.wildklasse_bezeichnung || "",
           wildgruppe_id: position?.wildgruppe_id,
           planposition_reihenfolge: Number(position?.reihenfolge) || 0,
+          wildklasse_reihenfolge: Number(mapping.wildklassen?.reihenfolge) || 0,
         };
       })
       .sort(
         (left, right) =>
-          left.planposition_reihenfolge - right.planposition_reihenfolge,
+          left.planposition_reihenfolge - right.planposition_reihenfolge ||
+          left.wildklasse_reihenfolge - right.wildklasse_reihenfolge,
       );
   }
 

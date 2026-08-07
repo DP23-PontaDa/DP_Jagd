@@ -25,10 +25,11 @@ const NachsuchenService = (() => {
   function auswahl(typ) {
     if (typ === "nachsuchen") return `
       id, nr, datum, jaeger_id, hundefuehrer_id, wildgruppe_id,
-      wildklasse_id, ort, info, wild_gefunden, erstellt_am, geaendert_am,
+      wildklasse_id, ort_id, ort, info, wild_gefunden, erstellt_am, geaendert_am,
       jaeger:personen!nachsuchen_jaeger_fk (id, vorname, nachname),
       hundefuehrer:personen!nachsuchen_hundefuehrer_fk (id, vorname, nachname),
-      wildgruppen (id, bezeichnung), wildklassen (id, bezeichnung, wildgruppe_id)`;
+      wildgruppen (id, bezeichnung), wildklassen (id, bezeichnung, wildgruppe_id),
+      ort_stammdaten:orte (id, nr, name, art, latitude, longitude)`;
     if (typ === "fehlschuesse") return `
       id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, ort, info,
       erstellt_am, geaendert_am, jaeger:personen (id, vorname, nachname),

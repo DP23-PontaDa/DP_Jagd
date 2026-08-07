@@ -10,14 +10,15 @@ const AbschussService = (() => {
   async function getAbschuesse() {
     const [abschussResult, rechnungspositionenResult] = await Promise.all([
       db.from("abschuesse").select(`
-        id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, gewicht,
+        id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung,
         fallwild, untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
         jaeger:personen (id, vorname, nachname),
         wildgruppen (id, bezeichnung, rechnung_moeglich),
         wildklassen (id, bezeichnung, wildgruppe_id),
-        wildhaendler (id, code, bezeichnung, rechnung_moeglich)
+        wildhaendler (id, code, bezeichnung, rechnung_moeglich),
+        erlegungsort:orte (id, nr, name, art, latitude, longitude)
       `)
       .order("datum", { ascending: false })
       .order("nr", { ascending: false }),

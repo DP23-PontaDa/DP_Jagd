@@ -1,0 +1,21 @@
+.orte-tabs { margin-bottom: 18px; }
+.orte-table td { vertical-align: middle; }
+.orte-position-link { white-space: nowrap; }
+.orte-image-count { white-space: nowrap; }
+.orte-modal-content { width: min(920px, calc(100% - 32px)); }
+.orte-map { width: 100%; height: 360px; border: 1px solid #bdc3c7; border-radius: 6px; overflow: hidden; }
+.orte-coordinates { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 10px; }
+.orte-selection-info { margin-top: 6px; }
+.orte-selection-info a { margin-left: 4px; }
+.orte-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-top: 12px; }
+.orte-image-card { position: relative; margin: 0; padding: 8px; border: 1px solid #d6dde3; border-radius: 6px; background: #fff; }
+.orte-image-card img { display: block; width: 100%; height: 105px; object-fit: cover; border-radius: 4px; }
+.orte-image-card figcaption { margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; }
+.orte-image-order { display: flex; gap: 5px; margin-top: 7px; }
+.orte-image-order button { min-width: 32px; min-height: 30px; border: 1px solid #bdc3c7; border-radius: 4px; background: #fff; cursor: pointer; }
+.orte-image-remove { position: absolute; top: 3px; right: 3px; min-width: 32px; min-height: 32px; border: 0; border-radius: 50%; background: rgba(180, 35, 24, .92); color: #fff; cursor: pointer; }
+@media (max-width: 600px) {
+  .orte-map { height: 55vh; min-height: 300px; }
+  .orte-modal-content { width: calc(100% - 16px); margin: 8px auto; padding: 16px; }
+  .orte-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

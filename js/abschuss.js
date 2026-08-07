@@ -6,6 +6,7 @@ window.Abschuss = (() => {
   let wildgruppeDropdown;
   let wildklasseDropdown;
   let wildhaendlerDropdown;
+  let ortDropdown;
   let jaeger = [];
   let wildgruppen = [];
   let wildhaendler = [];
@@ -47,6 +48,9 @@ window.Abschuss = (() => {
     wildhaendlerDropdown = new SearchDropdown(el("asWildhaendler"), {
       placeholder: "Wildhändler suchen",
       onChange: wildhaendlerGeaendert,
+    });
+    ortDropdown = new OrteAuswahl(el("asOrt"), el("asOrtInfo"), {
+      placeholder: "Erlegungsort suchen",
     });
 
     el("asNeu").addEventListener("click", neu);
@@ -124,6 +128,7 @@ window.Abschuss = (() => {
       ladeJaeger(),
       ladeWildgruppen(),
       ladeWildhaendler(),
+      ortDropdown.laden(),
     ]);
 
     const fehler = ergebnisse.filter((ergebnis) => ergebnis.status === "rejected");
@@ -191,6 +196,8 @@ window.Abschuss = (() => {
         (item) => item.jaeger?.nachname,
         (item) => item.wildgruppen?.bezeichnung,
         (item) => item.wildklassen?.bezeichnung,
+        (item) => item.erlegungsort?.name,
+        (item) => item.erlegungsort?.art,
         (item) => item.wildhaendler?.bezeichnung,
         (item) => item.zusatzinfo,
         (item) => item.bemerkung,
@@ -277,14 +284,13 @@ window.Abschuss = (() => {
     }
     return basis.concat([
       {
+        label: "Erlegungsort",
+        wert: (abschuss) => OrteAuswahl.bezeichnung(abschuss.erlegungsort),
+      },
+      {
         label: "Gewicht",
         wert: (abschuss) =>
           abschuss.gewicht == null ? "—" : `${formatZahl(abschuss.gewicht)} kg`,
-      },
-      {
-        label: "Preis/kg",
-        wert: (abschuss) =>
-          abschuss.preis_pro_kg == null ? "—" : formatGeld(abschuss.preis_pro_kg),
       },
       {
         label: "Gesamtpreis",
@@ -295,7 +301,6 @@ window.Abschuss = (() => {
         label: "Wildhändler",
         wert: (abschuss) => abschuss.wildhaendler?.bezeichnung,
       },
-      { label: "Fallwild", wert: (abschuss) => abschuss.fallwild ? "Ja" : "Nein" },
     ]);
   }
 
@@ -332,8 +337,7 @@ window.Abschuss = (() => {
     });
     const aktionen = document.createElement("th");
     aktionen.className = "col-actions";
-    aktionen.textContent =
-      erfassungsmodus === "ausserhalb-plan" ? "Aktionen" : "Aktion";
+    aktionen.textContent = "Aktionen";
     kopf.appendChild(aktionen);
   }
 
@@ -600,6 +604,7 @@ window.Abschuss = (() => {
       wildklasseDropdown.setDisabled(!klassen.length);
       wildklasseDropdown.setValue(abschuss.wildklasse_id, false);
       wildhaendlerDropdown.setValue(abschuss.wildhaendler_id, false);
+      ortDropdown.setValue(abschuss.ort_id, false);
       wildhaendlerGeaendert(wildhaendlerDropdown.getSelected(), false);
       el("asProtokoll").value = abschuss.untersuchungsprotokoll_nr || "";
       fallwildGeaendert();
@@ -627,6 +632,7 @@ window.Abschuss = (() => {
     wildklasseDropdown.setOptions([]);
     wildklasseDropdown.setDisabled(true);
     wildhaendlerDropdown.clear(false);
+    ortDropdown.clear();
     el("asProtokollGruppe").hidden = true;
     el("asFehler").hidden = true;
     fallwildGeaendert();
@@ -699,6 +705,7 @@ window.Abschuss = (() => {
       jaeger_id: jaegerDropdown.getValue(),
       wildgruppe_id: wildgruppeDropdown.getValue(),
       wildklasse_id: wildklasseDropdown.getValue(),
+      ort_id: ortDropdown.getValue(),
       gewicht: el("asGewicht").value === ""
         ? null
         : Number(el("asGewicht").value),

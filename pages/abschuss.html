@@ -32,8 +32,7 @@
       <thead>
         <tr id="asTabelleKopf">
           <th class="col-number">Nr.</th><th class="col-date">Datum</th><th>Jäger</th><th>Wildgruppe</th><th>Wildklasse</th>
-          <th>Gewicht</th><th>Preis/kg</th><th>Gesamtpreis</th>
-          <th>Wildhändler</th><th class="col-boolean">Fallwild</th><th class="col-actions">Aktion</th>
+          <th>Erlegungsort</th><th>Gewicht</th><th>Gesamtpreis</th><th>Wildhändler</th><th class="col-actions">Aktionen</th>
         </tr>
       </thead>
       <tbody id="asTabelleBody"></tbody>
@@ -72,6 +71,11 @@
       <div class="form-group">
         <label id="asWildklasseLabel" class="required">Wildklasse</label>
         <div id="asWildklasse" aria-labelledby="asWildklasseLabel"></div>
+      </div>
+      <div class="form-group full-width">
+        <label id="asOrtLabel">Erlegungsort</label>
+        <div id="asOrt" aria-labelledby="asOrtLabel"></div>
+        <div id="asOrtInfo" class="field-help orte-selection-info" hidden></div>
       </div>
       <div id="asGewichtGruppe" class="form-group" data-read-suffix=" kg">
         <label for="asGewicht">Gewicht (kg)</label>
