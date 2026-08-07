@@ -27,10 +27,11 @@ const Router = {
     wildhaendler: "pages/wildhaendler.html",
     planpositionen: "pages/planpositionen.html",
     rechnungsvorlage: "pages/rechnungsvorlage.html",
+    benutzerverwaltung: "pages/benutzerverwaltung.html",
   },
 
   async open(page) {
-    const requestedPage = this.routes[page] ? page : "login";
+    let requestedPage = this.routes[page] ? page : "login";
     const authenticated = Auth.isAuthenticated();
 
     if (requestedPage === "login" && authenticated) {
@@ -39,6 +40,13 @@ const Router = {
 
     if (requestedPage !== "login" && !authenticated) {
       return this.open("login");
+    }
+
+    if (requestedPage !== "login" &&
+        !BerechtigungService.darf(requestedPage, "Lesen")) {
+      const ersteSeite = BerechtigungService.ersteLesbareSeite();
+      if (ersteSeite && ersteSeite !== requestedPage) return this.open(ersteSeite);
+      return Auth.logout();
     }
 
     const content = document.getElementById("app-content");
@@ -73,6 +81,7 @@ const Router = {
           : null;
       this.pendingPanel = null;
       this.initializePage(requestedPage, initialPanel);
+      BerechtigungService.seiteBeobachten(requestedPage, content);
     } catch (error) {
       console.error("Seite konnte nicht geladen werden:", error);
       content.textContent =
@@ -183,6 +192,11 @@ const Router = {
     if (page === "rechnungsvorlage" && window.Rechnungsvorlage &&
         typeof window.Rechnungsvorlage.init === "function") {
       window.Rechnungsvorlage.init();
+    }
+
+    if (page === "benutzerverwaltung" && window.Benutzerverwaltung &&
+        typeof window.Benutzerverwaltung.init === "function") {
+      window.Benutzerverwaltung.init();
     }
 
     if (

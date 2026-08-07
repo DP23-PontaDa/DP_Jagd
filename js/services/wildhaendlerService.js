@@ -10,7 +10,7 @@ const WildhaendlerService = (() => {
   async function getWildhaendler() {
     const { data, error } = await db
       .from("wildhaendler")
-      .select("id, reihenfolge, code, bezeichnung, preis_pro_kg, aktiv")
+      .select("id, reihenfolge, code, bezeichnung, preis_pro_kg, rechnung_moeglich, aktiv")
       .order("reihenfolge", { ascending: true });
     if (error) throw fehler(error, "Das Laden der Wildhändler");
     return data || [];

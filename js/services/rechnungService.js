@@ -20,14 +20,10 @@ const RechnungService = (() => {
     return result;
   }
 
-  function istWildhaendlerKlein(bezeichnung) {
-    const wert = String(bezeichnung || "").trim().toLocaleLowerCase("de");
-    return ["klein", "klein wildhändler"].includes(wert);
-  }
-
   function istAbschussVerrechenbar(abschuss) {
     return Boolean(abschuss) && abschuss.fallwild !== true &&
-      !istWildhaendlerKlein(abschuss.wildhaendler?.bezeichnung);
+      abschuss.wildhaendler?.rechnung_moeglich === true &&
+      abschuss.wildgruppen?.rechnung_moeglich === true;
   }
 
   function sortierePositionen(rechnung) {
@@ -65,8 +61,8 @@ const RechnungService = (() => {
     const [abschussResult, positionResult] = await Promise.all([
       db.from("abschuesse").select(`
         id, nr, jahr, datum, gewicht, preis_pro_kg, gesamtpreis,
-        fallwild, wildhaendler_id, wildhaendler (id, bezeichnung),
-        wildgruppen (id, bezeichnung), wildklassen (id, bezeichnung)
+        fallwild, wildhaendler_id, wildhaendler (id, bezeichnung, rechnung_moeglich),
+        wildgruppen (id, bezeichnung, rechnung_moeglich), wildklassen (id, bezeichnung)
       `).eq("fallwild", false).order("datum", { ascending: false })
         .order("nr", { ascending: false }),
       db.from("rechnungspositionen").select("abschuss_id, rechnung_id"),
@@ -180,7 +176,7 @@ const RechnungService = (() => {
     const erlaubt = new Set((await getVerrechenbareAbschuesse(rechnung.id))
       .map((abschuss) => String(abschuss.id)));
     if (rechnung.positionen.some((position) => !erlaubt.has(String(position.abschuss_id)))) {
-      throw new Error("Für Fallwild oder Wildhändler „Klein“ darf keine Rechnung erzeugt werden.");
+      throw new Error("Für diesen Abschuss ist laut Wildgruppe oder Wildhändler keine Rechnung möglich.");
     }
     if (!window.EpcQr?.toSvg || typeof RechnungPrintService === "undefined") {
       throw new Error("Die Rechnungs-Druckvorlage ist nicht verfügbar.");
@@ -252,6 +248,6 @@ const RechnungService = (() => {
   return {
     getRechnungen, getRechnung, getPersonen, getVerrechenbareAbschuesse,
     saveRechnung, deleteRechnung, generatePdf,
-    istAbschussVerrechenbar, istWildhaendlerKlein,
+    istAbschussVerrechenbar,
   };
 })();

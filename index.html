@@ -11,7 +11,7 @@
     <title>DP Jagd</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.svg">
-    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/layout.css?v=90">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/login.css">
     <style>
@@ -176,6 +176,10 @@
                         Import / Export
                     </button>
 
+                    <button type="button" data-page="benutzerverwaltung">
+                        Benutzerverwaltung
+                    </button>
+
                 </div>
             </div>
 
@@ -207,8 +211,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/router.js"></script>
+    <script src="js/services/berechtigungService.js?v=93"></script>
+    <script src="js/auth.js?v=93"></script>
+    <script src="js/router.js?v=90"></script>
     <script src="js/api.js"></script>
     <script src="js/components/wildklasseColors.js"></script>
     <script src="js/services/dashboardService.js"></script>
@@ -217,8 +222,8 @@
     <script src="js/services/abschussplanService.js"></script>
     <script src="js/abschussplanWildgruppe.js"></script>
     <script src="js/abschussplan.js"></script>
-    <script src="js/services/wildgruppenService.js"></script>
-    <script src="js/wildgruppen.js"></script>
+    <script src="js/services/wildgruppenService.js?v=88"></script>
+    <script src="js/wildgruppen.js?v=88"></script>
     <script src="js/services/wildklassenService.js"></script>
     <script src="js/stammdaten.js"></script>
     <script src="js/services/planpositionService.js"></script>
@@ -229,19 +234,21 @@
     <script src="js/components/appFeedback.js"></script>
     <script src="js/components/epcQr.js"></script>
     <script src="js/mobile.js"></script>
-    <script src="js/services/wildhaendlerService.js"></script>
-    <script src="js/wildhaendler.js"></script>
-    <script src="js/services/abschussService.js"></script>
-    <script src="js/abschuss.js"></script>
-    <script src="js/services/rechnungPrintService.js?v=86"></script>
-    <script src="js/services/rechnungService.js?v=86"></script>
-    <script src="js/rechnungen.js?v=86"></script>
+    <script src="js/services/wildhaendlerService.js?v=88"></script>
+    <script src="js/wildhaendler.js?v=88"></script>
+    <script src="js/services/abschussService.js?v=89"></script>
+    <script src="js/abschuss.js?v=89"></script>
+    <script src="js/services/rechnungPrintService.js?v=88"></script>
+    <script src="js/services/rechnungService.js?v=88"></script>
+    <script src="js/rechnungen.js?v=88"></script>
     <script src="js/services/rechnungsvorlageService.js"></script>
     <script src="js/rechnungsvorlage.js"></script>
+    <script src="js/services/benutzerverwaltungService.js?v=93"></script>
+    <script src="js/benutzerverwaltung.js?v=93"></script>
     <script src="js/services/nachsuchenService.js"></script>
     <script src="js/nachsuchen.js"></script>
     <script src="js/services/importExportService.js"></script>
     <script src="js/import-export.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=90"></script>
 </body>
 </html>

@@ -113,7 +113,8 @@ async function init() {
             if (!root) return;
             root.classList.add('open');
             group.setAttribute('aria-expanded', 'true');
-            const firstItem = root.querySelector('.sidebar-submenu [data-page]');
+            const firstItem = [...root.querySelectorAll('.sidebar-submenu [data-page]')]
+                .find(item => !item.hidden);
             if (activateFirst && firstItem) {
                 firstItem.scrollIntoView({ block: 'nearest' });
                 firstItem.focus({ preventScroll: true });

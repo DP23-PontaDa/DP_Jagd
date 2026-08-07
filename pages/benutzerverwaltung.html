@@ -1,0 +1,52 @@
+<section class="stammdaten-page benutzerverwaltung-page">
+  <h1>Benutzerverwaltung</h1>
+  <div class="tabs benutzer-tabs" role="tablist">
+    <button id="bvTabBenutzer" class="tab-button active" type="button">Benutzer</button>
+    <button id="bvTabRechte" class="tab-button" type="button">Rollen &amp; Rechte</button>
+  </div>
+
+  <section id="bvBenutzerPanel">
+    <div class="page-actions">
+      <button id="bvBenutzerNeu" class="btn btn-primary" type="button">Benutzer hinzufügen</button>
+    </div>
+    <div class="table-wrap">
+      <table class="ap-table">
+        <thead><tr><th>Benutzername</th><th>Rolle</th><th>Aktiv</th><th class="col-actions">Aktion</th></tr></thead>
+        <tbody id="bvBenutzerBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="bvRechtePanel" hidden>
+    <p class="field-help">Pro Rolle und Bereich können ausschließlich Lesen, Bearbeiten und Löschen vergeben werden. Admin besitzt immer alle Rechte.</p>
+    <div class="table-wrap">
+      <table class="ap-table rechte-matrix">
+        <thead id="bvRechteKopf"></thead>
+        <tbody id="bvRechteBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button id="bvRechteSpeichern" class="btn btn-primary" type="button">Rechte speichern</button>
+    </div>
+  </section>
+</section>
+
+<div id="bvBenutzerModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="bvBenutzerModalTitel">Benutzer bearbeiten</h2>
+      <span id="bvBenutzerSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">&times;</span>
+    </div>
+    <p id="bvFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label for="bvBenutzername">Benutzername</label><input id="bvBenutzername" class="form-control" type="text" autocomplete="off"></div>
+      <div class="form-group"><label for="bvPasswort">Passwort</label><input id="bvPasswort" class="form-control" type="password" autocomplete="new-password"><small id="bvPasswortHinweis" class="field-help">Mindestens 6 Zeichen.</small></div>
+      <div class="form-group"><label for="bvRolle">Rolle</label><select id="bvRolle" class="form-control"></select></div>
+      <div class="form-group"><label for="bvAktiv">Aktiv</label><input id="bvAktiv" type="checkbox"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="bvBenutzerSpeichern" class="btn btn-primary" type="button">Speichern</button>
+      <button id="bvBenutzerAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>

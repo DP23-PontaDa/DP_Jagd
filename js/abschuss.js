@@ -226,6 +226,8 @@ window.Abschuss = (() => {
         const cell = document.createElement("td");
         cell.textContent = spalte.wert(abschuss) ?? "";
         cell.dataset.label = spalte.label;
+        const statusKlasse = spalte.klasse?.(abschuss);
+        if (statusKlasse) cell.classList.add(statusKlasse);
         row.appendChild(cell);
       });
       const actions = document.createElement("td");
@@ -234,7 +236,7 @@ window.Abschuss = (() => {
       actions.innerHTML =
         `<button class="action-btn edit-btn" type="button" data-aktion="bearbeiten" data-id="${abschuss.id}" title="Bearbeiten" aria-label="Bearbeiten"></button>` +
         (rechnungErlaubt(abschuss)
-          ? `<button class="action-btn invoice-action-btn" type="button" data-aktion="rechnung" data-id="${abschuss.id}" title="Rechnung erstellen">Rechnung erstellen</button>`
+          ? `<button class="action-btn invoice-action-btn" type="button" data-aktion="rechnung" data-id="${abschuss.id}" title="Rechnung erstellen" aria-label="Rechnung erstellen"></button>`
           : "") +
         `<button class="action-btn delete-btn" type="button" data-aktion="loeschen" data-id="${abschuss.id}" title="Löschen" aria-label="Löschen"></button>`;
       row.appendChild(actions);
@@ -284,13 +286,37 @@ window.Abschuss = (() => {
         wert: (abschuss) =>
           abschuss.preis_pro_kg == null ? "—" : formatGeld(abschuss.preis_pro_kg),
       },
-      { label: "Gesamtpreis", wert: (abschuss) => formatGeld(abschuss.gesamtpreis) },
+      {
+        label: "Gesamtpreis",
+        wert: (abschuss) => formatGeld(abschuss.gesamtpreis),
+        klasse: rechnungsStatusKlasse,
+      },
       {
         label: "Wildhändler",
         wert: (abschuss) => abschuss.wildhaendler?.bezeichnung,
       },
       { label: "Fallwild", wert: (abschuss) => abschuss.fallwild ? "Ja" : "Nein" },
     ]);
+  }
+
+  function istWildhaendlerKlein(abschuss) {
+    const code = String(abschuss.wildhaendler?.code || "").trim().toLocaleLowerCase("de");
+    const bezeichnung = String(abschuss.wildhaendler?.bezeichnung || "")
+      .trim().toLocaleLowerCase("de");
+    return code === "klein" || ["klein", "klein wildhändler"].includes(bezeichnung);
+  }
+
+  function rechnungsStatusKlasse(abschuss) {
+    if (abschuss.fallwild === true) return "";
+    const rechnungMoeglich = abschuss.wildgruppen?.rechnung_moeglich === true &&
+      abschuss.wildhaendler?.rechnung_moeglich === true;
+    const klein = istWildhaendlerKlein(abschuss);
+    if (!rechnungMoeglich && !klein) return "";
+    if (abschuss.zahlungseingang) return "invoice-status-paid";
+    if (klein) return "invoice-status-unpaid";
+    return abschuss.rechnung_vorhanden
+      ? "invoice-status-unpaid"
+      : "invoice-status-open";
   }
 
   function tabelleKonfigurieren() {
@@ -493,7 +519,7 @@ window.Abschuss = (() => {
     const listenEintrag = abschuesse.find((item) =>
       String(item.id) === String(abschuss?.id));
     if (!rechnungErlaubt(listenEintrag)) {
-      AppFeedback.warning("Für Fallwild oder Wildhändler „Klein“ darf keine Rechnung erstellt werden.");
+      AppFeedback.warning("Für diesen Abschuss ist laut Wildgruppe oder Wildhändler keine Rechnung möglich.");
       return;
     }
     Router.pendingRechnungAbschussId = listenEintrag.id;

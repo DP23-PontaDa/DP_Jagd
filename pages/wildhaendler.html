@@ -14,6 +14,7 @@
           <th class="col-short">Code</th>
           <th>Bezeichnung</th>
           <th class="col-short">Preis/kg</th>
+          <th class="col-boolean">Rechnung möglich</th>
           <th class="col-boolean">Aktiv</th>
           <th class="col-actions">Aktion</th>
         </tr>
@@ -50,6 +51,10 @@
       <div class="form-group" data-read-currency="EUR">
         <label for="abPreisProKg">Preis/kg</label>
         <input id="abPreisProKg" class="form-control" type="number" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label for="abRechnungMoeglich">Rechnung möglich</label>
+        <input id="abRechnungMoeglich" type="checkbox">
       </div>
       <div class="form-group">
         <label for="abAktiv">Aktiv</label>

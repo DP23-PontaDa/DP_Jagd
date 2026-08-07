@@ -32,7 +32,7 @@ window.Rechnungen = (() => {
       rechnungen = liste;
       personDropdown.setOptions(personen.map((person) => ({
         value: person.id,
-        label: `${person.personen_nr ? `${person.personen_nr} – ` : ""}${person.vorname || ""} ${person.nachname || ""}`.trim(),
+        label: `${person.vorname || ""} ${person.nachname || ""}`.trim(),
         data: person,
       })));
       rendern();
@@ -178,7 +178,7 @@ window.Rechnungen = (() => {
     }
     const gewaehlte = abschuesse.filter((a) => abschussIds.includes(String(a.id)));
     if (gewaehlte.some((a) => !RechnungService.istAbschussVerrechenbar(a))) {
-      modalFehler("Für Fallwild oder Wildhändler „Klein“ darf keine Rechnung erstellt werden.");
+      modalFehler("Für diesen Abschuss ist laut Wildgruppe oder Wildhändler keine Rechnung möglich.");
       druckAbbrechen();
       return;
     }

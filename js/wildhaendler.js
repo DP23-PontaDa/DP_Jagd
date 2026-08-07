@@ -47,6 +47,7 @@ window.Wildhaendler = (() => {
         wildhaendler.code,
         wildhaendler.bezeichnung,
         formatPreis(wildhaendler.preis_pro_kg),
+        wildhaendler.rechnung_moeglich ? "Ja" : "Nein",
         wildhaendler.aktiv ? "✓" : "—",
       ].forEach(
         (wert) => {
@@ -95,6 +96,7 @@ window.Wildhaendler = (() => {
     el("abCode").value = "";
     el("abBezeichnung").value = "";
     el("abPreisProKg").value = "0.00";
+    el("abRechnungMoeglich").checked = true;
     el("abAktiv").checked = true;
     DetailMode.setMode(el("abModal"), "edit");
     oeffnen();
@@ -108,6 +110,7 @@ window.Wildhaendler = (() => {
     el("abCode").value = wildhaendler.code || "";
     el("abBezeichnung").value = wildhaendler.bezeichnung || "";
     el("abPreisProKg").value = Number(wildhaendler.preis_pro_kg || 0).toFixed(2);
+    el("abRechnungMoeglich").checked = wildhaendler.rechnung_moeglich === true;
     el("abAktiv").checked = wildhaendler.aktiv === true;
     DetailMode.setMode(el("abModal"), mode, {
       capture: mode === "edit",
@@ -147,6 +150,7 @@ window.Wildhaendler = (() => {
       code: el("abCode").value.trim().toUpperCase(),
       bezeichnung: el("abBezeichnung").value.trim(),
       preis_pro_kg: Number(el("abPreisProKg").value || 0),
+      rechnung_moeglich: el("abRechnungMoeglich").checked,
       aktiv: el("abAktiv").checked,
     };
     if (!Number.isInteger(eingabe.reihenfolge) || eingabe.reihenfolge <= 0)

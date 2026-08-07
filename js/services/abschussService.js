@@ -8,22 +8,31 @@ const AbschussService = (() => {
   }
 
   async function getAbschuesse() {
-    const { data, error } = await db
-      .from("abschuesse")
-      .select(`
+    const [abschussResult, rechnungspositionenResult] = await Promise.all([
+      db.from("abschuesse").select(`
         id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, gewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung,
         fallwild, untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
         jaeger:personen (id, vorname, nachname),
-        wildgruppen (id, bezeichnung),
+        wildgruppen (id, bezeichnung, rechnung_moeglich),
         wildklassen (id, bezeichnung, wildgruppe_id),
-        wildhaendler (id, bezeichnung)
+        wildhaendler (id, code, bezeichnung, rechnung_moeglich)
       `)
       .order("datum", { ascending: false })
-      .order("nr", { ascending: false });
-    if (error) throw fehler(error, "Das Laden der Abschüsse");
-    return data || [];
+      .order("nr", { ascending: false }),
+      db.from("rechnungspositionen").select("abschuss_id, rechnung_id"),
+    ]);
+    if (abschussResult.error) throw fehler(abschussResult.error, "Das Laden der Abschüsse");
+    if (rechnungspositionenResult.error) {
+      throw fehler(rechnungspositionenResult.error, "Das Laden der Rechnungszuordnungen");
+    }
+    const verrechneteAbschuesse = new Set((rechnungspositionenResult.data || [])
+      .map((position) => String(position.abschuss_id)));
+    return (abschussResult.data || []).map((abschuss) => ({
+      ...abschuss,
+      rechnung_vorhanden: verrechneteAbschuesse.has(String(abschuss.id)),
+    }));
   }
 
   async function getAbschuss(id) {
@@ -110,7 +119,7 @@ const AbschussService = (() => {
   async function getAktiveWildhaendler() {
     const { data, error } = await db
       .from("wildhaendler")
-      .select("id, bezeichnung, preis_pro_kg, reihenfolge")
+      .select("id, bezeichnung, preis_pro_kg, reihenfolge, rechnung_moeglich")
       .eq("aktiv", true)
       .order("reihenfolge", { ascending: true });
     if (error) throw fehler(error, "Das Laden der Wildhändler");

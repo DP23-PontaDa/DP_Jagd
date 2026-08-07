@@ -6,29 +6,23 @@
 const Auth = {
     async login() {
         const form = document.getElementById("loginForm");
-        const emailInput = document.getElementById("email");
+        const usernameInput = document.getElementById("username");
         const passwordInput = document.getElementById("password");
         const errorBox = document.getElementById("loginError");
         const loginButton = document.getElementById("loginButton");
 
-        if (!form || !emailInput || !passwordInput || !errorBox || !loginButton) {
+        if (!form || !usernameInput || !passwordInput || !errorBox || !loginButton) {
             return;
         }
 
-        const email = emailInput.value.trim();
+        const benutzername = usernameInput.value.trim();
         const password = passwordInput.value;
 
         errorBox.textContent = "";
 
-        if (!email) {
-            errorBox.textContent = "Bitte geben Sie Ihre E-Mail-Adresse ein.";
-            emailInput.focus();
-            return;
-        }
-
-        if (!emailInput.validity.valid) {
-            errorBox.textContent = "Bitte geben Sie eine gültige E-Mail-Adresse ein.";
-            emailInput.focus();
+        if (!benutzername) {
+            errorBox.textContent = "Bitte geben Sie Ihren Benutzernamen ein.";
+            usernameInput.focus();
             return;
         }
 
@@ -42,7 +36,16 @@ const Auth = {
         loginButton.textContent = "Anmeldung läuft...";
 
         try {
-            const { data, error } = await db.auth.signInWithPassword({ email, password });
+            const login = await db.functions.invoke("benutzer-login", {
+                body: { benutzername, passwort: password }
+            });
+            if (login.error || login.data?.error) {
+                throw login.error || new Error(login.data.error);
+            }
+            const { data, error } = await db.auth.setSession({
+                access_token: login.data.access_token,
+                refresh_token: login.data.refresh_token
+            });
 
             if (error) {
                 throw error;
@@ -53,6 +56,7 @@ const Auth = {
             }
 
             CURRENT_USER = data.user;
+            await BerechtigungService.laden();
             await Router.open("dashboard");
         } catch (error) {
             console.error("Login fehlgeschlagen:", error);
@@ -82,6 +86,7 @@ const Auth = {
             console.error("Logout fehlgeschlagen:", error);
         } finally {
             CURRENT_USER = null;
+            BerechtigungService.leeren();
             await Router.open("login");
         }
     },
@@ -95,6 +100,8 @@ const Auth = {
             }
 
             CURRENT_USER = data.session ? data.session.user : null;
+            if (CURRENT_USER) await BerechtigungService.laden();
+            else BerechtigungService.leeren();
             return Boolean(CURRENT_USER);
         } catch (error) {
             console.error("Session-Prüfung fehlgeschlagen:", error);
@@ -111,7 +118,9 @@ const Auth = {
         const currentUser = document.getElementById("currentUser");
 
         if (currentUser) {
-            currentUser.textContent = CURRENT_USER ? CURRENT_USER.email : "-";
+            currentUser.textContent = CURRENT_USER
+                ? (CURRENT_USER.user_metadata?.benutzername || CURRENT_USER.user_metadata?.name || "Benutzer")
+                : "-";
         }
     },
 
@@ -119,11 +128,7 @@ const Auth = {
         const message = error && error.message ? error.message : "Anmeldung fehlgeschlagen.";
 
         if (message === "Invalid login credentials") {
-            return "E-Mail-Adresse oder Passwort ist nicht korrekt.";
-        }
-
-        if (message === "Email not confirmed") {
-            return "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.";
+            return "Benutzername oder Passwort ist nicht korrekt.";
         }
 
         return "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.";
