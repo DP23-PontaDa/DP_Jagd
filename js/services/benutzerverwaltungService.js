@@ -12,7 +12,8 @@ const BenutzerverwaltungService = (() => {
       db.from("app_benutzerprofile").select("id, benutzername, rolle_id, aktiv, rolle:app_rollen(id, name, reihenfolge)")
         .order("benutzername", { ascending: true }),
       db.from("app_rollen").select("id, name, reihenfolge").order("reihenfolge"),
-      db.from("app_module").select("code, bezeichnung, reihenfolge").order("reihenfolge"),
+      db.from("app_module").select("code, bezeichnung, reihenfolge, parent_code")
+        .eq("ist_container", false).order("reihenfolge"),
       db.from("app_rollen_rechte").select("rolle_id, modul_code, lesen, bearbeiten, loeschen"),
     ]);
     const fehlgeschlagen = [profile, rollen, module, rechte].find((result) => result.error);

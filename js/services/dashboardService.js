@@ -185,7 +185,7 @@ const DashboardService = (() => {
     };
   }
 
-  async function loadDashboard() {
+  async function loadDashboard(bereiche = {}) {
     const planperiode = await getAktivePlanperiode();
     if (!planperiode) {
       return {
@@ -202,9 +202,11 @@ const DashboardService = (() => {
       wildgruppen.map((wildgruppe) => String(wildgruppe.id)),
     );
     const [allePlanpositionen, alleJaeger, wildhaendler] = await Promise.all([
-      getPlanpositionen(planperiode.id),
-      getJaeger(planperiode.id),
-      getWildhaendler(planperiode, wildgruppen),
+      bereiche.abschuss ? getPlanpositionen(planperiode.id) : Promise.resolve([]),
+      bereiche.jaeger ? getJaeger(planperiode.id) : Promise.resolve([]),
+      bereiche.wildhaendler
+        ? getWildhaendler(planperiode, wildgruppen)
+        : Promise.resolve({ gesamt: [], rotwild: [], rehwild: [] }),
     ]);
     const planpositionen = allePlanpositionen.filter((row) =>
       wildgruppenIds.has(String(row.wildgruppe_id)));

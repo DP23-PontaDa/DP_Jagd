@@ -8,6 +8,7 @@ const Router = {
   pendingPanel: null,
   pendingDashboardSection: null,
   currentDashboardSection: "dashboard-abschuss",
+  currentPanel: "ap-overview",
   pendingRechnungAbschussId: null,
 
   routes: {
@@ -42,8 +43,21 @@ const Router = {
       return this.open("login");
     }
 
-    if (requestedPage !== "login" &&
-        !BerechtigungService.darf(requestedPage, "Lesen")) {
+    if (requestedPage === "dashboard") {
+      const gewuenschterBereich = this.pendingDashboardSection || this.currentDashboardSection;
+      if (!BerechtigungService.darfBereich("dashboard", gewuenschterBereich, "Lesen")) {
+        this.pendingDashboardSection = BerechtigungService.ersterBereich("dashboard");
+        this.currentDashboardSection = this.pendingDashboardSection;
+      }
+    }
+    if (requestedPage === "abschussplan") {
+      const gewuenschtesPanel = this.pendingPanel || this.currentPanel;
+      if (!BerechtigungService.darfBereich("abschussplan", gewuenschtesPanel, "Lesen")) {
+        this.pendingPanel = BerechtigungService.ersterBereich("abschussplan");
+      }
+    }
+
+    if (requestedPage !== "login" && !BerechtigungService.darfSeite(requestedPage, "Lesen")) {
       const ersteSeite = BerechtigungService.ersteLesbareSeite();
       if (ersteSeite && ersteSeite !== requestedPage) return this.open(ersteSeite);
       return Auth.logout();
@@ -77,8 +91,9 @@ const Router = {
 
       const initialPanel =
         requestedPage === "abschussplan"
-          ? this.pendingPanel || "ap-overview"
+          ? this.pendingPanel || BerechtigungService.ersterBereich("abschussplan")
           : null;
+      if (initialPanel) this.currentPanel = initialPanel;
       this.pendingPanel = null;
       this.initializePage(requestedPage, initialPanel);
       BerechtigungService.seiteBeobachten(requestedPage, content);
@@ -271,6 +286,7 @@ document.addEventListener("click", function (event) {
       pageButton.dataset.dashboardSection
     ) {
       const section = pageButton.dataset.dashboardSection;
+      if (!BerechtigungService.darfBereich("dashboard", section, "Lesen")) return;
       if (
         Router.currentPage === "dashboard" &&
         window.Dashboard &&
@@ -288,6 +304,7 @@ document.addEventListener("click", function (event) {
       pageButton.dataset.page === "abschussplan" &&
       pageButton.dataset.panel
     ) {
+      if (!BerechtigungService.darfBereich("abschussplan", pageButton.dataset.panel, "Lesen")) return;
       Router.pendingPanel = pageButton.dataset.panel;
     }
     Router.open(pageButton.dataset.page);
@@ -295,6 +312,6 @@ document.addEventListener("click", function (event) {
   }
 
   if (event.target.closest("#logoutButton")) {
-    Auth.logout();
+    Auth.logout(event);
   }
 });

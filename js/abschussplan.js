@@ -804,6 +804,7 @@
 
   function wireTabs() {
     $all(".pers-tab-btn").forEach((btn) => {
+      btn.hidden = !BerechtigungService.darf(btn.dataset.rechtCode, "Lesen");
       btn.addEventListener("click", () => {
         activateTab(btn.dataset.target);
       });
@@ -811,6 +812,10 @@
   }
 
   function activateTab(targetId) {
+    if (!BerechtigungService.darfBereich("abschussplan", targetId, "Lesen")) {
+      return false;
+    }
+    Router.currentPanel = targetId;
     $all(".ap-pane").forEach((p) => (p.hidden = true));
     $all(".pers-tab-btn").forEach((btn) =>
       btn.classList.toggle("active", btn.dataset.target === targetId),
@@ -823,16 +828,18 @@
     if (searchGroup) {
       searchGroup.style.display = targetId === "ap-rotwild" ? "none" : "";
     }
+    BerechtigungService.aktionsrechteAnwenden("abschussplan", document.getElementById("app-content"));
+    return true;
   }
 
   async function renderAll() {
-    renderOverview();
-    await Promise.all([
-      renderSpecies("Rotwild"),
-      renderSpecies("Rehwild"),
-      renderSpecies("Gamswild"),
-    ]);
-    await renderPlanperiodenTable();
+    const aufgaben = [];
+    if (BerechtigungService.darf("abschussplan-uebersicht", "Lesen")) aufgaben.push(renderOverview());
+    if (BerechtigungService.darf("abschussplan-rotwild", "Lesen")) aufgaben.push(renderSpecies("Rotwild"));
+    if (BerechtigungService.darf("abschussplan-rehwild", "Lesen")) aufgaben.push(renderSpecies("Rehwild"));
+    if (BerechtigungService.darf("abschussplan-gamswild", "Lesen")) aufgaben.push(renderSpecies("Gamswild"));
+    if (BerechtigungService.darf("abschussplan-jahre", "Lesen")) aufgaben.push(renderPlanperiodenTable());
+    await Promise.all(aufgaben);
   }
 
   async function init(initialPanel = "ap-overview") {
@@ -857,9 +864,10 @@
       "ap-gamswild",
       "ap-jahre",
     ];
-    activateTab(
-      gueltigePanels.includes(initialPanel) ? initialPanel : "ap-overview",
-    );
+    const startPanel = gueltigePanels.includes(initialPanel) &&
+      BerechtigungService.darfBereich("abschussplan", initialPanel, "Lesen")
+      ? initialPanel : BerechtigungService.ersterBereich("abschussplan");
+    if (startPanel) activateTab(startPanel);
   }
 
   window.Abschussplan = {

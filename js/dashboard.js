@@ -585,7 +585,12 @@ const Dashboard = (() => {
     error.hidden = true;
 
     try {
-      const data = await DashboardService.loadDashboard();
+      const bereiche = {
+        abschuss: BerechtigungService.darf("dashboard-abschuss", "Lesen"),
+        jaeger: BerechtigungService.darf("dashboard-jaeger", "Lesen"),
+        wildhaendler: BerechtigungService.darf("dashboard-wildhaendler", "Lesen"),
+      };
+      const data = await DashboardService.loadDashboard(bereiche);
       if (!data.planperiode) {
         period.textContent = "Keine aktive Planperiode";
         content.appendChild(createElement(
@@ -599,28 +604,20 @@ const Dashboard = (() => {
       period.textContent =
         `Aktive Planperiode: ${data.planperiode.startjahr} / ` +
         data.planperiode.endjahr;
-      const harvestSection = createElement(
-        "section",
-        "dashboard-harvest-section",
-      );
-      harvestSection.id = "dashboard-abschuss";
-      content.appendChild(harvestSection);
       const groupNames = data.wildgruppen.map(
         (wildgruppe) => wildgruppe.bezeichnung,
       );
-      groupNames.forEach((groupName) => {
-        const rows = data.planpositionen.filter(
-          (row) => row.wildgruppe === groupName,
-        );
-        harvestSection.appendChild(createGroupCard(
-          groupName,
-          rows,
-          data.planperiode,
-        ));
-      });
-
-      createHunterCharts(content, data.jaeger, data.wildgruppen);
-      createDealerCharts(content, data.wildhaendler);
+      if (bereiche.abschuss) {
+        const harvestSection = createElement("section", "dashboard-harvest-section");
+        harvestSection.id = "dashboard-abschuss";
+        content.appendChild(harvestSection);
+        groupNames.forEach((groupName) => {
+          const rows = data.planpositionen.filter((row) => row.wildgruppe === groupName);
+          harvestSection.appendChild(createGroupCard(groupName, rows, data.planperiode));
+        });
+      }
+      if (bereiche.jaeger) createHunterCharts(content, data.jaeger, data.wildgruppen);
+      if (bereiche.wildhaendler) createDealerCharts(content, data.wildhaendler);
       observeDashboardSections();
       if (initialSection) {
         requestAnimationFrame(() => scrollToSection(initialSection));

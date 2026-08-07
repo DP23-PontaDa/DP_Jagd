@@ -88,9 +88,9 @@
                 </button>
 
                 <div class="sidebar-submenu" data-group="dashboard">
-                    <button type="button" data-page="dashboard" data-dashboard-section="dashboard-abschuss">Abschuss</button>
-                    <button type="button" data-page="dashboard" data-dashboard-section="dashboard-jaeger">Jäger</button>
-                    <button type="button" data-page="dashboard" data-dashboard-section="dashboard-wildhaendler">Wildhändler</button>
+                    <button type="button" data-page="dashboard" data-recht-code="dashboard-abschuss" data-dashboard-section="dashboard-abschuss">Abschuss</button>
+                    <button type="button" data-page="dashboard" data-recht-code="dashboard-jaeger" data-dashboard-section="dashboard-jaeger">Jäger</button>
+                    <button type="button" data-page="dashboard" data-recht-code="dashboard-wildhaendler" data-dashboard-section="dashboard-wildhaendler">Wildhändler</button>
                 </div>
             </div>
             <button type="button" data-page="personen">Personen</button>
@@ -103,9 +103,9 @@
                     Nachsuchen
                 </button>
                 <div class="sidebar-submenu" data-group="nachsuchen">
-                    <button type="button" data-page="nachsuchen">Nachsuchen</button>
-                    <button type="button" data-page="fehlschuesse">Fehlschüsse</button>
-                    <button type="button" data-page="probeschuesse">Probeschüsse</button>
+                    <button type="button" data-page="nachsuchen" data-recht-code="nachsuchen">Nachsuchen</button>
+                    <button type="button" data-page="fehlschuesse" data-recht-code="fehlschuesse">Fehlschüsse</button>
+                    <button type="button" data-page="probeschuesse" data-recht-code="probeschuesse">Probeschüsse</button>
                 </div>
             </div>
 
@@ -120,11 +120,11 @@
                 </button>
 
                 <div class="sidebar-submenu" data-group="abschussplan">
-                    <button type="button" data-page="abschussplan" data-panel="ap-overview">Übersicht</button>
-                    <button type="button" data-page="abschussplan" data-panel="ap-rotwild">Rotwild</button>
-                    <button type="button" data-page="abschussplan" data-panel="ap-rehwild">Rehwild</button>
-                    <button type="button" data-page="abschussplan" data-panel="ap-gamswild">Gamswild</button>
-                    <button type="button" data-page="abschussplan" data-panel="ap-jahre">Übersicht Jahre</button>
+                    <button type="button" data-page="abschussplan" data-recht-code="abschussplan-uebersicht" data-panel="ap-overview">Übersicht</button>
+                    <button type="button" data-page="abschussplan" data-recht-code="abschussplan-rotwild" data-panel="ap-rotwild">Rotwild</button>
+                    <button type="button" data-page="abschussplan" data-recht-code="abschussplan-rehwild" data-panel="ap-rehwild">Rehwild</button>
+                    <button type="button" data-page="abschussplan" data-recht-code="abschussplan-gamswild" data-panel="ap-gamswild">Gamswild</button>
+                    <button type="button" data-page="abschussplan" data-recht-code="abschussplan-jahre" data-panel="ap-jahre">Übersicht Jahre</button>
                 </div>
             </div>
 
@@ -211,17 +211,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/services/berechtigungService.js?v=93"></script>
-    <script src="js/auth.js?v=93"></script>
-    <script src="js/router.js?v=90"></script>
+    <script src="js/services/berechtigungService.js?v=95"></script>
+    <script src="js/auth.js?v=94"></script>
+    <script src="js/router.js?v=95"></script>
     <script src="js/api.js"></script>
     <script src="js/components/wildklasseColors.js"></script>
-    <script src="js/services/dashboardService.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/services/dashboardService.js?v=95"></script>
+    <script src="js/dashboard.js?v=95"></script>
     <script src="js/personen.js"></script>
     <script src="js/services/abschussplanService.js"></script>
     <script src="js/abschussplanWildgruppe.js"></script>
-    <script src="js/abschussplan.js"></script>
+    <script src="js/abschussplan.js?v=95"></script>
     <script src="js/services/wildgruppenService.js?v=88"></script>
     <script src="js/wildgruppen.js?v=88"></script>
     <script src="js/services/wildklassenService.js"></script>
@@ -243,8 +243,8 @@
     <script src="js/rechnungen.js?v=88"></script>
     <script src="js/services/rechnungsvorlageService.js"></script>
     <script src="js/rechnungsvorlage.js"></script>
-    <script src="js/services/benutzerverwaltungService.js?v=93"></script>
-    <script src="js/benutzerverwaltung.js?v=93"></script>
+    <script src="js/services/benutzerverwaltungService.js?v=95"></script>
+    <script src="js/benutzerverwaltung.js?v=95"></script>
     <script src="js/services/nachsuchenService.js"></script>
     <script src="js/nachsuchen.js"></script>
     <script src="js/services/importExportService.js"></script>

@@ -13,6 +13,19 @@ const BerechtigungService = (() => {
   };
   let observer = null;
 
+  const dashboardBereiche = {
+    "dashboard-abschuss": "dashboard-abschuss",
+    "dashboard-jaeger": "dashboard-jaeger",
+    "dashboard-wildhaendler": "dashboard-wildhaendler",
+  };
+  const abschussplanBereiche = {
+    "ap-overview": "abschussplan-uebersicht",
+    "ap-rotwild": "abschussplan-rotwild",
+    "ap-rehwild": "abschussplan-rehwild",
+    "ap-gamswild": "abschussplan-gamswild",
+    "ap-jahre": "abschussplan-jahre",
+  };
+
   function modulFuerSeite(seite) { return seitenModule[seite] || seite; }
 
   async function laden() {
@@ -37,15 +50,43 @@ const BerechtigungService = (() => {
     return rechte.get(modulFuerSeite(modulOderSeite))?.[recht] === true;
   }
 
+  function schluesselFuerBereich(seite, bereich) {
+    if (seite === "dashboard") return dashboardBereiche[bereich] || "dashboard-abschuss";
+    if (seite === "abschussplan") return abschussplanBereiche[bereich] || "abschussplan-uebersicht";
+    return modulFuerSeite(seite);
+  }
+
+  function darfBereich(seite, bereich, recht = "Lesen") {
+    return darf(schluesselFuerBereich(seite, bereich), recht);
+  }
+
+  function ersterBereich(seite) {
+    const bereiche = seite === "dashboard" ? Object.keys(dashboardBereiche)
+      : seite === "abschussplan" ? Object.keys(abschussplanBereiche) : [];
+    return bereiche.find((bereich) => darfBereich(seite, bereich, "Lesen")) || null;
+  }
+
+  function darfSeite(seite, recht = "Lesen") {
+    if (seite === "dashboard" || seite === "abschussplan") {
+      return Boolean(ersterBereich(seite)) && (recht === "Lesen" ||
+        Object.keys(seite === "dashboard" ? dashboardBereiche : abschussplanBereiche)
+          .some((bereich) => darfBereich(seite, bereich, recht)));
+    }
+    return darf(seite, recht);
+  }
+
   function ersteLesbareSeite() {
-    return Object.keys(seitenModule).find((seite) => darf(seite, "Lesen")) || null;
+    return Object.keys(seitenModule).find((seite) => darfSeite(seite, "Lesen")) || null;
   }
 
   function sidebarAnwenden() {
     const sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
     sidebar.querySelectorAll("[data-page]").forEach((button) => {
-      button.hidden = !darf(button.dataset.page, "Lesen");
+      const schluessel = button.dataset.rechtCode;
+      button.hidden = schluessel
+        ? !darf(schluessel, "Lesen")
+        : !darfSeite(button.dataset.page, "Lesen");
     });
     sidebar.querySelectorAll(".sidebar-group").forEach((gruppe) => {
       const hatEintrag = [...gruppe.querySelectorAll(".sidebar-submenu [data-page]")]
@@ -56,7 +97,9 @@ const BerechtigungService = (() => {
 
   function aktionsrechteAnwenden(seite, container) {
     if (!container) return;
-    const modul = modulFuerSeite(seite);
+    const bereich = seite === "dashboard" ? Router?.currentDashboardSection
+      : seite === "abschussplan" ? Router?.currentPanel : null;
+    const modul = schluesselFuerBereich(seite, bereich);
     const bearbeiten = darf(modul, "Bearbeiten");
     const loeschen = darf(modul, "Löschen");
     const bearbeitenSelektoren = [
@@ -90,7 +133,8 @@ const BerechtigungService = (() => {
   }
 
   return {
-    laden, leeren, darf, modulFuerSeite, ersteLesbareSeite,
+    laden, leeren, darf, darfSeite, darfBereich, ersterBereich,
+    schluesselFuerBereich, modulFuerSeite, ersteLesbareSeite,
     sidebarAnwenden, aktionsrechteAnwenden, seiteBeobachten,
   };
 })();

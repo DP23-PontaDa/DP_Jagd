@@ -4,6 +4,8 @@
 ========================================== */
 
 const Auth = {
+    logoutLaeuft: false,
+
     async login() {
         const form = document.getElementById("loginForm");
         const usernameInput = document.getElementById("username");
@@ -69,15 +71,31 @@ const Auth = {
         }
     },
 
-    async logout() {
+    async logout(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (this.logoutLaeuft) return;
+        this.logoutLaeuft = true;
+
         const logoutButton = document.getElementById("logoutButton");
 
         if (logoutButton) {
             logoutButton.disabled = true;
+            logoutButton.setAttribute("aria-busy", "true");
         }
 
+        CURRENT_USER = null;
+        BerechtigungService.leeren();
+        const loginNavigation = Router.open("login");
+
         try {
-            const { error } = await db.auth.signOut();
+            const abmelden = db.auth.signOut({ scope: "local" });
+            const timeout = new Promise((resolve) => {
+                window.setTimeout(() => resolve({ error: new Error("Logout-Zeitüberschreitung") }), 3000);
+            });
+            const { error } = await Promise.race([abmelden, timeout]);
 
             if (error) {
                 throw error;
@@ -85,9 +103,21 @@ const Auth = {
         } catch (error) {
             console.error("Logout fehlgeschlagen:", error);
         } finally {
-            CURRENT_USER = null;
-            BerechtigungService.leeren();
-            await Router.open("login");
+            try {
+                await loginNavigation;
+            } finally {
+                const sidebar = document.getElementById("sidebar");
+                const overlay = document.getElementById("sidebarOverlay");
+                const toggle = document.getElementById("sidebarToggle");
+                sidebar?.classList.remove("open");
+                overlay?.classList.remove("open");
+                toggle?.setAttribute("aria-expanded", "false");
+                if (logoutButton) {
+                    logoutButton.disabled = false;
+                    logoutButton.removeAttribute("aria-busy");
+                }
+                this.logoutLaeuft = false;
+            }
         }
     },
 
