@@ -197,51 +197,35 @@ const RechnungService = (() => {
     target.document.write(printHtml);
     target.document.close();
     const dateiname = `RE_JV_Wildfleisch_${rechnung.rechnungsjahr}_${nummern}.pdf`;
-    let pdfBlob = null;
-    const holePdf = async () => {
-      if (!pdfBlob) pdfBlob = await RechnungPrintService.erstellePdf(target.document);
-      return pdfBlob;
-    };
-    target.document.getElementById("invoicePdfButton")
-      ?.addEventListener("click", async (event) => {
-        const button = event.currentTarget;
-        button.disabled = true;
-        try {
-          const url = URL.createObjectURL(await holePdf());
-          const link = target.document.createElement("a");
-          link.href = url;
-          link.download = dateiname;
-          target.document.body.appendChild(link);
-          link.click();
-          link.remove();
-          target.setTimeout(() => URL.revokeObjectURL(url), 30000);
-        } catch (error) {
-          console.error("Rechnungs-PDF:", error);
-          target.alert(error.message || "Die PDF konnte nicht erstellt werden.");
-        } finally { button.disabled = false; }
-      });
-    target.document.getElementById("invoicePrintButton")
-      ?.addEventListener("click", async (event) => {
-        const button = event.currentTarget;
-        const pdfFenster = target.open("", "_blank");
-        if (!pdfFenster) {
-          target.alert("Die PDF-Ansicht wurde vom Browser blockiert.");
-          return;
-        }
-        button.disabled = true;
-        try {
-          const url = URL.createObjectURL(await holePdf());
-          pdfFenster.location.replace(url);
-          pdfFenster.addEventListener("load", () => {
-            try { pdfFenster.print(); } catch (_) { /* PDF-Viewer bleibt zum manuellen Drucken offen. */ }
-          }, { once: true });
-          target.setTimeout(() => URL.revokeObjectURL(url), 60000);
-        } catch (error) {
-          pdfFenster.close();
-          console.error("Rechnungsdruck:", error);
-          target.alert(error.message || "Die Druckdatei konnte nicht erstellt werden.");
-        } finally { button.disabled = false; }
-      });
+    const pdfButton = target.document.getElementById("invoicePdfButton");
+    const printButton = target.document.getElementById("invoicePrintButton");
+    if (pdfButton) pdfButton.disabled = true;
+    if (printButton) printButton.disabled = true;
+    const pdfBlob = await RechnungPrintService.erstellePdf(target.document);
+    if (pdfButton) pdfButton.disabled = false;
+    if (printButton) printButton.disabled = false;
+
+    pdfButton?.addEventListener("click", () => {
+      const url = URL.createObjectURL(pdfBlob);
+      const link = target.document.createElement("a");
+      link.href = url;
+      link.download = dateiname;
+      link.rel = "noopener";
+      target.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      target.setTimeout(() => URL.revokeObjectURL(url), 30000);
+    });
+    printButton?.addEventListener("click", () => {
+      const url = URL.createObjectURL(pdfBlob);
+      const pdfFenster = target.open(url, "_blank", "noopener");
+      if (!pdfFenster) {
+        URL.revokeObjectURL(url);
+        target.alert("Die PDF-Ansicht wurde vom Browser blockiert.");
+        return;
+      }
+      target.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
     target.document.getElementById("invoiceBackButton")
       ?.addEventListener("click", () => {
         if (target.opener && !target.opener.closed) {
