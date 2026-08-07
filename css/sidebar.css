@@ -37,6 +37,13 @@
     font-weight: normal;
 }
 
+#sidebarRechnungen {
+    position: relative;
+    z-index: 1;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 128, 128, 0.25);
+}
+
 #sidebar button:hover,
 #sidebar button:focus-visible,
 #sidebar button.active {

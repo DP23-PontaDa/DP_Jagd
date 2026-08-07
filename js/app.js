@@ -61,6 +61,41 @@ async function init() {
             });
         }
 
+        const rechnungenButton = document.getElementById("sidebarRechnungen");
+        if (rechnungenButton) {
+            let rechnungenNavigationLaeuft = false;
+            let letzterTouch = 0;
+
+            async function oeffneRechnungen(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                if (rechnungenNavigationLaeuft) return;
+                rechnungenNavigationLaeuft = true;
+                try {
+                    await Router.open("rechnungen");
+                    if (isMobile()) closeSidebar();
+                } finally {
+                    rechnungenNavigationLaeuft = false;
+                }
+            }
+
+            rechnungenButton.addEventListener("touchend", function (event) {
+                letzterTouch = Date.now();
+                oeffneRechnungen(event);
+            }, { passive: false });
+
+            rechnungenButton.addEventListener("click", function (event) {
+                if (Date.now() - letzterTouch < 700) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
+                oeffneRechnungen(event);
+            });
+        }
+
         const submenuToggles = document.querySelectorAll('[data-toggle="submenu"]');
         function closeAllGroups() {
             document.querySelectorAll('.sidebar-group').forEach(group => {
