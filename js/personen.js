@@ -484,6 +484,9 @@ function persOpenEditPersonModal(personId, mode) {
   const personenNrInput = document.getElementById('persPersonenNr');
   if (personenNrInput) personenNrInput.value = person.personenNr != null ? person.personenNr : '';
 
+  const anredeInput = document.getElementById('persAnrede');
+  if (anredeInput) anredeInput.value = person.anrede === 'Frau' ? 'Frau' : 'Herr';
+
   const vornameInput = document.getElementById('persVorname');
   if (vornameInput) vornameInput.value = person.vorname || '';
 
@@ -568,6 +571,7 @@ function persCancelPersonModal() {
 function persClearModal() {
   const originalPersonId = document.getElementById('persOriginalPersonId');
   const personenNr = document.getElementById('persPersonenNr');
+  const anrede = document.getElementById('persAnrede');
   const vorname = document.getElementById('persVorname');
   const nachname = document.getElementById('persNachname');
   const kjNr = document.getElementById('persKjNr');
@@ -582,6 +586,7 @@ function persClearModal() {
 
   if (originalPersonId) originalPersonId.value = '';
   if (personenNr) personenNr.value = '';
+  if (anrede) anrede.value = 'Herr';
   if (vorname) vorname.value = '';
   if (nachname) nachname.value = '';
   if (kjNr) kjNr.value = '';
@@ -817,6 +822,7 @@ function persSavePerson() {
   const person = {
     personId: document.getElementById('persOriginalPersonId').value.trim(),
     originalPersonId: document.getElementById('persOriginalPersonId').value.trim(),
+    anrede: document.getElementById('persAnrede').value === 'Frau' ? 'Frau' : 'Herr',
     personenNr: document.getElementById('persPersonenNr').value.trim(),
     vorname: document.getElementById('persVorname').value.trim(),
     nachname: document.getElementById('persNachname').value.trim(),

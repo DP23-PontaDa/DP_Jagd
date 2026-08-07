@@ -4,7 +4,7 @@ const RechnungService = (() => {
     id, rechnungsjahr, laufnummer, rechnungsnummer, person_id, excel_vorlage_id,
     rechnungsdatum, faellig_am, verwendungszweck, gesamtbetrag,
     vorlage_snapshot, erstellt_am, geaendert_am,
-    person:personen (id, personen_nr, vorname, nachname, adresse, plz, ort),
+    person:personen (id, personen_nr, anrede, vorname, nachname, adresse, plz, ort),
     positionen:rechnungspositionen (
       id, rechnung_id, abschuss_id, position_nr, beschreibung, menge,
       einzelpreis, gesamtpreis, abschuss_nr, abschuss_jahr,
@@ -54,7 +54,7 @@ const RechnungService = (() => {
 
   async function getPersonen() {
     const { data, error } = await db.from("personen")
-      .select("id, personen_nr, vorname, nachname, adresse, plz, ort, aktiv, name_kat")
+      .select("id, personen_nr, anrede, vorname, nachname, adresse, plz, ort, aktiv, name_kat")
       .neq("name_kat", "Hundefuehrer")
       .order("personen_nr", { ascending: true, nullsFirst: false });
     if (error) throw serviceFehler(error, "Personen konnten nicht geladen werden.");

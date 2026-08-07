@@ -231,6 +231,7 @@
   function mapPerson(row) {
     return {
       personId: value(row, "id", "personId", "person_id"),
+      anrede: value(row, "anrede", "Anrede") || "Herr",
       vorname: value(row, "vorname", "Vorname"),
       nachname: value(row, "nachname", "Nachname"),
       kjNr: value(row, "kj_nr", "kjNr", "KJ_Nr"),
@@ -281,6 +282,7 @@
 
   function personPayload(person) {
     var payload = {
+      anrede: person.anrede === "Frau" ? "Frau" : "Herr",
       vorname: String(person.vorname || "").trim(),
       nachname: String(person.nachname || "").trim(),
       kj_nr: coerceInteger(person.kjNr),

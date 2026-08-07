@@ -135,6 +135,7 @@ const RechnungPrintService = (() => {
     const byId = (id) => documentNode.getElementById(id);
     const v = rechnung.vorlage_snapshot || {};
     const person = rechnung.person || {};
+    const anrede = person.anrede === "Frau" ? "Frau" : "Herr";
     const vereinsname = v.vereinsname || v.absender_name || "";
     const adresse = (v.adresse || [v.absender_adresse, v.absender_plz_ort].filter(Boolean).join("\n"))
       .split(/\r?\n/).filter(Boolean);
@@ -147,7 +148,7 @@ const RechnungPrintService = (() => {
     byId("printDocumentTitle").textContent = `RE_JV_Wildfleisch_${rechnung.rechnungsjahr}_${nummern}`;
     byId("printLogo").src = logoDataUrl;
     byId("printSenderLine").textContent = `${vereinsname} - ${adresse.slice(0, 2).join(" - ")}`;
-    zeilen(byId("printRecipient"), ["Herr", `${person.vorname || ""} ${person.nachname || ""}`.trim(), person.adresse, `${person.plz || ""} ${person.ort || ""}`.trim(), "Österreich"]);
+    zeilen(byId("printRecipient"), [anrede, `${person.vorname || ""} ${person.nachname || ""}`.trim(), person.adresse, `${person.plz || ""} ${person.ort || ""}`.trim(), "Österreich"]);
     byId("printClubName").textContent = vereinsname;
     byId("printObmann").textContent = v.obmann || "";
     byId("printTelefonObmann").textContent = v.telefon_obmann || "";
@@ -156,7 +157,11 @@ const RechnungPrintService = (() => {
     byId("printDate").textContent = datum(rechnung.rechnungsdatum);
     byId("printTitle").textContent = v.rechnungsueberschrift || "Rechnung Wildfleisch";
     byId("printInvoiceNumber").textContent = rechnung.rechnungsnummer;
-    byId("printSalutation").textContent = vorlagenText(v.anrede || "Guten Tag Herr {{Nachname}},", { Nachname: person.nachname || "" });
+    const anredeText = String(v.anrede || "Guten Tag {{Anrede}} {{Nachname}},")
+      .replace(/\b(Herr|Frau)\b/, "{{Anrede}}");
+    byId("printSalutation").textContent = vorlagenText(anredeText, {
+      Anrede: anrede, Nachname: person.nachname || "",
+    });
     byId("printIntro").textContent = v.einleitung || "";
 
     const body = byId("printPositions");
