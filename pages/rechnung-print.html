@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
   <title id="printDocumentTitle">Rechnung</title>
   <style>
     * { box-sizing: border-box; }
@@ -51,6 +52,29 @@
     .print-footer-contact-row { display: grid; grid-template-columns: 18mm auto; }
     .print-footer-contact-label { transform: translateX(5mm); }
     .print-footer-extra { grid-column: 1 / -1; text-align: center; }
+    @media screen and (max-width: 768px) {
+      .print-page a,
+      .print-page a:link,
+      .print-page a:visited,
+      .print-page a:hover,
+      .print-page a:active,
+      .print-page a[x-apple-data-detectors] {
+        color: inherit !important;
+        font: inherit !important;
+        text-decoration: none !important;
+      }
+      #printFooterBank {
+        white-space: nowrap;
+        word-break: keep-all;
+        overflow-wrap: normal;
+        font-size: 8pt;
+      }
+      .print-footer-contact-row,
+      .print-footer-contact-row span {
+        color: inherit !important;
+        text-decoration: none !important;
+      }
+    }
     @page { size: A4 portrait; margin: 0; }
     @media print {
       html, body { width: 210mm; height: 297mm; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
