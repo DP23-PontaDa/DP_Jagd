@@ -196,7 +196,10 @@ const RechnungService = (() => {
     target.document.open();
     target.document.write(printHtml);
     target.document.close();
-    const dateiname = `RE_JV_Wildfleisch_${rechnung.rechnungsjahr}_${nummern}.pdf`;
+    const abschussNummern = rechnung.positionen
+      .map((position) => position.abschuss_nr)
+      .join("_");
+    const dateiname = `RE_JV_Wildfleisch_${rechnung.rechnungsjahr}_${abschussNummern}.pdf`;
     const pdfButton = target.document.getElementById("invoicePdfButton");
     const printButton = target.document.getElementById("invoicePrintButton");
     if (pdfButton) pdfButton.disabled = true;
