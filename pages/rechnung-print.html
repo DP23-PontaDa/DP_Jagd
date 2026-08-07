@@ -52,6 +52,15 @@
     .print-footer-contact-row { display: grid; grid-template-columns: 18mm auto; }
     .print-footer-contact-label { transform: translateX(5mm); }
     .print-footer-extra { grid-column: 1 / -1; text-align: center; }
+    .print-page.pdf-export-mode .print-payment-text { top: 196.5mm; }
+    .print-page.pdf-export-mode .print-qr { top: 217.5mm; }
+    .print-page.pdf-export-mode .print-closing { top: 213.5mm; }
+    .print-page.pdf-export-mode .print-footer {
+      top: 253.5mm;
+      gap: 5mm;
+      padding-top: 2mm;
+      line-height: 1.2;
+    }
     @media screen and (max-width: 768px) {
       .print-page a,
       .print-page a:link,

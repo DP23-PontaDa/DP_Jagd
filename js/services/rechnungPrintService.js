@@ -209,5 +209,85 @@ const RechnungPrintService = (() => {
     return `<!doctype html>\n${documentNode.documentElement.outerHTML}`;
   }
 
-  return { render };
+  function bildLaden(url) {
+    return new Promise((resolve, reject) => {
+      const bild = new Image();
+      bild.onload = () => resolve(bild);
+      bild.onerror = () => reject(new Error("Die Rechnung konnte nicht als PDF gerendert werden."));
+      bild.src = url;
+    });
+  }
+
+  function jpegAlsPdf(jpegBytes, bildBreite, bildHoehe) {
+    const encoder = new TextEncoder();
+    const teile = [];
+    const offsets = [0];
+    let laenge = 0;
+    const anfuegen = (wert) => {
+      const bytes = typeof wert === "string" ? encoder.encode(wert) : wert;
+      teile.push(bytes);
+      laenge += bytes.length;
+    };
+    const objekt = (nummer, inhalt) => {
+      offsets[nummer] = laenge;
+      anfuegen(`${nummer} 0 obj\n${inhalt}\nendobj\n`);
+    };
+
+    anfuegen("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+    objekt(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    objekt(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    objekt(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+    offsets[4] = laenge;
+    anfuegen(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${bildBreite} /Height ${bildHoehe} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
+    anfuegen(jpegBytes);
+    anfuegen("\nendstream\nendobj\n");
+    const content = "q\n595.28 0 0 841.89 0 0 cm\n/Im0 Do\nQ\n";
+    objekt(5, `<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream`);
+    const xref = laenge;
+    anfuegen("xref\n0 6\n0000000000 65535 f \n");
+    for (let nummer = 1; nummer <= 5; nummer += 1) {
+      anfuegen(`${String(offsets[nummer]).padStart(10, "0")} 00000 n \n`);
+    }
+    anfuegen(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+    return new Blob(teile, { type: "application/pdf" });
+  }
+
+  async function erstellePdf(documentNode) {
+    const seite = documentNode.getElementById("printPage");
+    if (!seite) throw new Error("Die Rechnungsseite konnte nicht gefunden werden.");
+    seite.classList.add("pdf-export-mode");
+    try {
+      if (documentNode.fonts?.ready) await documentNode.fonts.ready;
+      const kopie = seite.cloneNode(true);
+      kopie.style.margin = "0";
+      kopie.style.boxShadow = "none";
+      const styles = Array.from(documentNode.querySelectorAll("style"))
+        .map((element) => element.textContent).join("\n");
+      const inhalt = new XMLSerializer().serializeToString(kopie);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123"><foreignObject width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml"><style>${styles}</style>${inhalt}</div></foreignObject></svg>`;
+      const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      try {
+        const bild = await bildLaden(svgUrl);
+        const canvas = documentNode.createElement("canvas");
+        canvas.width = 1588;
+        canvas.height = 2246;
+        const context = canvas.getContext("2d", { alpha: false });
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bild, 0, 0, canvas.width, canvas.height);
+        const jpegBlob = await new Promise((resolve, reject) => canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("Die PDF-Grafik konnte nicht erzeugt werden.")),
+          "image/jpeg", 0.94,
+        ));
+        const jpegBytes = new Uint8Array(await jpegBlob.arrayBuffer());
+        return jpegAlsPdf(jpegBytes, canvas.width, canvas.height);
+      } finally {
+        URL.revokeObjectURL(svgUrl);
+      }
+    } finally {
+      seite.classList.remove("pdf-export-mode");
+    }
+  }
+
+  return { render, erstellePdf };
 })();
