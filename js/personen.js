@@ -687,13 +687,16 @@ function persMemberOptions(selectedId) {
   let selectedFound = false;
 
   activeMembers.forEach(function(person) {
-    const selected = person.personId === selectedId ? ' selected' : '';
+    const selected = String(person.personId || '') === String(selectedId || '')
+      ? ' selected'
+      : '';
     if (selected) selectedFound = true;
-    html += '<option value="' + persEscAttr(person.personId) + '"' + selected + '>' + persEsc((person.personenNr || person.personId) + ' - ' + person.vorname + ' ' + person.nachname) + '</option>';
+    const label = [person.vorname, person.nachname].filter(Boolean).join(' ');
+    html += '<option value="' + persEscAttr(person.personId) + '"' + selected + '>' + persEsc(label) + '</option>';
   });
 
   if (selectedId && !selectedFound) {
-    html += '<option value="' + persEscAttr(selectedId) + '" selected>' + persEsc(selectedId + ' - nicht aktiv oder nicht gefunden') + '</option>';
+    html += '<option value="' + persEscAttr(selectedId) + '" selected>Nicht aktiv oder nicht gefunden</option>';
   }
 
   return html;
@@ -708,7 +711,7 @@ function persAddJagdYearRow(rowData) {
 
   tr.setAttribute('data-id-jg-jahr', row.idJgJahr || '');
   tr.innerHTML =
-    '<td><input type="number" class="form-control pers-jagd-jahr" min="1900" max="2999" value="' + persEscAttr(row.jahr || '') + '" oninput="persUpdateJagdAktivPreview()"></td>' +
+    '<td class="pers-jagd-year-cell"><input type="number" class="form-control pers-jagd-jahr" min="1900" max="2999" value="' + persEscAttr(row.jahr || '') + '" oninput="persUpdateJagdAktivPreview()"></td>' +
     '<td style="text-align:center;"><input type="checkbox" class="pers-jagd-aktiv" ' + (row.aktiv ? 'checked' : '') + ' onchange="persUpdateJagdAktivPreview()"></td>' +
     '<td><select class="form-control pers-jagd-jaeger">' + persMemberOptions(row.jaegerGastId || '') + '</select></td>' +
     '<td><input type="text" class="form-control pers-jagd-bemerkung" value="' + persEscAttr(row.bemerkung || '') + '"></td>' +

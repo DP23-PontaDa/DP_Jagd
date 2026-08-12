@@ -25,6 +25,10 @@ const Router = {
     abschussplan: "pages/abschussplan.html",
     wildgruppen: "pages/wildgruppen.html",
     orte: "pages/orte.html",
+    "tagebuch-dp": "pages/tagebuch-dp.html",
+    tagebucharten: "pages/tagebucharten.html",
+    "st-peter-mitterberg": "pages/st-peter-mitterberg.html",
+    "journal-kategorien": "pages/journal-kategorien.html",
     stammdaten: "pages/stammdaten.html",
     wildhaendler: "pages/wildhaendler.html",
     planpositionen: "pages/planpositionen.html",
@@ -154,6 +158,22 @@ const Router = {
 
     if (page === "orte" && window.Orte && typeof window.Orte.init === "function") {
       window.Orte.init();
+    }
+
+    if (page === "tagebuch-dp" && window.TagebuchDp && typeof window.TagebuchDp.init === "function") {
+      window.TagebuchDp.init();
+    }
+
+    if (page === "tagebucharten" && window.Tagebucharten && typeof window.Tagebucharten.init === "function") {
+      window.Tagebucharten.init();
+    }
+
+    if (page === "st-peter-mitterberg" && window.StPeterMitterberg && typeof window.StPeterMitterberg.init === "function") {
+      window.StPeterMitterberg.init();
+    }
+
+    if (page === "journal-kategorien" && window.JournalKategorien && typeof window.JournalKategorien.init === "function") {
+      window.JournalKategorien.init();
     }
 
     if (

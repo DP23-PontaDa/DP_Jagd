@@ -55,12 +55,12 @@ class OrteAuswahl {
     text.textContent = teile.join(" · ");
     this.infoContainer.appendChild(text);
     if (ort.latitude != null && ort.longitude != null) {
-      const link = document.createElement("a");
-      link.href = `https://www.openstreetmap.org/?mlat=${ort.latitude}&mlon=${ort.longitude}#map=17/${ort.latitude}/${ort.longitude}`;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = "Karte öffnen";
-      this.infoContainer.append(" · ", link);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "orte-position-link";
+      button.textContent = "Karte öffnen";
+      button.addEventListener("click", () => OrteKarte.ortAnzeigen(ort));
+      this.infoContainer.append(" · ", button);
     }
     this.infoContainer.hidden = false;
   }

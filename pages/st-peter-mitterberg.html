@@ -1,0 +1,34 @@
+<section class="journal-page">
+  <h1>St. Peter/Mitterberg</h1>
+  <div class="journal-filter">
+    <input id="spmSuche" class="search-input" type="search" placeholder="Journal durchsuchen">
+    <label>Von<input id="spmVon" class="form-control" type="date"></label>
+    <label>Bis<input id="spmBis" class="form-control" type="date"></label>
+    <label>Kategorie<select id="spmFilterKategorie" class="form-control"><option value="">Alle</option></select></label>
+    <label>Hashtag<input id="spmFilterHashtag" class="form-control" type="search" placeholder="Alle Hashtags"></label>
+    <button id="spmNeu" class="btn btn-primary" type="button">+ Neuer Eintrag</button>
+  </div>
+  <p id="spmFehler" class="form-message" hidden></p>
+  <div id="spmLeer" class="no-data" hidden>Keine Journal-Einträge vorhanden.</div>
+  <div id="spmTabelleWrap" class="table-wrap"><table class="ap-table journal-table"><thead><tr><th>Datum</th><th>Kategorie</th><th>Titel</th><th>Ort</th><th>Hashtags</th><th>Beschreibung</th><th>Anhang</th><th>Aktionen</th></tr></thead><tbody id="spmBody"></tbody></table></div>
+</section>
+<div id="spmModal" class="modal" aria-hidden="true">
+  <div class="modal-content journal-modal-content">
+    <div class="modal-header"><h2 id="spmModalTitel">Journal-Eintrag</h2><div class="detail-header-actions"><button id="spmDetailEdit" class="action-btn edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button><button id="spmDetailDelete" class="action-btn delete-btn" type="button" title="Löschen" aria-label="Löschen"></button></div><span id="spmSchliessen" class="close-btn" role="button" tabindex="0">&times;</span></div>
+    <p id="spmModalFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label class="required" for="spmDatum">Datum</label><input id="spmDatum" class="form-control" type="date"></div>
+      <div class="form-group"><label for="spmUhrzeit">Uhrzeit</label><input id="spmUhrzeit" class="form-control" type="time"></div>
+      <div class="form-group"><label class="required" for="spmKategorie">Kategorie</label><select id="spmKategorie" class="form-control"></select></div>
+      <div class="form-group"><label class="required" for="spmTitel">Titel</label><input id="spmTitel" class="form-control" maxlength="200"></div>
+      <div class="form-group full-width"><label for="spmOrtFreitext">Ort</label><input id="spmOrtFreitext" class="form-control" maxlength="250"></div>
+      <div class="form-group full-width"><label id="spmOrtLabel">Verknüpfter Ort</label><div id="spmOrt" aria-labelledby="spmOrtLabel"></div><div id="spmOrtInfo" class="field-help orte-selection-info" hidden></div></div>
+      <div class="form-group full-width"><label for="spmBeschreibung">Beschreibung</label><textarea id="spmBeschreibung" class="form-control" rows="7"></textarea></div>
+      <div class="form-group full-width"><label for="spmPersonen">Personen</label><select id="spmPersonen" class="form-control journal-personen" multiple size="6"></select><small class="field-help">Mehrere Personen können ausgewählt werden.</small></div>
+      <div class="form-group full-width"><label for="spmWeiterePersonen">Weitere Personen</label><input id="spmWeiterePersonen" class="form-control" maxlength="500"></div>
+      <div class="form-group full-width"><label for="spmHashtags">Hashtags</label><input id="spmHashtags" class="form-control" placeholder="Hashtag eingeben" maxlength="200"><small class="field-help">Mit Enter, Komma oder Semikolon hinzufügen. Neue Hashtags sind jederzeit möglich.</small></div>
+      <div class="form-group full-width"><label for="spmAnhaenge">Bilder / Dokumente</label><input id="spmAnhaenge" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple><div id="spmAnhangVorschau" class="journal-attachment-grid"></div></div>
+    </div>
+    <div id="spmFooter" class="modal-footer"><button id="spmSpeichern" class="btn btn-primary" type="button">Speichern</button><button id="spmAbbrechen" class="btn btn-outline" type="button">Abbrechen</button></div>
+  </div>
+</div>

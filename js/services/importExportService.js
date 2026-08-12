@@ -488,7 +488,25 @@ const ImportExportService = (() => {
     PLZ: "plz",
     Ort: "ort",
     Aktiv: "aktiv",
+    Kategorie: "name_kat",
   };
+
+  function kategorieNormalisieren(value) {
+    return normalisieren(value)
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss");
+  }
+
+  async function getPersonenkategorien() {
+    const result = await db
+      .from("personen_kategorien")
+      .select("code, bezeichnung, reihenfolge")
+      .order("reihenfolge", { ascending: true });
+    if (result.error) throw result.error;
+    return result.data || [];
+  }
 
   function boolWert(value) {
     if (value === true || value === false) return value;
@@ -508,6 +526,7 @@ const ImportExportService = (() => {
       PLZ: person.plz || "",
       Ort: person.ort || "",
       Aktiv: person.aktiv === true ? "Ja" : "Nein",
+      Kategorie: person.name_kat || "",
     };
   }
 
@@ -515,7 +534,6 @@ const ImportExportService = (() => {
     const result = await db
       .from("personen")
       .select("*")
-      .eq("name_kat", "Mitglied")
       .order("personen_nr", { ascending: true });
     if (result.error) throw result.error;
 
@@ -542,16 +560,19 @@ const ImportExportService = (() => {
   }
 
   async function getMitgliederImportReferenzen() {
-    const result = await db
-      .from("personen")
-      .select("*")
-      .eq("name_kat", "Mitglied");
-    if (result.error) throw result.error;
-    return { bestehendeMitglieder: result.data || [] };
+    const [personenResult, kategorien] = await Promise.all([
+      db.from("personen").select("*"),
+      getPersonenkategorien(),
+    ]);
+    if (personenResult.error) throw personenResult.error;
+    return {
+      bestehendeMitglieder: personenResult.data || [],
+      personenkategorien: kategorien,
+    };
   }
 
   function mitgliedPayload(daten) {
-    const payload = { name_kat: "Mitglied" };
+    const payload = {};
     Object.entries(MITGLIED_FELDER).forEach(([spalte, feld]) => {
       let wert = daten[spalte];
       if (feld === "aktiv") {
@@ -587,10 +608,27 @@ const ImportExportService = (() => {
     const dateiNummern = new Map();
     const dateiPersonen = new Map();
     const bestehende = referenzen.bestehendeMitglieder || [];
+    const kategorien = referenzen.personenkategorien || [];
 
     zeilen.forEach((daten, index) => {
       const zeile = index + 2;
       const payload = mitgliedPayload(daten);
+      const kategorie = kategorien.find((eintrag) =>
+        [eintrag.code, eintrag.bezeichnung].some((wert) =>
+          kategorieNormalisieren(wert) === kategorieNormalisieren(payload.name_kat),
+        ));
+      if (!payload.name_kat) {
+        fehlerHinzufuegen(
+          fehler, zeile, "Kategorie", "Kategorie ist erforderlich.",
+        );
+      } else if (!kategorie) {
+        fehlerHinzufuegen(
+          fehler, zeile, "Kategorie",
+          `Ungültige Personenkategorie: ${payload.name_kat}`,
+        );
+      } else {
+        payload.name_kat = kategorie.code;
+      }
       if (!payload.vorname)
         fehlerHinzufuegen(fehler, zeile, "Vorname", "Vorname ist erforderlich.");
       if (!payload.nachname)
@@ -722,6 +760,7 @@ const ImportExportService = (() => {
     validiereImportZeilen,
     importAbschuesse,
     getExportMitglieder,
+    getPersonenkategorien,
     exportMitgliederZeilen,
     getMitgliederImportReferenzen,
     validiereMitgliederImportZeilen,

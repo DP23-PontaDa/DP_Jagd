@@ -7,6 +7,8 @@ const BerechtigungService = (() => {
     nachsuchen: "nachsuchen", fehlschuesse: "fehlschuesse",
     probeschuesse: "probeschuesse", abschussplan: "abschussplan",
     wildgruppen: "wildgruppen", orte: "wildgruppen", stammdaten: "wildklassen",
+    "tagebuch-dp": "tagebuch-dp", tagebucharten: "tagebucharten",
+    "st-peter-mitterberg": "st-peter-mitterberg", "journal-kategorien": "journal-kategorien",
     planpositionen: "planpositionen", wildhaendler: "wildhaendler",
     rechnungsvorlage: "rechnungsvorlage", "import-export": "import-export",
     benutzerverwaltung: "benutzerverwaltung",

@@ -1,0 +1,45 @@
+<section class="tagebuch-page">
+  <h1>Tagebuch DP</h1>
+  <div class="tagebuch-filter">
+    <input id="tbSuche" class="search-input" type="search" placeholder="Tagebuch durchsuchen">
+    <label>Von<input id="tbVon" class="form-control" type="date"></label>
+    <label>Bis<input id="tbBis" class="form-control" type="date"></label>
+    <label>Art<select id="tbFilterArt" class="form-control"><option value="">Alle</option></select></label>
+    <label>Ort<input id="tbFilterOrt" class="form-control" type="search" placeholder="Alle Orte"></label>
+    <button id="tbNeu" class="btn btn-primary" type="button">+ Neuer Eintrag</button>
+  </div>
+  <p id="tbFehler" class="form-message" hidden></p>
+  <div id="tbLeer" class="no-data" hidden>Keine Tagebucheinträge vorhanden.</div>
+  <div id="tbTabelleWrap" class="table-wrap">
+    <table class="ap-table tagebuch-table">
+      <thead><tr><th>Datum</th><th>Uhrzeit</th><th>Art</th><th>Titel</th><th>Ort</th><th>Hashtags</th><th>Beschreibung</th><th>Bild</th><th>Aktionen</th></tr></thead>
+      <tbody id="tbBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="tbModal" class="modal" aria-hidden="true">
+  <div class="modal-content tagebuch-modal-content">
+    <div class="modal-header">
+      <h2 id="tbModalTitel">Tagebucheintrag</h2>
+      <div class="detail-header-actions"><button id="tbDetailEdit" class="action-btn edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten"></button><button id="tbDetailDelete" class="action-btn delete-btn" type="button" title="Löschen" aria-label="Löschen"></button></div>
+      <span id="tbSchliessen" class="close-btn" role="button" tabindex="0">&times;</span>
+    </div>
+    <p id="tbModalFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label class="required" for="tbDatum">Datum</label><input id="tbDatum" class="form-control" type="date"></div>
+      <div class="form-group"><label for="tbUhrzeit">Uhrzeit</label><input id="tbUhrzeit" class="form-control" type="time"></div>
+      <div class="form-group"><label class="required" for="tbArt">Art des Eintrags</label><select id="tbArt" class="form-control"></select></div>
+      <div class="form-group"><label class="required" for="tbTitel">Titel</label><input id="tbTitel" class="form-control" type="text" maxlength="200"></div>
+      <div class="form-group full-width"><label for="tbOrtFreitext">Ort als Freitext</label><input id="tbOrtFreitext" class="form-control" type="text" maxlength="250"></div>
+      <div class="form-group full-width"><label id="tbOrtLabel">Verknüpfter Ort</label><div id="tbOrt" aria-labelledby="tbOrtLabel"></div><div id="tbOrtInfo" class="field-help orte-selection-info" hidden></div></div>
+      <div class="form-group full-width"><label for="tbBeschreibung">Beobachtung / Beschreibung</label><textarea id="tbBeschreibung" class="form-control" rows="6"></textarea></div>
+      <div class="form-group full-width"><label for="tbHashtags">Hashtags</label><input id="tbHashtags" class="form-control" type="text" placeholder="Hashtag eingeben" maxlength="200"><small class="field-help">Mit Enter, Komma oder Semikolon hinzufügen. Neue Hashtags sind jederzeit möglich.</small></div>
+      <div class="form-group full-width"><label for="tbPersonen">Personen aus DP_Jagd</label><select id="tbPersonen" class="form-control tagebuch-personen" multiple size="6"></select><small class="field-help">Mehrere Personen können ausgewählt werden.</small></div>
+      <div class="form-group full-width"><label for="tbWeiterePersonen">Weitere Personen</label><input id="tbWeiterePersonen" class="form-control" type="text" maxlength="500"></div>
+      <div class="form-group full-width"><label for="tbAbschuss">Verknüpfter Abschuss</label><select id="tbAbschuss" class="form-control"><option value="">Kein Abschuss</option></select></div>
+      <div class="form-group full-width"><label for="tbBilder">Bilder</label><input id="tbBilder" class="form-control" type="file" accept="image/jpeg,image/png,image/webp" multiple><div id="tbBilderVorschau" class="tagebuch-image-grid"></div></div>
+    </div>
+    <div id="tbModalFooter" class="modal-footer"><button id="tbSpeichern" class="btn btn-primary" type="button">Speichern</button><button id="tbAbbrechen" class="btn btn-outline" type="button">Abbrechen</button></div>
+  </div>
+</div>

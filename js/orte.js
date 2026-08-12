@@ -11,6 +11,7 @@ window.Orte = (() => {
   let latitude = null;
   let longitude = null;
   let kartenEinstellungen = null;
+  let kartenNurLesen = false;
   const KARTEN_FALLBACK = { map_lat: 47.3, map_lng: 13.7, map_zoom: 8 };
   const ORT_DETAIL_ZOOM = 17;
 
@@ -96,17 +97,43 @@ window.Orte = (() => {
       row.append(zelle(istZahl(ort.longitude) ? Number(ort.longitude).toFixed(6) : "–", "ap-number-column"));
       const position = zelle("");
       if (istZahl(ort.latitude) && istZahl(ort.longitude)) {
-        const link = document.createElement("a");
-        link.className = "orte-position-link";
-        link.href = `https://www.openstreetmap.org/?mlat=${ort.latitude}&mlon=${ort.longitude}#map=17/${ort.latitude}/${ort.longitude}`;
-        link.target = "_blank";
-        link.rel = "noopener";
-        link.textContent = "Karte öffnen";
-        position.appendChild(link);
+        const karteOeffnen = document.createElement("button");
+        karteOeffnen.type = "button";
+        karteOeffnen.className = "orte-position-link";
+        karteOeffnen.dataset.action = "map";
+        karteOeffnen.dataset.id = ort.id;
+        karteOeffnen.textContent = "Karte öffnen";
+        position.appendChild(karteOeffnen);
       } else position.textContent = "–";
       row.appendChild(position);
-      const anzahl = bilder.filter((bild) => String(bild.ort_id) === String(ort.id)).length;
-      row.append(zelle(String(anzahl), "orte-image-count"));
+      const ortBilder = bilder.filter((bild) => String(bild.ort_id) === String(ort.id));
+      const bildZelle = zelle("", "orte-image-overview");
+      const erstesBild = ortBilder[0] || null;
+      if (erstesBild?.vorschau_url) {
+        const vorschauButton = document.createElement("button");
+        vorschauButton.type = "button";
+        vorschauButton.className = "orte-thumbnail-button";
+        vorschauButton.dataset.action = "edit";
+        vorschauButton.dataset.id = ort.id;
+        vorschauButton.title = vorschauButton.ariaLabel = `${ort.name} öffnen`;
+        const vorschau = document.createElement("img");
+        vorschau.className = "orte-table-thumbnail";
+        vorschau.src = erstesBild.vorschau_url;
+        vorschau.alt = `Vorschaubild ${ort.name}`;
+        vorschau.loading = "lazy";
+        vorschauButton.appendChild(vorschau);
+        bildZelle.appendChild(vorschauButton);
+      } else {
+        const keinBild = document.createElement("span");
+        keinBild.className = "orte-no-thumbnail";
+        keinBild.textContent = "Kein Bild";
+        bildZelle.appendChild(keinBild);
+      }
+      const bildAnzahl = document.createElement("span");
+      bildAnzahl.className = "orte-image-count";
+      bildAnzahl.textContent = ortBilder.length === 1 ? "1 Bild" : `${ortBilder.length} Bilder`;
+      bildZelle.appendChild(bildAnzahl);
+      row.appendChild(bildZelle);
       const aktionen = zelle("", "action-cell");
       const bearbeiten = document.createElement("button");
       bearbeiten.type = "button";
@@ -134,6 +161,11 @@ window.Orte = (() => {
     if (!button) return;
     const ort = orte.find((item) => String(item.id) === button.dataset.id);
     if (!ort) return;
+    if (button.dataset.action === "map") {
+      try { OrteKarte.ortAnzeigen(ort, kartenFallbackFuerAnsicht()); }
+      catch (error) { AppFeedback.error(error.message); }
+      return;
+    }
     if (button.dataset.action === "edit") {
       try { await modalOeffnen(ort); }
       catch (error) { AppFeedback.error(error.message); }
@@ -154,16 +186,21 @@ window.Orte = (() => {
     } catch (error) { AppFeedback.error(error.message); }
   }
 
-  async function modalOeffnen(ort) {
-    aktuellerOrt = ort.id ? ort : null;
-    vorhandeneBilder = ort.id ? await OrteService.bilderLaden(ort.id) : [];
+  async function modalOeffnen(ort, nurKarte = false) {
+    kartenNurLesen = nurKarte;
+    aktuellerOrt = !nurKarte && ort.id ? ort : null;
+    vorhandeneBilder = !nurKarte && ort.id ? await OrteService.bilderLaden(ort.id) : [];
     neueDateien = [];
-    el("orteModalTitel").textContent = ort.id ? "Ort bearbeiten" : "Ort anlegen";
+    el("orteModalTitel").textContent = nurKarte
+      ? ort.name
+      : (ort.id ? "Ort bearbeiten" : "Ort anlegen");
+    el("orteModal").querySelectorAll(".orte-edit-only")
+      .forEach((element) => { element.hidden = nurKarte; });
     el("orteNr").value = ort.nr ?? "";
     el("orteName").value = ort.name || "";
     el("orteArt").value = ort.art || "";
     el("orteInfo").value = ort.info || "";
-    el("orteArtGruppe").hidden = !ort.reviereinrichtung;
+    el("orteArtGruppe").hidden = nurKarte || !ort.reviereinrichtung;
     el("orteBilder").value = "";
     el("orteModalFehler").hidden = true;
     positionSetzen(ort.latitude, ort.longitude);
@@ -199,24 +236,21 @@ window.Orte = (() => {
     if (!karte) {
       const start = kartenStart();
       karte = L.map("orteKarte").setView([start.lat, start.lng], start.zoom);
-      const strassenkarte = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19, attribution: "&copy; OpenStreetMap-Mitwirkende",
+      OrteKarte.basiskartenAnlegen(karte);
+      karte.on("click", (event) => {
+        if (!kartenNurLesen) positionSetzen(event.latlng.lat, event.latlng.lng, true);
       });
-      const satellit = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 19, attribution: "Tiles &copy; Esri" },
-      );
-      strassenkarte.addTo(karte);
-      L.control.layers({ "Karte": strassenkarte, "Satellit": satellit }, null, {
-        position: "topright", collapsed: false,
-      }).addTo(karte);
-      karte.on("click", (event) => positionSetzen(event.latlng.lat, event.latlng.lng, true));
     }
     const start = kartenStart();
     karte.invalidateSize();
     karte.setView([start.lat, start.lng], start.zoom);
     positionSetzen(latitude, longitude, false);
     window.setTimeout(() => karte.invalidateSize(), 100);
+  }
+
+  function kartenFallbackFuerAnsicht() {
+    const start = kartenStart();
+    return { lat: start.lat, lng: start.lng, zoom: start.zoom };
   }
 
   function positionSetzen(lat, lng, karteAktualisieren = false) {
@@ -227,11 +261,13 @@ window.Orte = (() => {
     if (!karte) return;
     if (marker) { marker.remove(); marker = null; }
     if (latitude !== null && longitude !== null) {
-      marker = L.marker([latitude, longitude], { draggable: true }).addTo(karte);
-      marker.on("dragend", () => {
-        const punkt = marker.getLatLng();
-        positionSetzen(punkt.lat, punkt.lng);
-      });
+      marker = L.marker([latitude, longitude], { draggable: !kartenNurLesen }).addTo(karte);
+      if (!kartenNurLesen) {
+        marker.on("dragend", () => {
+          const punkt = marker.getLatLng();
+          positionSetzen(punkt.lat, punkt.lng);
+        });
+      }
       if (karteAktualisieren) karte.setView([latitude, longitude], Math.max(karte.getZoom(), 15));
     }
   }
@@ -280,8 +316,17 @@ window.Orte = (() => {
   }
 
   function bilderAuswaehlen(event) {
-    [...event.target.files].filter((datei) => datei.type.startsWith("image/"))
-      .forEach((datei) => neueDateien.push({ datei, url: URL.createObjectURL(datei) }));
+    el("orteModalFehler").hidden = true;
+    for (const datei of event.target.files) {
+      try {
+        OrteService.bildValidieren(datei);
+        neueDateien.push({ datei, url: URL.createObjectURL(datei) });
+      } catch (error) {
+        console.error("Ortsbild-Validierung:", { dateiname: datei.name, error });
+        el("orteModalFehler").textContent = error.message;
+        el("orteModalFehler").hidden = false;
+      }
+    }
     event.target.value = "";
     bilderRendern();
   }
@@ -389,22 +434,37 @@ window.Orte = (() => {
       el("orteModalFehler").hidden = false;
       return;
     }
-    el("orteSpeichern").disabled = true;
+    const speichernButton = el("orteSpeichern");
+    const urspruenglicherText = speichernButton.textContent;
+    el("orteModalFehler").hidden = true;
+    speichernButton.disabled = true;
+    speichernButton.textContent = "Speichert …";
     try {
       let ortId = aktuellerOrt?.id;
-      if (ortId) await OrteService.ortAendern(ortId, daten);
-      else ortId = (await OrteService.ortAnlegen(daten)).id;
+      console.info("Ort speichern: Datensatz", { ortId, reviereinrichtung });
+      const gespeicherterOrt = ortId
+        ? await OrteService.ortAendern(ortId, daten)
+        : await OrteService.ortAnlegen(daten);
+      ortId = gespeicherterOrt?.id || ortId;
+      if (!ortId) throw new Error("Der Ort wurde gespeichert, aber es wurde keine Ort-ID zurückgegeben.");
       if (neueDateien.length) {
+        speichernButton.textContent = `Fotos speichern (${neueDateien.length}) …`;
+        neueDateien.forEach((item) => OrteService.bildValidieren(item.datei));
+        console.info("Ort speichern: Bilder hochladen", { ortId, anzahl: neueDateien.length });
         await OrteService.bilderHochladen(ortId, neueDateien.map((item) => item.datei), vorhandeneBilder.length);
       }
-      modalSchliessen();
+      console.info("Ort speichern: Übersicht aktualisieren", { ortId });
       await laden();
+      modalSchliessen();
       AppFeedback.success("Ort gespeichert.");
     } catch (error) {
-      console.error("Ort speichern:", error);
-      el("orteModalFehler").textContent = error.message;
+      console.error("Ort/Bilder speichern fehlgeschlagen:", error);
+      el("orteModalFehler").textContent = error?.message || "Ort oder Foto konnte nicht gespeichert werden.";
       el("orteModalFehler").hidden = false;
-    } finally { el("orteSpeichern").disabled = false; }
+    } finally {
+      speichernButton.disabled = false;
+      speichernButton.textContent = urspruenglicherText;
+    }
   }
 
   function modalSchliessen() {
@@ -413,6 +473,7 @@ window.Orte = (() => {
     el("orteModal").style.display = "none";
     el("orteModal").setAttribute("aria-hidden", "true");
     aktuellerOrt = null;
+    kartenNurLesen = false;
   }
 
   return { init };

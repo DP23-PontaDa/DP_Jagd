@@ -11,7 +11,7 @@ window.ImportExport = (() => {
   ];
   const MITGLIED_SPALTEN = [
     "Mitgliedsnummer", "Vorname", "Nachname", "KJ-Nr", "Adresse", "PLZ",
-    "Ort", "Aktiv",
+    "Ort", "Aktiv", "Kategorie",
   ];
   let importTyp = "abschuesse";
   let datei = null;
@@ -42,6 +42,7 @@ window.ImportExport = (() => {
   }
 
   async function init() {
+    await personenkategorienLaden();
     element("ieDateiAuswaehlen").addEventListener("click", () =>
       element("ieDatei").click());
     element("ieDatei").addEventListener("change", dateiAusgewaehlt);
@@ -83,6 +84,22 @@ window.ImportExport = (() => {
     );
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
+  }
+
+  async function personenkategorienLaden() {
+    const auswahl = element("ieMitgliederKategorie");
+    try {
+      const kategorien = await ImportExportService.getPersonenkategorien();
+      kategorien.forEach((kategorie) => {
+        const option = document.createElement("option");
+        option.value = kategorie.code;
+        option.textContent = kategorie.bezeichnung;
+        auswahl.appendChild(option);
+      });
+    } catch (error) {
+      console.error("Personenkategorien konnten nicht geladen werden:", error);
+      auswahl.disabled = true;
+    }
   }
 
   function download(blob, dateiname) {
@@ -253,12 +270,14 @@ window.ImportExport = (() => {
         PLZ: "8010",
         Ort: "Graz",
         Aktiv: "Ja",
+        Kategorie: "Mitglied",
       };
       const hinweise = [
         { Feld: "Mitgliedsnummer", Hinweis: "Optional; falls angegeben positive ganze Zahl." },
         { Feld: "Vorname / Nachname", Hinweis: "Pflichtfelder." },
         { Feld: "KJ-Nr", Hinweis: "Optional; falls angegeben positive ganze Zahl." },
         { Feld: "Aktiv", Hinweis: "Optional; zulässige Werte: Ja oder Nein. Leer bedeutet Ja." },
+        { Feld: "Kategorie", Hinweis: "Pflichtfeld; muss einer vorhandenen Personenkategorie entsprechen." },
         { Feld: "Dubletten", Hinweis: "Erkennung über Mitgliedsnummer oder Vorname und Nachname." },
       ];
       const mappe = XLSX.utils.book_new();
@@ -288,6 +307,7 @@ window.ImportExport = (() => {
       PLZ: "8010",
       Ort: "Graz",
       Aktiv: "Ja",
+      Kategorie: "Mitglied",
     };
     download(
       new Blob(["\uFEFF", alsCsv([beispiel], MITGLIED_SPALTEN)], {
@@ -380,6 +400,9 @@ window.ImportExport = (() => {
       if (importTyp === "mitglieder") {
         zeile.Mitgliedsnummer = nummerNormalisieren(zeile.Mitgliedsnummer);
         zeile["KJ-Nr"] = nummerNormalisieren(zeile["KJ-Nr"]);
+        if (!String(zeile.Kategorie || "").trim()) {
+          zeile.Kategorie = element("ieMitgliederKategorie").value;
+        }
       } else {
         zeile.Datum = datumNormalisieren(zeile.Datum);
         zeile.Zahlungseingang = datumNormalisieren(zeile.Zahlungseingang);
@@ -396,6 +419,11 @@ window.ImportExport = (() => {
       rohdaten.length ? Object.keys(rohdaten[0]) : [],
     );
     return aktiveSpalten()
+      .filter((spalte) => !(
+        importTyp === "mitglieder" &&
+        spalte === "Kategorie" &&
+        element("ieMitgliederKategorie").value
+      ))
       .filter((spalte) => !vorhanden.has(spalte))
       .map((spalte) => ({
         zeile: 1,

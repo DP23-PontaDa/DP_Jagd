@@ -11,11 +11,14 @@
     <title>DP Jagd</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.svg">
-    <link rel="stylesheet" href="css/layout.css?v=90">
+    <link rel="stylesheet" href="css/layout.css?v=117">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <link rel="stylesheet" href="css/orte.css?v=99">
+    <link rel="stylesheet" href="css/orte.css?v=110">
+    <link rel="stylesheet" href="css/tagebuch.css?v=112">
+    <link rel="stylesheet" href="css/st-peter-mitterberg.css?v=114">
+    <link rel="stylesheet" href="css/hashtag-input.css?v=115">
     <style>
     /* Mobile sidebar: overlay, toggle and slide-in behavior (overrides placed here to load last) */
     @media (max-width: 768px) {
@@ -100,6 +103,8 @@
             <button type="button" data-page="haar-federwild">Haar- und Federwild</button>
             <button id="sidebarRechnungen" type="button" data-page="rechnungen">Rechnungen</button>
             <button type="button" data-page="orte">Orte</button>
+            <button type="button" data-page="tagebuch-dp">Tagebuch DP</button>
+            <button type="button" data-page="st-peter-mitterberg">St. Peter/Mitterberg</button>
             <div class="sidebar-group">
                 <button type="button" class="sidebar-group-toggle"
                     data-toggle="submenu" data-group="nachsuchen" aria-expanded="false">
@@ -173,6 +178,14 @@
                         Rechnungsvorlage
                     </button>
 
+                    <button type="button" data-page="tagebucharten">
+                        Tagebucharten
+                    </button>
+
+                    <button type="button" data-page="journal-kategorien">
+                        Journal-Kategorien
+                    </button>
+
                     <button
                         type="button"
                         data-page="import-export">
@@ -215,9 +228,9 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="js/config.js"></script>
-    <script src="js/services/berechtigungService.js?v=96"></script>
+    <script src="js/services/berechtigungService.js?v=111"></script>
     <script src="js/auth.js?v=94"></script>
-    <script src="js/router.js?v=96"></script>
+    <script src="js/router.js?v=111"></script>
     <script src="js/api.js"></script>
     <script src="js/components/wildklasseColors.js"></script>
     <script src="js/services/dashboardService.js?v=95"></script>
@@ -249,9 +262,20 @@
     <script src="js/rechnungsvorlage.js"></script>
     <script src="js/services/benutzerverwaltungService.js?v=95"></script>
     <script src="js/benutzerverwaltung.js?v=95"></script>
-    <script src="js/services/orteService.js?v=103"></script>
-    <script src="js/components/orteAuswahl.js?v=101"></script>
-    <script src="js/orte.js?v=103"></script>
+    <script src="js/services/orteService.js?v=110"></script>
+    <script src="js/components/orteKarte.js?v=108"></script>
+    <script src="js/components/orteAuswahl.js?v=108"></script>
+    <script src="js/services/hashtagService.js?v=115"></script>
+    <script src="js/components/hashtagInput.js?v=115"></script>
+    <script src="js/orte.js?v=110"></script>
+    <script src="js/services/tagebuchartenService.js?v=111"></script>
+    <script src="js/services/tagebuchDpService.js?v=112"></script>
+    <script src="js/tagebucharten.js?v=111"></script>
+    <script src="js/tagebuch-dp.js?v=115"></script>
+    <script src="js/services/journalKategorienService.js?v=114"></script>
+    <script src="js/services/stPeterMitterbergService.js?v=114"></script>
+    <script src="js/journal-kategorien.js?v=114"></script>
+    <script src="js/st-peter-mitterberg.js?v=115"></script>
     <script src="js/services/nachsuchenService.js?v=99"></script>
     <script src="js/nachsuchen.js?v=99"></script>
     <script src="js/services/importExportService.js"></script>

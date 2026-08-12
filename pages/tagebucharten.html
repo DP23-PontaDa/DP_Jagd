@@ -1,0 +1,26 @@
+<section class="stammdaten-page">
+  <h1>Tagebucharten</h1>
+  <div class="action-bar">
+    <div class="search-group"><input id="taSuche" class="search-input" type="search" placeholder="Tagebucharten durchsuchen"></div>
+    <div class="btn-group"><button id="taNeu" class="btn btn-primary" type="button">+ Neue Tagebuchart</button></div>
+  </div>
+  <div class="table-wrap">
+    <table class="ap-table">
+      <thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Aktiv</th><th>Aktionen</th></tr></thead>
+      <tbody id="taBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="taModal" class="modal" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header"><h2 id="taModalTitel">Tagebuchart</h2><span id="taSchliessen" class="close-btn" role="button" tabindex="0">&times;</span></div>
+    <p id="taFehler" class="form-message" hidden></p>
+    <div class="form-grid">
+      <div class="form-group"><label class="required" for="taNr">Nr.</label><input id="taNr" class="form-control" type="number" min="1" step="1"></div>
+      <div class="form-group"><label class="required" for="taBezeichnung">Bezeichnung</label><input id="taBezeichnung" class="form-control" type="text" maxlength="100"></div>
+      <div class="form-group"><label for="taAktiv">Aktiv</label><input id="taAktiv" type="checkbox"></div>
+    </div>
+    <div class="modal-footer"><button id="taSpeichern" class="btn btn-primary" type="button">Speichern</button><button id="taAbbrechen" class="btn btn-outline" type="button">Abbrechen</button></div>
+  </div>
+</div>

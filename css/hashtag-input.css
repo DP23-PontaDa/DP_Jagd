@@ -1,0 +1,11 @@
+.hashtag-input { display: flex; min-height: 44px; flex-wrap: wrap; gap: 6px; align-items: center; padding: 5px 8px; border: 1px solid #bdc3c7; border-radius: 6px; background: #fff; }
+.hashtag-input:focus-within { border-color: #1769aa; box-shadow: 0 0 0 2px rgba(23,105,170,.14); }
+.hashtag-input .form-control { flex: 1 1 160px; min-width: 130px; height: 34px; padding: 4px; border: 0; box-shadow: none; }
+.hashtag-input-chips { display: contents; }
+.hashtag-chip { display: inline-flex; max-width: 220px; align-items: center; gap: 3px; padding: 4px 4px 4px 8px; border-radius: 999px; background: #e9f0f5; color: #27485f; font-size: .84rem; }
+.hashtag-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hashtag-chip button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 1.15rem; cursor: pointer; }
+.hashtag-suggestions { position: fixed; z-index: 1700; overflow-y: auto; border: 1px solid #cbd3d9; border-radius: 7px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.2); -webkit-overflow-scrolling: touch; }
+.hashtag-suggestions button { display: block; width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-bottom: 1px solid #edf0f2; background: #fff; color: inherit; text-align: left; cursor: pointer; }
+.hashtag-suggestions button:hover,.hashtag-suggestions button:focus { background: #eef5fa; }
+@media(max-width:600px){.hashtag-input{min-height:48px}.hashtag-suggestions button{min-height:48px;font-size:16px}}

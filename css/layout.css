@@ -1418,6 +1418,18 @@ textarea.form-control {
     width: 1%;
 }
 
+#app-content .jagd-table th.pers-jagd-year-column,
+#app-content .jagd-table td.pers-jagd-year-cell {
+    width: 120px;
+    min-width: 120px;
+}
+
+#app-content .jagd-table .pers-jagd-jahr {
+    width: 100%;
+    min-width: 94px;
+    font-variant-numeric: tabular-nums;
+}
+
 #app-content .person-table tr:hover,
 #app-content .ap-table tr:hover,
 #app-content .jagd-table tr:hover {

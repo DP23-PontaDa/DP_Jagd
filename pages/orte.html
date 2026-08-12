@@ -33,23 +33,23 @@
     </div>
     <p id="orteModalFehler" class="form-message" hidden></p>
     <div class="form-grid">
-      <div class="form-group"><label for="orteNr">Nr.</label><input id="orteNr" class="form-control" type="number" readonly></div>
-      <div class="form-group"><label class="required" for="orteName">Name</label><input id="orteName" class="form-control" type="text"></div>
-      <div id="orteArtGruppe" class="form-group"><label class="required" for="orteArt">Art</label><select id="orteArt" class="form-control"><option value="">Bitte wählen</option><option>Bodensitz</option><option>Hochsitz</option><option>Sitzbank</option><option>Natur</option></select></div>
-      <div class="form-group full-width"><label for="orteInfo">Info</label><textarea id="orteInfo" class="form-control" rows="3"></textarea></div>
+      <div class="form-group orte-edit-only"><label for="orteNr">Nr.</label><input id="orteNr" class="form-control" type="number" readonly></div>
+      <div class="form-group orte-edit-only"><label class="required" for="orteName">Name</label><input id="orteName" class="form-control" type="text"></div>
+      <div id="orteArtGruppe" class="form-group orte-edit-only"><label class="required" for="orteArt">Art</label><select id="orteArt" class="form-control"><option value="">Bitte wählen</option><option>Bodensitz</option><option>Hochsitz</option><option>Sitzbank</option><option>Natur</option></select></div>
+      <div class="form-group full-width orte-edit-only"><label for="orteInfo">Info</label><textarea id="orteInfo" class="form-control" rows="3"></textarea></div>
       <div class="form-group full-width">
         <label>Position / Karte</label>
-        <p class="field-help">Klick auf die Karte setzt oder verschiebt den Marker.</p>
+        <p class="field-help orte-edit-only">Klick auf die Karte setzt oder verschiebt den Marker.</p>
         <div id="orteKarte" class="orte-map" aria-label="Position des Ortes"></div>
-        <div class="orte-coordinates"><span>Latitude: <strong id="orteLatitude">–</strong></span><span>Longitude: <strong id="orteLongitude">–</strong></span><button id="ortePositionLoeschen" class="btn btn-outline" type="button">Position entfernen</button></div>
+        <div class="orte-coordinates"><span>Latitude: <strong id="orteLatitude">–</strong></span><span>Longitude: <strong id="orteLongitude">–</strong></span><button id="ortePositionLoeschen" class="btn btn-outline orte-edit-only" type="button">Position entfernen</button></div>
       </div>
-      <div class="form-group full-width">
+      <div class="form-group full-width orte-edit-only">
         <label for="orteBilder">Bilder</label>
         <input id="orteBilder" class="form-control" type="file" accept="image/*" multiple>
         <div id="orteBilderVorschau" class="orte-image-grid"></div>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer orte-edit-only">
       <button id="orteAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
       <button id="orteSpeichern" class="btn btn-primary" type="button">Speichern</button>
     </div>

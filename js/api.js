@@ -248,7 +248,16 @@
   function mapJagdjahr(row) {
     return {
       idJgJahr: value(row, "id", "idJgJahr", "id_jg_jahr", "ID_JG_Jahr"),
-      personId: value(row, "person_id", "personId", "idName", "ID_Name"),
+      personId: value(
+        row,
+        "person_id",
+        "personen_id",
+        "id_name",
+        "personId",
+        "personenId",
+        "idName",
+        "ID_Name"
+      ),
       jahr: value(row, "jahr", "Jahr"),
       aktiv: boolean(row, "aktiv", "Aktiv"),
       jaegerGastId: value(row, "jaeger_gast_id", "jaegerGastId", "jaeger_gast", "jaegerGast", "Jäger_Gast", "Jaeger_Gast"),
