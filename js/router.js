@@ -23,6 +23,7 @@ const Router = {
     probeschuesse: "pages/nachsuchen.html",
     "import-export": "pages/import-export.html",
     abschussplan: "pages/abschussplan.html",
+    freigaben: "pages/freigaben.html",
     wildgruppen: "pages/wildgruppen.html",
     orte: "pages/orte.html",
     "tagebuch-dp": "pages/tagebuch-dp.html",
@@ -33,6 +34,7 @@ const Router = {
     wildhaendler: "pages/wildhaendler.html",
     planpositionen: "pages/planpositionen.html",
     rechnungsvorlage: "pages/rechnungsvorlage.html",
+    abschussregeln: "pages/abschussregeln.html",
     benutzerverwaltung: "pages/benutzerverwaltung.html",
   },
 
@@ -148,6 +150,11 @@ const Router = {
       window.Abschussplan.init(initialPanel);
     }
 
+    if (page === "freigaben" && window.Freigaben &&
+        typeof window.Freigaben.init === "function") {
+      window.Freigaben.init();
+    }
+
     if (
       page === "wildgruppen" &&
       window.Wildgruppen &&
@@ -198,6 +205,11 @@ const Router = {
       typeof window.Planpositionen.init === "function"
     ) {
       window.Planpositionen.init();
+    }
+
+    if (page === "abschussregeln" && window.Abschussregeln &&
+        typeof window.Abschussregeln.init === "function") {
+      window.Abschussregeln.init();
     }
 
     if (

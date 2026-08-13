@@ -37,6 +37,15 @@ window.OrteKarte = (() => {
     });
   }
 
+  function karteAnlegen(container, start, optionen = {}) {
+    if (!window.L) throw new Error("Die Karte konnte nicht geladen werden.");
+    if (!container) throw new Error("Der Kartencontainer wurde nicht gefunden.");
+    const zielKarte = L.map(container).setView([start.lat, start.lng], start.zoom);
+    basiskartenAnlegen(zielKarte);
+    if (typeof optionen.onClick === "function") zielKarte.on("click", optionen.onClick);
+    return zielKarte;
+  }
+
   function modalAnlegen() {
     if (modal) return;
     modal = document.createElement("div");
@@ -64,8 +73,7 @@ window.OrteKarte = (() => {
     const start = hatPosition ? { lat: Number(ort.latitude), lng: Number(ort.longitude), zoom: 17 } : fallback;
     setTimeout(() => {
       if (!karte) {
-        karte = L.map(modal.querySelector("[data-map-container]")).setView([start.lat, start.lng], start.zoom);
-        basiskartenAnlegen(karte);
+        karte = karteAnlegen(modal.querySelector("[data-map-container]"), start);
       }
       if (marker) { marker.remove(); marker = null; }
       if (hatPosition) marker = L.marker([start.lat, start.lng]).addTo(karte);
@@ -75,5 +83,5 @@ window.OrteKarte = (() => {
     }, 50);
   }
 
-  return { basiskartenAnlegen, ortAnzeigen };
+  return { basiskartenAnlegen, karteAnlegen, ortAnzeigen };
 })();

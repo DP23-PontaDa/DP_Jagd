@@ -507,9 +507,11 @@
     }
 
     if (!modal.dataset.editId) {
+      await renderAll();
       closePlanperiodeModal();
       AppFeedback.success("Planperiode gespeichert.");
-      await openPlanpositionenModal(result.id, "wizard");
+      if (result.id)
+        AppFeedback.focusRow(`#ap-jahre-body tr[data-id="${result.id}"]`);
       return;
     }
 

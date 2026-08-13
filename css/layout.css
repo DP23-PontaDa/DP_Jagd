@@ -238,6 +238,307 @@ header {
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
+/* =========================================================
+   Responsive Verdichtung: Auswertungen bleiben Tabellen,
+   Datensatzlisten verwenden kompakte mobile Karten.
+   ========================================================= */
+@media (max-width: 900px) and (min-width: 601px) {
+    #app-content .ap-table th,
+    #app-content .ap-table td,
+    #app-content .person-table th,
+    #app-content .person-table td,
+    #app-content .jagd-table th,
+    #app-content .jagd-table td {
+        padding: 7px 8px;
+        font-size: 0.88rem;
+    }
+
+    .dashboard-card { padding: 12px; }
+    .dashboard-table-wrap,
+    .ap-matrix-scroll,
+    .freigabe-wildgruppe .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Planungs- und Auswertungstabellen nicht in Karten umwandeln. */
+    #app-content .dashboard-plan-table,
+    #app-content .abschussplan-root table,
+    #app-content .freigaben-page table {
+        display: table !important;
+        width: 100% !important;
+        max-width: none;
+        border-collapse: collapse;
+        background: #fff;
+        box-shadow: none;
+        table-layout: auto;
+    }
+
+    #app-content .dashboard-plan-table thead,
+    #app-content .abschussplan-root table thead,
+    #app-content .freigaben-page table thead {
+        display: table-header-group !important;
+    }
+
+    #app-content .dashboard-plan-table tbody,
+    #app-content .abschussplan-root table tbody,
+    #app-content .freigaben-page table tbody {
+        display: table-row-group !important;
+        width: auto;
+    }
+
+    #app-content .dashboard-plan-table tr,
+    #app-content .abschussplan-root table tr,
+    #app-content .freigaben-page table tr {
+        display: table-row !important;
+        width: auto;
+        margin: 0;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    #app-content .dashboard-plan-table th,
+    #app-content .dashboard-plan-table td,
+    #app-content .abschussplan-root table th,
+    #app-content .abschussplan-root table td,
+    #app-content .freigaben-page table th,
+    #app-content .freigaben-page table td {
+        display: table-cell !important;
+        width: auto;
+        min-width: 0;
+        min-height: 0;
+        padding: 6px 5px;
+        border: 1px solid #dfe5e8;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        vertical-align: middle;
+        overflow-wrap: normal;
+    }
+
+    #app-content .dashboard-plan-table td::before,
+    #app-content .abschussplan-root table td::before,
+    #app-content .freigaben-page table td::before {
+        content: none !important;
+    }
+
+    #app-content .dashboard-plan-table th,
+    #app-content .dashboard-plan-table .dashboard-number-cell,
+    #app-content .abschussplan-root table th,
+    #app-content .freigaben-page table th {
+        text-align: center;
+    }
+
+    #app-content .dashboard-plan-table .dashboard-position-cell,
+    #app-content .abschussplan-root table th:first-child,
+    #app-content .abschussplan-root table td:first-child,
+    #app-content .freigaben-page table th:first-child,
+    #app-content .freigaben-page table td:first-child {
+        text-align: left;
+    }
+
+    .dashboard-table-wrap,
+    .abschussplan-root .table-wrap,
+    .abschussplan-root .ap-matrix-scroll,
+    .freigaben-page .table-wrap {
+        width: 100%;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .dashboard-plan-table { min-width: 480px; }
+    .freigabe-einzeltabelle { min-width: 560px; }
+
+    /* Allgemeine Datensatzkarten kompakter darstellen. */
+    #app-content table.person-table tbody tr,
+    #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody tr,
+    #app-content table.jagd-table tbody tr {
+        margin-bottom: 8px;
+        border-radius: 9px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    #app-content table.person-table tbody td,
+    #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td,
+    #app-content table.jagd-table tbody td {
+        min-height: 36px;
+        grid-template-columns: minmax(92px, 36%) minmax(0, 64%);
+        gap: 7px;
+        padding: 6px 9px;
+        font-size: 0.9rem;
+        line-height: 1.25;
+    }
+    #app-content table.person-table tbody td.action-cell,
+    #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td.action-cell,
+    #app-content table.jagd-table tbody td.action-cell {
+        min-height: 44px;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    /* Abschuss: wenige kompakte Informationszeilen, Aktionen nur im Detail. */
+    #app-content .abschuss-page #asTabelleBody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td {
+        display: block;
+        min-height: 0;
+        padding: 6px 9px;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td::before {
+        display: inline;
+        margin-right: 0.35rem;
+        font-size: 0.78rem;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Nr."],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Nr"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Datum"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildklasse"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Erlegungsort"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Gewicht"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Gesamtpreis"] {
+        grid-column: auto;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildhändler"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Zusatzinfo"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Bemerkung"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Fallwild"] {
+        grid-column: 1 / -1;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"]::before,
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildklasse"]::before,
+    #app-content .abschuss-page #asTabelleBody td[data-label="Erlegungsort"]::before {
+        content: none;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildgruppe"],
+    #app-content .abschuss-page #asTabelleBody td.action-cell {
+        display: none !important;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Nr."],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Nr"] {
+        font-weight: 700;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Datum"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Gesamtpreis"] {
+        text-align: right;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"] {
+        font-weight: 600;
+    }
+
+    .dashboard-plan-chart,
+    .dashboard-plan-chart-stage,
+    .dashboard-card canvas {
+        width: 100% !important;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    #app-content { padding: 10px 8px 78px; }
+    #app-content h1 { margin-bottom: 0.65rem; font-size: 1.35rem; }
+    #app-content h2 { font-size: 1.12rem; }
+    #app-content .action-bar { margin-bottom: 10px; }
+    #app-content .abschuss-filter-bar { margin-top: 10px; gap: 7px; }
+    #app-content .abschuss-quick-filters .filter-chip { min-height: 38px; }
+    .dashboard-card { padding: 9px; }
+    .freigabe-wildgruppe { margin-bottom: 1rem; }
+    .freigabe-wildgruppe h3 { padding: 0.5rem 0.65rem; font-size: 0.92rem; }
+}
+
+@media (max-width: 399px) {
+    #app-content .dashboard-plan-table th,
+    #app-content .dashboard-plan-table td,
+    #app-content .abschussplan-root table th,
+    #app-content .abschussplan-root table td,
+    #app-content .freigaben-page table th,
+    #app-content .freigaben-page table td {
+        padding: 5px 4px;
+        font-size: 0.75rem;
+    }
+
+    .dashboard-plan-table { min-width: 450px; }
+    .freigabe-einzeltabelle { min-width: 520px; }
+    #app-content .abschuss-page #asTabelleBody td { padding: 5px 7px; }
+}
+
+/* Dashboard-Plantabellen: kompakte echte Tabelle auf Mobile. */
+.dashboard-soll-label-mobile { display: none; }
+
+@media (max-width: 768px) {
+    #app-content .dashboard-table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #app-content table.dashboard-plan-table {
+        width: 100% !important;
+        min-width: 0 !important;
+        table-layout: fixed !important;
+    }
+
+    #app-content table.dashboard-plan-table .dashboard-plan-col-position { width: 34%; }
+    #app-content table.dashboard-plan-table .dashboard-plan-col-soll,
+    #app-content table.dashboard-plan-table .dashboard-plan-col-ist,
+    #app-content table.dashboard-plan-table .dashboard-plan-col-rest { width: 14%; }
+    #app-content table.dashboard-plan-table .dashboard-plan-col-prozent { width: 10%; }
+    #app-content table.dashboard-plan-table .dashboard-plan-col-fallwild { width: 14%; }
+
+    #app-content table.dashboard-plan-table th,
+    #app-content table.dashboard-plan-table td {
+        height: auto;
+        padding: 5px 3px;
+        font-size: .78rem;
+        line-height: 1.2;
+    }
+
+    #app-content table.dashboard-plan-table th,
+    #app-content table.dashboard-plan-table .dashboard-number-cell {
+        white-space: nowrap;
+        word-break: normal;
+        overflow-wrap: normal;
+        text-align: center;
+    }
+
+    #app-content table.dashboard-plan-table .dashboard-position-cell {
+        white-space: normal;
+        overflow-wrap: break-word;
+        text-align: left;
+    }
+
+    #app-content table.dashboard-plan-table th.dashboard-position-cell {
+        white-space: nowrap;
+    }
+
+    #app-content .dashboard-soll-label-desktop { display: none; }
+    #app-content .dashboard-soll-label-mobile { display: inline; }
+}
+
+@media (max-width: 359px) {
+    #app-content table.dashboard-plan-table {
+        min-width: 340px !important;
+    }
+}
+
 .person-table th,
 .ap-table th,
 .jagd-table th,
@@ -1265,6 +1566,60 @@ textarea.form-control {
     color: #e74c3c;
 }
 
+.freigabe-status.frei { color: #19723b; }
+.freigabe-status.nicht-frei { color: #a32121; }
+.freigabe-details {
+  display: grid;
+  grid-template-columns: minmax(130px, auto) 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: #f4f7f8;
+}
+.freigabe-details dt { font-weight: 700; }
+.freigabe-details dd { margin: 0; }
+.freigabe-wildgruppe-row th {
+  padding: 0.7rem 0.85rem;
+  border-top: 2px solid #aebbc2;
+  background: #e9eff2;
+  color: #263b46;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.freigabe-einzelansicht > h2 {
+  margin: 1rem 0 1.25rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 2px solid #405f70;
+  font-size: 1.25rem;
+}
+.freigabe-wildgruppe { margin: 0 0 1.5rem; }
+.freigabe-wildgruppe h3 {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 7px 7px 0 0;
+  background: #e9eff2;
+  color: #263b46;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.freigabe-einzeltabelle td,
+.freigabe-einzeltabelle th { padding: 0.55rem 0.7rem; }
+.freigabe-einzeltabelle .action-cell { width: 54px; }
+.freigabe-empty { padding: 1rem; background: #f4f7f8; border-radius: 8px; }
+
+@media (max-width: 700px) {
+  .freigaben-page .abschuss-filter-bar { grid-template-columns: 1fr; }
+  .freigabe-details { grid-template-columns: 1fr; }
+  .freigabe-details dd { margin-bottom: 0.4rem; }
+  #app-content .freigabe-wildgruppe .table-wrap { overflow: visible; }
+  #app-content .freigabe-einzeltabelle tbody tr { margin-bottom: 0.75rem; }
+  #app-content .freigabe-einzeltabelle tbody td { grid-template-columns: minmax(105px, 38%) minmax(0, 62%); }
+  #app-content .freigabe-einzeltabelle .freigabe-grund { align-items: start; }
+}
+
 .ap-table tbody tr.abschuss-missing-data,
 .ap-table tbody tr.abschuss-missing-data:hover,
 .ap-table tbody tr.abschuss-missing-data > td {
@@ -1570,6 +1925,47 @@ textarea.form-control {
     min-height: 360px;
 }
 
+.dashboard-plan-chart {
+    min-height: 430px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-plan-chart-stage {
+    position: relative;
+    width: 100%;
+    height: 430px;
+}
+
+.dashboard-plan-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    width: 100%;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-border);
+}
+
+.dashboard-plan-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    color: #596775;
+    font-size: 0.875rem;
+}
+
+.dashboard-plan-legend-swatch {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    border-radius: 2px;
+}
+
 .dashboard-hunter-chart {
     min-height: clamp(320px, 55vh, 680px);
 }
@@ -1655,6 +2051,77 @@ textarea.form-control {
     box-shadow: none;
 }
 
+.dashboard-plan-table th,
+.dashboard-plan-table td {
+    text-align: center;
+}
+
+.dashboard-plan-table .dashboard-position-cell {
+    text-align: left;
+}
+
+.kj-internal-release-row td {
+    background: rgba(31, 78, 121, 0.06);
+}
+
+.kj-internal-release-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+}
+
+.kj-internal-release-fields label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 600;
+}
+
+.kj-internal-release-fields input {
+    width: 84px;
+}
+
+.ap-b1-release-label,
+.ap-b1-release-cell {
+    background: rgba(31, 78, 121, 0.07);
+}
+
+.ap-b1-release-label {
+    font-weight: 600;
+    color: #1f4e79;
+}
+
+.ap-b1-statistics-label {
+    padding-left: 28px;
+    font-weight: 600;
+    color: #384d61;
+    background: rgba(56, 77, 97, 0.05);
+}
+
+.dashboard-year-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+}
+
+.dashboard-year-filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dashboard-year-filter-buttons .active {
+    color: #fff;
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+}
+
 @media (min-width: 769px) {
     #app-content table td.action-cell {
         flex-wrap: nowrap;
@@ -1712,7 +2179,18 @@ textarea.form-control {
     }
 
     .dashboard-plan-chart {
-        min-height: 320px;
+        min-height: 470px;
+    }
+
+    .dashboard-plan-chart-stage {
+        height: 470px;
+    }
+
+    .dashboard-plan-legend {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, max-content));
+        justify-content: center;
+        gap: 10px 18px;
     }
 
     .header-user-label {
@@ -2149,5 +2627,272 @@ textarea.form-control {
     #app-content .jagd-box {
         max-width: 100%;
         overflow: hidden;
+    }
+}
+
+/* Finale Mobile-Priorität nach den bisherigen Kartenregeln. */
+@media (max-width: 768px) {
+    #app-content table.dashboard-plan-table,
+    #app-content .abschussplan-root table,
+    #app-content .freigaben-page table {
+        display: table !important;
+        width: 100% !important;
+        max-width: none;
+        border-collapse: collapse;
+        table-layout: auto;
+        background: #fff;
+    }
+    #app-content table.dashboard-plan-table thead,
+    #app-content .abschussplan-root table thead,
+    #app-content .freigaben-page table thead { display: table-header-group !important; }
+    #app-content table.dashboard-plan-table tbody,
+    #app-content .abschussplan-root table tbody,
+    #app-content .freigaben-page table tbody { display: table-row-group !important; width: auto; }
+    #app-content table.dashboard-plan-table tbody tr,
+    #app-content .abschussplan-root table tbody tr,
+    #app-content .freigaben-page table tbody tr {
+        display: table-row !important;
+        width: auto;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #app-content table.dashboard-plan-table th,
+    #app-content table.dashboard-plan-table td,
+    #app-content .abschussplan-root table th,
+    #app-content .abschussplan-root table td,
+    #app-content .freigaben-page table th,
+    #app-content .freigaben-page table td {
+        display: table-cell !important;
+        width: auto;
+        min-width: 0;
+        min-height: 0;
+        height: auto;
+        padding: 6px 5px;
+        border: 1px solid #dfe5e8;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        vertical-align: middle;
+        overflow-wrap: normal;
+    }
+    #app-content table.dashboard-plan-table td::before,
+    #app-content .abschussplan-root table td::before,
+    #app-content .freigaben-page table td::before { content: none !important; }
+    #app-content table.dashboard-plan-table th,
+    #app-content table.dashboard-plan-table .dashboard-number-cell,
+    #app-content .abschussplan-root table th,
+    #app-content .freigaben-page table th { text-align: center; }
+    #app-content table.dashboard-plan-table .dashboard-position-cell,
+    #app-content .abschussplan-root table tr > :first-child,
+    #app-content .freigaben-page table tr > :first-child { text-align: left; }
+    #app-content .dashboard-table-wrap,
+    #app-content .abschussplan-root .table-wrap,
+    #app-content .abschussplan-root .ap-matrix-scroll,
+    #app-content .freigaben-page .table-wrap {
+        width: 100%;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+    #app-content table.dashboard-plan-table { min-width: 480px; }
+    #app-content table.freigabe-einzeltabelle { min-width: 560px; }
+
+    #app-content table.person-table tbody tr,
+    #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody tr,
+    #app-content table.jagd-table tbody tr {
+        margin-bottom: 8px;
+        border-radius: 9px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    #app-content table.person-table tbody td,
+    #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td,
+    #app-content table.jagd-table tbody td {
+        min-height: 36px;
+        grid-template-columns: minmax(92px,36%) minmax(0,64%);
+        gap: 7px;
+        padding: 6px 9px;
+        font-size: .9rem;
+        line-height: 1.25;
+    }
+    #app-content table.person-table tbody td.action-cell,
+    #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td.action-cell,
+    #app-content table.jagd-table tbody td.action-cell {
+        min-height: 44px;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    #app-content .abschuss-page #asTabelleBody tr {
+        display: grid !important;
+        grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+    #app-content .abschuss-page #asTabelleBody td {
+        display: block;
+        width: auto;
+        min-height: 0;
+        padding: 6px 9px;
+    }
+    #app-content .abschuss-page #asTabelleBody td::before {
+        display: inline;
+        margin-right: .35rem;
+        font-size: .78rem;
+    }
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildhändler"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Zusatzinfo"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Bemerkung"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Fallwild"] { grid-column: 1 / -1; }
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"]::before,
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildklasse"]::before,
+    #app-content .abschuss-page #asTabelleBody td[data-label="Erlegungsort"]::before { content: none; }
+    #app-content .abschuss-page #asTabelleBody td[data-label="Wildgruppe"],
+    #app-content .abschuss-page #asTabelleBody td.action-cell { display: none !important; }
+    #app-content .abschuss-page #asTabelleBody td[data-label="Datum"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Gesamtpreis"] { text-align: right; }
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Nr."],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Nr"] { font-weight: 700; }
+}
+
+@media (max-width: 600px) {
+    #app-content { padding: 10px 8px 78px; }
+    #app-content h1 { margin-bottom: .65rem; font-size: 1.35rem; }
+    #app-content h2 { font-size: 1.12rem; }
+    #app-content .action-bar { margin-bottom: 10px; }
+    #app-content .abschuss-filter-bar { margin-top: 10px; gap: 7px; }
+    #app-content .abschuss-quick-filters .filter-chip { min-height: 38px; }
+    #app-content .dashboard-card { padding: 9px; }
+    #app-content .freigabe-wildgruppe { margin-bottom: 1rem; }
+    #app-content .freigabe-wildgruppe h3 { padding: .5rem .65rem; font-size: .92rem; }
+}
+
+@media (max-width: 399px) {
+    #app-content table.dashboard-plan-table th,
+    #app-content table.dashboard-plan-table td,
+    #app-content .abschussplan-root table th,
+    #app-content .abschussplan-root table td,
+    #app-content .freigaben-page table th,
+    #app-content .freigaben-page table td { padding: 5px 4px; font-size: .75rem; }
+    #app-content table.dashboard-plan-table { min-width: 450px; }
+    #app-content table.freigabe-einzeltabelle { min-width: 520px; }
+    #app-content .abschuss-page #asTabelleBody td { padding: 5px 7px; }
+}
+
+/* Letzte Dashboard-Priorität: normale iPhone-Breiten ohne Zwangsscrollen. */
+@media (max-width: 768px) {
+    #app-content table.dashboard-plan-table {
+        min-width: 0 !important;
+        table-layout: fixed !important;
+    }
+}
+
+@media (max-width: 359px) {
+    #app-content table.dashboard-plan-table { min-width: 340px !important; }
+}
+
+@media (min-width: 360px) and (max-width: 399px) {
+    #app-content table.dashboard-plan-table th,
+    #app-content table.dashboard-plan-table td {
+        padding: 5px 2px;
+    }
+}
+
+/* Abschuss: lesbare Mobile-Kacheln und vollständig erreichbarer Detailmodus. */
+@media (max-width: 768px) {
+    #app-content .abschuss-page #asTabelleBody td {
+        display: flex !important;
+        min-height: 40px;
+        align-items: center;
+        padding: 7px 9px;
+        font-size: .98rem;
+        line-height: 1.3;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td::before {
+        flex: 0 0 auto;
+        align-self: center;
+        font-size: .82rem;
+        line-height: inherit;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Datum"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Gesamtpreis"] {
+        justify-content: flex-end;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Jäger"] {
+        min-height: 42px;
+        font-size: 1.04rem;
+        line-height: 1.35;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Zusatzinfo"],
+    #app-content .abschuss-page #asTabelleBody td[data-label="Bemerkung"] {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    #app-content #asModal {
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        overflow: hidden;
+    }
+
+    #app-content #asModal .modal-content {
+        display: flex;
+        box-sizing: border-box;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        flex-direction: column;
+        overflow: hidden;
+        padding-top: max(14px, env(safe-area-inset-top));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    #app-content #asModal .modal-header {
+        position: static;
+        flex: 0 0 auto;
+        padding-top: 0;
+    }
+
+    #app-content #asModal .modal-body {
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #app-content #asModal .modal-footer {
+        position: static;
+        flex: 0 0 auto;
+        margin-top: 10px;
+        padding: 10px 0 0;
+    }
+
+    #app-content #asModal.read-mode .modal-footer {
+        display: flex;
+    }
+
+    #app-content #asModal.read-mode #asSpeichern,
+    #app-content #asModal.read-mode #asAbbrechen {
+        display: none;
+    }
+
+    #app-content #asModal.read-mode .form-grid {
+        overflow: visible;
+    }
+
+    #app-content #asModal.read-mode .detail-read-value {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
     }
 }

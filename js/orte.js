@@ -12,6 +12,7 @@ window.Orte = (() => {
   let longitude = null;
   let kartenEinstellungen = null;
   let kartenNurLesen = false;
+  let kartenInitialisierung = 0;
   const KARTEN_FALLBACK = { map_lat: 47.3, map_lng: 13.7, map_zoom: 8 };
   const ORT_DETAIL_ZOOM = 17;
 
@@ -207,7 +208,29 @@ window.Orte = (() => {
     bilderRendern();
     el("orteModal").style.display = "block";
     el("orteModal").setAttribute("aria-hidden", "false");
-    window.setTimeout(karteInitialisieren, 50);
+    karteNachModalOeffnungInitialisieren();
+  }
+
+  function karteNachModalOeffnungInitialisieren() {
+    const aufruf = ++kartenInitialisierung;
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      if (aufruf !== kartenInitialisierung ||
+          el("orteModal").getAttribute("aria-hidden") === "true") return;
+      const container = el("orteKarte");
+      if (!container || container.clientWidth === 0 || container.clientHeight === 0) {
+        window.setTimeout(() => {
+          if (aufruf === kartenInitialisierung) karteNachModalOeffnungInitialisieren();
+        }, 100);
+        return;
+      }
+      try {
+        karteInitialisieren();
+      } catch (error) {
+        console.error("Orte-Karte konnte nicht initialisiert werden:", error);
+        el("orteModalFehler").textContent = error.message || "Die Karte konnte nicht geladen werden.";
+        el("orteModalFehler").hidden = false;
+      }
+    }));
   }
 
   function kartenStart() {
@@ -233,19 +256,25 @@ window.Orte = (() => {
       el("orteModalFehler").hidden = false;
       return;
     }
+    const container = el("orteKarte");
+    if (karte && karte.getContainer() !== container) {
+      karte.remove();
+      karte = null;
+      marker = null;
+    }
     if (!karte) {
       const start = kartenStart();
-      karte = L.map("orteKarte").setView([start.lat, start.lng], start.zoom);
-      OrteKarte.basiskartenAnlegen(karte);
-      karte.on("click", (event) => {
-        if (!kartenNurLesen) positionSetzen(event.latlng.lat, event.latlng.lng, true);
+      karte = OrteKarte.karteAnlegen(container, start, {
+        onClick: (event) => {
+          if (!kartenNurLesen) positionSetzen(event.latlng.lat, event.latlng.lng, true);
+        },
       });
     }
     const start = kartenStart();
-    karte.invalidateSize();
+    karte.invalidateSize({ pan: false });
     karte.setView([start.lat, start.lng], start.zoom);
     positionSetzen(latitude, longitude, false);
-    window.setTimeout(() => karte.invalidateSize(), 100);
+    window.setTimeout(() => karte.invalidateSize({ pan: false }), 100);
   }
 
   function kartenFallbackFuerAnsicht() {
@@ -468,6 +497,7 @@ window.Orte = (() => {
   }
 
   function modalSchliessen() {
+    kartenInitialisierung += 1;
     neueDateien.forEach((bild) => URL.revokeObjectURL(bild.url));
     neueDateien = [];
     el("orteModal").style.display = "none";

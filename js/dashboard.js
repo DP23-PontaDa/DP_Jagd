@@ -6,6 +6,9 @@ const Dashboard = (() => {
   };
   let charts = [];
   let sectionObserver = null;
+  let dashboardData = null;
+  let dashboardBereiche = null;
+  let dashboardJahr = "beide";
 
   function withAlpha(color, alpha) {
     if (/^#[0-9a-f]{6}$/i.test(color)) {
@@ -41,6 +44,64 @@ const Dashboard = (() => {
     return element;
   }
 
+  const verticalValueLabels = {
+    id: "verticalValueLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.fillStyle = "#243342";
+      ctx.font = "600 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
+          const value = dataset.data[index];
+          if (value === null || value === undefined) return;
+          ctx.fillText(String(numberValue(value)), bar.x, bar.y - 6);
+        });
+      });
+      ctx.restore();
+    },
+  };
+
+  const planAxisLabels = {
+    id: "planAxisLabels",
+    afterDraw(chart) {
+      const { ctx, chartArea, data } = chart;
+      const metricNames = data.datasets.map((dataset) => dataset.axisLabel);
+      ctx.save();
+      ctx.fillStyle = "#596775";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      data.labels.forEach((label, index) => {
+        const bars = data.datasets.map((dataset, datasetIndex) => ({
+          bar: chart.getDatasetMeta(datasetIndex).data[index],
+          name: metricNames[datasetIndex],
+          value: dataset.data[index],
+        })).filter((entry) => entry.bar && entry.value !== null && entry.value !== undefined);
+        bars.forEach((entry) => {
+          const zeilen = entry.name === "Soll/Periode"
+            ? ["Soll/", "Periode"]
+            : entry.name === "Soll (Jahr)"
+              ? ["Soll", "(Jahr)"]
+              : [entry.name];
+          zeilen.forEach((zeile, zeilenIndex) =>
+            ctx.fillText(
+              zeile,
+              entry.bar.x,
+              chartArea.bottom + 5 + zeilenIndex * 11,
+            ));
+        });
+        const x = chart.scales.x.getPixelForValue(index);
+        ctx.font = "600 11px sans-serif";
+        ctx.fillText(String(label), x, chartArea.bottom + 31);
+        ctx.font = "10px sans-serif";
+      });
+      ctx.restore();
+    },
+  };
+
   function createPlanChart(canvas, rows, planperiode) {
     const labels = rows.map((row) => row.planposition);
     const classColors = rows.map((row) =>
@@ -53,27 +114,42 @@ const Dashboard = (() => {
         labels,
         datasets: [
           {
-            label: `Soll ${aktuellesJahr}`,
-            data: rows.map((row) => numberValue(row.soll_aktuelles_jahr)),
+            label: "Soll/Periode",
+            axisLabel: "Soll/Periode",
+            data: rows.map((row) => row.ohne_soll || row.nur_jahre
+              ? null : numberValue(row.soll_kj)),
             backgroundColor: classColors,
-            stack: "soll-aktuell",
+            stack: "soll-periode",
           },
           {
             label: "Ist KJ",
-            data: rows.map((row) => numberValue(row.ist_kj)),
+            axisLabel: "Gesamt",
+            data: rows.map((row) => row.ohne_gesamt || row.nur_jahre
+              ? null : numberValue(row.ist_kj)),
             backgroundColor: classColors.map((color) =>
               withAlpha(color, 0.78)),
             stack: "ist-kj",
           },
           {
             label: `Ist ${planperiode.startjahr}`,
+            axisLabel: String(planperiode.startjahr),
             data: rows.map((row) => numberValue(row.ist_startjahr)),
             backgroundColor: classColors.map((color) =>
               withAlpha(color, 0.56)),
             stack: "ist-startjahr",
           },
           {
+            label: `Soll ${aktuellesJahr}`,
+            axisLabel: "Soll (Jahr)",
+            data: rows.map((row) => row.ohne_soll || row.nur_jahre
+              ? null : numberValue(row.soll_aktuelles_jahr)),
+            backgroundColor: classColors.map((color) =>
+              withAlpha(color, 0.46)),
+            stack: "soll-jahr",
+          },
+          {
             label: `Ist ${planperiode.endjahr}`,
+            axisLabel: String(planperiode.endjahr),
             data: rows.map((row) => numberValue(row.ist_endjahr)),
             backgroundColor: classColors.map((color) =>
               withAlpha(color, 0.36)),
@@ -81,31 +157,56 @@ const Dashboard = (() => {
           },
         ],
       },
+      plugins: [verticalValueLabels, planAxisLabels],
       options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
+        layout: { padding: { top: 24, bottom: 50 } },
         plugins: {
-          legend: { position: "bottom" },
+          legend: { display: false },
         },
         scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+          x: { stacked: true, grid: { display: false }, ticks: { display: false } },
+          y: { stacked: true, beginAtZero: true, grace: "15%", ticks: { precision: 0 } },
         },
       },
     });
     charts.push(chart);
+    return chart;
+  }
+
+  function createPlanLegend(chart) {
+    const legend = createElement("div", "dashboard-plan-legend");
+    legend.setAttribute("role", "list");
+    chart.data.datasets.forEach((dataset) => {
+      const item = createElement("span", "dashboard-plan-legend-item");
+      item.setAttribute("role", "listitem");
+      const color = Array.isArray(dataset.backgroundColor)
+        ? dataset.backgroundColor[0] : dataset.backgroundColor;
+      const swatch = createElement("span", "dashboard-plan-legend-swatch");
+      swatch.style.backgroundColor = color || "#596775";
+      item.append(swatch, document.createTextNode(dataset.label));
+      legend.appendChild(item);
+    });
+    return legend;
   }
 
   function createPlanTable(rows) {
     const wrapper = createElement("div", "dashboard-table-wrap");
     const table = createElement("table", "ap-table dashboard-plan-table");
+    const colgroup = document.createElement("colgroup");
+    ["position", "soll", "ist", "rest", "prozent", "fallwild"].forEach((name) => {
+      const col = document.createElement("col");
+      col.className = `dashboard-plan-col dashboard-plan-col-${name}`;
+      colgroup.appendChild(col);
+    });
     const head = document.createElement("thead");
     const headerRow = document.createElement("tr");
     const aktuellesJahr =
       rows[0]?.aktuelles_jahr || new Date().getFullYear();
     const columns = [
-      "Planposition",
+      "Planpositionen",
       `Soll ${aktuellesJahr}`,
       "Ist KJ",
       "Rest",
@@ -113,7 +214,14 @@ const Dashboard = (() => {
       "Fallwild",
     ];
     columns.forEach((label, index) => {
-        const th = createElement("th", index ? "ap-number-column" : "", label);
+        const th = createElement("th", index ? "dashboard-number-cell" : "dashboard-position-cell");
+        if (index === 1) {
+          const desktopLabel = createElement("span", "dashboard-soll-label-desktop", label);
+          const mobileLabel = createElement("span", "dashboard-soll-label-mobile", `Soll ${String(aktuellesJahr).slice(-2)}`);
+          th.append(desktopLabel, mobileLabel);
+        } else {
+          th.textContent = label;
+        }
         headerRow.appendChild(th);
       });
     head.appendChild(headerRow);
@@ -134,7 +242,7 @@ const Dashboard = (() => {
       values.forEach((value, index) => {
         const cell = createElement(
           "td",
-          index ? "ap-number-column" : "",
+          index ? "dashboard-number-cell" : "dashboard-position-cell",
           String(value ?? 0),
         );
         cell.dataset.label = columns[index];
@@ -142,12 +250,74 @@ const Dashboard = (() => {
       });
       body.appendChild(tr);
     });
-    table.append(head, body);
+    table.append(colgroup, head, body);
     wrapper.appendChild(table);
     return wrapper;
   }
 
-  function createGroupCard(groupName, rows, planperiode) {
+  function createRotwildBreakdown(rows, jaegerRows, planperiode, b1Statistik) {
+    if (normalizeGroup(rows[0]?.wildgruppe) !== "rotwild") return rows;
+    function summe(namen, jahr) {
+      const erlaubt = new Set(namen.map(normalizeGroup));
+      return jaegerRows.reduce((sum, row) =>
+        normalizeGroup(row.wildgruppe) === "rotwild" &&
+        Number(row.jahr) === Number(jahr) && erlaubt.has(normalizeGroup(row.wildklasse))
+          ? sum + numberValue(row.anzahl) : sum, 0);
+    }
+    const statistik = b1Statistik || {};
+    const gesamtFreigabe = numberValue(statistik.freigabeStartjahr) +
+      numberValue(statistik.freigabeEndjahr);
+    const aktuellesJahr = new Date().getFullYear();
+    const aktuelleFreigabe = aktuellesJahr === Number(planperiode.startjahr)
+      ? numberValue(statistik.freigabeStartjahr)
+      : aktuellesJahr === Number(planperiode.endjahr)
+        ? numberValue(statistik.freigabeEndjahr) : 0;
+    const zusatz = [
+      { planposition: "Hirsch B1", ohne_soll: true,
+        soll_kj: 0, soll_aktuelles_jahr: 0,
+        ist_kj: numberValue(statistik.gesamt),
+        ist_startjahr: numberValue(statistik.startjahr),
+        ist_endjahr: numberValue(statistik.endjahr),
+        rest: 0, erfuellung_prozent: 0,
+        fallwild: numberValue(statistik.fallwild) },
+      { planposition: "Interne Hirsch-B1-Freigabe",
+        soll_kj: gesamtFreigabe,
+        soll_aktuelles_jahr: aktuelleFreigabe,
+        ist_kj: numberValue(statistik.internGesamt),
+        ist_startjahr: numberValue(statistik.internStartjahr),
+        ist_endjahr: numberValue(statistik.internEndjahr),
+        rest: gesamtFreigabe - numberValue(statistik.internGesamt),
+        erfuellung_prozent: gesamtFreigabe > 0
+          ? numberValue(statistik.internGesamt) * 100 / gesamtFreigabe : 0,
+        fallwild: numberValue(statistik.internFallwild) },
+      { planposition: "Tier", nur_jahre: true,
+        nur_diagramm: true,
+        ist_startjahr: summe(["Tier", "Schmaltier"], planperiode.startjahr),
+        ist_endjahr: summe(["Tier", "Schmaltier"], planperiode.endjahr) },
+      { planposition: "Kalb", nur_jahre: true,
+        nur_diagramm: true,
+        ist_startjahr: summe(["Kalb männlich", "Kalb weiblich"], planperiode.startjahr),
+        ist_endjahr: summe(["Kalb männlich", "Kalb weiblich"], planperiode.endjahr) },
+    ];
+    const ergebnis = [...rows];
+    const hirschBIndex = ergebnis.findIndex((row) =>
+      normalizeGroup(row.planposition) === "hirsch b");
+    ergebnis.splice(
+      hirschBIndex >= 0 ? hirschBIndex + 1 : 0,
+      0,
+      ...zusatz.slice(0, 2),
+    );
+    const kahlwildIndex = ergebnis.findIndex((row) =>
+      normalizeGroup(row.planposition) === "kahlwild");
+    ergebnis.splice(
+      kahlwildIndex >= 0 ? kahlwildIndex + 1 : ergebnis.length,
+      0,
+      ...zusatz.slice(2),
+    );
+    return ergebnis;
+  }
+
+  function createGroupCard(groupName, rows, planperiode, jaegerRows, b1Statistik) {
     const key = GROUP_KEYS[groupName.toLocaleLowerCase("de")] || "";
     const card = createElement(
       "section",
@@ -155,16 +325,29 @@ const Dashboard = (() => {
     );
     card.appendChild(createElement("h2", "", groupName));
 
+    const dashboardRows = createRotwildBreakdown(
+      rows, jaegerRows, planperiode, b1Statistik,
+    );
     const chartWrap = createElement("div", "dashboard-plan-chart");
+    const chartStage = createElement("div", "dashboard-plan-chart-stage");
+    if (key === "rotwild") {
+      chartStage.style.minWidth =
+        `${Math.max(1100, dashboardRows.length * 185)}px`;
+    }
     const canvas = document.createElement("canvas");
     canvas.setAttribute("role", "img");
     canvas.setAttribute(
       "aria-label",
       `Soll- und Ist-Werte für ${groupName}`,
     );
-    chartWrap.appendChild(canvas);
-    card.append(chartWrap, createPlanTable(rows));
-    createPlanChart(canvas, rows, planperiode);
+    chartStage.appendChild(canvas);
+    chartWrap.appendChild(chartStage);
+    const chart = createPlanChart(canvas, dashboardRows, planperiode);
+    card.append(
+      chartWrap,
+      createPlanLegend(chart),
+      createPlanTable(dashboardRows.filter((row) => !row.nur_diagramm)),
+    );
     return card;
   }
 
@@ -186,13 +369,8 @@ const Dashboard = (() => {
           .find(Boolean);
         if (!bar) return;
         const valueX = scales.x.getPixelForValue(total);
-        const placeInside = valueX > chartArea.right - 28;
-        ctx.textAlign = placeInside ? "right" : "left";
-        ctx.fillText(
-          String(total),
-          placeInside ? chartArea.right - 4 : valueX + 6,
-          bar.y,
-        );
+        ctx.textAlign = "left";
+        ctx.fillText(String(total), valueX + 6, bar.y);
       });
       ctx.restore();
     },
@@ -336,7 +514,7 @@ const Dashboard = (() => {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
-        layout: { padding: { right: 28 } },
+        layout: { padding: { right: 42 } },
         plugins: {
           legend: { position: "bottom" },
           tooltip: {
@@ -351,6 +529,7 @@ const Dashboard = (() => {
           x: {
             stacked: true,
             beginAtZero: true,
+            grace: "15%",
             title: { display: true, text: "Anzahl Abschüsse" },
             ticks: { precision: 0 },
           },
@@ -540,6 +719,63 @@ const Dashboard = (() => {
       createDealerCard(grid, definition, data?.[definition.key] || []));
   }
 
+  function createYearFilter(container, planperiode) {
+    const section = createElement("section", "dashboard-year-filter");
+    section.appendChild(createElement("strong", "", "Jahr:"));
+    const group = createElement("div", "dashboard-year-filter-buttons");
+    [
+      { value: String(planperiode.startjahr), label: String(planperiode.startjahr) },
+      { value: String(planperiode.endjahr), label: String(planperiode.endjahr) },
+      { value: "beide", label: "Beide" },
+    ].forEach((option) => {
+      const button = createElement("button", "btn btn-outline", option.label);
+      button.type = "button";
+      button.classList.toggle("active", dashboardJahr === option.value);
+      button.setAttribute("aria-pressed", String(dashboardJahr === option.value));
+      button.addEventListener("click", () => {
+        if (dashboardJahr === option.value) return;
+        dashboardJahr = option.value;
+        renderDashboardContent();
+      });
+      group.appendChild(button);
+    });
+    section.appendChild(group);
+    container.appendChild(section);
+  }
+
+  function renderDashboardContent() {
+    const content = document.getElementById("dashboardContent");
+    if (!content || !dashboardData || !dashboardBereiche) return;
+    destroyCharts();
+    content.innerHTML = "";
+    const data = dashboardData;
+    const bereiche = dashboardBereiche;
+    const groupNames = data.wildgruppen.map((wildgruppe) => wildgruppe.bezeichnung);
+    if (bereiche.abschuss) {
+      const harvestSection = createElement("section", "dashboard-harvest-section");
+      harvestSection.id = "dashboard-abschuss";
+      content.appendChild(harvestSection);
+      groupNames.forEach((groupName) => {
+        const rows = data.planpositionen.filter((row) => row.wildgruppe === groupName);
+        harvestSection.appendChild(createGroupCard(
+          groupName, rows, data.planperiode, data.jaeger,
+          data.hirsch_b1,
+        ));
+      });
+    }
+    if (bereiche.jaeger || bereiche.wildhaendler) {
+      createYearFilter(content, data.planperiode);
+    }
+    const jaegerRows = dashboardJahr === "beide" ? data.jaeger :
+      data.jaeger.filter((row) => String(row.jahr) === dashboardJahr);
+    if (bereiche.jaeger) createHunterCharts(content, jaegerRows, data.wildgruppen);
+    if (bereiche.wildhaendler) {
+      const dealerKey = dashboardJahr === "beide" ? "beide" : dashboardJahr;
+      createDealerCharts(content, data.wildhaendler?.[dealerKey] || {});
+    }
+    observeDashboardSections();
+  }
+
   function scrollToSection(sectionId) {
     const target = document.getElementById(sectionId || "dashboard-abschuss");
     if (!target) return false;
@@ -581,6 +817,9 @@ const Dashboard = (() => {
     if (!content || !period || !error) return;
 
     destroyCharts();
+    dashboardData = null;
+    dashboardBereiche = null;
+    dashboardJahr = "beide";
     content.innerHTML = "";
     error.hidden = true;
 
@@ -604,21 +843,9 @@ const Dashboard = (() => {
       period.textContent =
         `Aktive Planperiode: ${data.planperiode.startjahr} / ` +
         data.planperiode.endjahr;
-      const groupNames = data.wildgruppen.map(
-        (wildgruppe) => wildgruppe.bezeichnung,
-      );
-      if (bereiche.abschuss) {
-        const harvestSection = createElement("section", "dashboard-harvest-section");
-        harvestSection.id = "dashboard-abschuss";
-        content.appendChild(harvestSection);
-        groupNames.forEach((groupName) => {
-          const rows = data.planpositionen.filter((row) => row.wildgruppe === groupName);
-          harvestSection.appendChild(createGroupCard(groupName, rows, data.planperiode));
-        });
-      }
-      if (bereiche.jaeger) createHunterCharts(content, data.jaeger, data.wildgruppen);
-      if (bereiche.wildhaendler) createDealerCharts(content, data.wildhaendler);
-      observeDashboardSections();
+      dashboardData = data;
+      dashboardBereiche = bereiche;
+      renderDashboardContent();
       if (initialSection) {
         requestAnimationFrame(() => scrollToSection(initialSection));
       }

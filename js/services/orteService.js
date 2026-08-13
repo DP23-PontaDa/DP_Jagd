@@ -3,6 +3,8 @@ const OrteService = (() => {
   const BILDER_BUCKET = "orte";
   const BILD_TYPEN = new Set(["image/jpeg", "image/png", "image/webp"]);
   const MAX_BILDGROESSE = 10 * 1024 * 1024;
+  const IMPORT_SPALTEN = ["Nr.", "Name", "Info", "Reviereinrichtung", "Art", "Latitude", "Longitude"];
+  const ORT_ARTEN = new Set(["Bodensitz", "Hochsitz", "Sitzbank", "Natur"]);
 
   function fehler(error, fallback) {
     const result = new Error(error?.message || fallback);
@@ -218,10 +220,145 @@ const OrteService = (() => {
     }
   }
 
+  function xlsxPruefen() {
+    if (!window.XLSX) throw new Error("SheetJS ist nicht verfügbar.");
+  }
+
+  function excelZeile(ort) {
+    return {
+      "Nr.": ort.nr,
+      Name: ort.name || "",
+      Info: ort.info || "",
+      Reviereinrichtung: ort.reviereinrichtung ? "Ja" : "Nein",
+      Art: ort.reviereinrichtung ? ort.art || "" : "",
+      Latitude: ort.latitude ?? "",
+      Longitude: ort.longitude ?? "",
+    };
+  }
+
+  function excelSchreiben(zeilen, blattname, dateiname) {
+    xlsxPruefen();
+    const mappe = XLSX.utils.book_new();
+    const blatt = XLSX.utils.json_to_sheet(zeilen, { header: IMPORT_SPALTEN });
+    blatt["!cols"] = [8, 28, 35, 20, 16, 16, 16].map((wch) => ({ wch }));
+    XLSX.utils.book_append_sheet(mappe, blatt, blattname);
+    XLSX.writeFile(mappe, dateiname);
+  }
+
+  function importVorlageErzeugen() {
+    excelSchreiben([
+      { "Nr.": 1, Name: "Kirchengarten", Info: "", Reviereinrichtung: "Ja",
+        Art: "Hochsitz", Latitude: "", Longitude: "" },
+      { "Nr.": 501, Name: "Waldwiese", Info: "", Reviereinrichtung: "Nein",
+        Art: "", Latitude: "", Longitude: "" },
+    ], "Orte", "vorlage-orte.xlsx");
+  }
+
+  function orteExportieren(orte, reviereinrichtung) {
+    const typ = reviereinrichtung ? "reviereinrichtungen" : "abschussorte";
+    const datum = new Date().toISOString().slice(0, 10);
+    excelSchreiben((orte || []).filter((ort) =>
+      ort.reviereinrichtung === reviereinrichtung).map(excelZeile),
+    reviereinrichtung ? "Reviereinrichtungen" : "Abschussorte",
+    `${typ}-${datum}.xlsx`);
+  }
+
+  async function importDateiEinlesen(datei) {
+    xlsxPruefen();
+    if (!datei || !/\.xlsx$/i.test(datei.name || "")) {
+      throw new Error("Bitte eine Excel-Datei im Format .xlsx auswählen.");
+    }
+    const mappe = XLSX.read(await datei.arrayBuffer(), { type: "array", raw: false });
+    const blatt = mappe.Sheets[mappe.SheetNames[0]];
+    if (!blatt) throw new Error("Die Excel-Datei enthält kein Arbeitsblatt.");
+    return XLSX.utils.sheet_to_json(blatt, { defval: "", raw: false });
+  }
+
+  function jaNein(value) {
+    const text = String(value ?? "").trim().toLocaleLowerCase("de");
+    if (["ja", "true", "1", "x"].includes(text)) return true;
+    if (["nein", "false", "0"].includes(text)) return false;
+    return null;
+  }
+
+  function optionaleZahl(value) {
+    const text = String(value ?? "").trim().replace(",", ".");
+    if (!text) return { leer: true, wert: null };
+    const wert = Number(text);
+    return { leer: false, wert: Number.isFinite(wert) ? wert : null };
+  }
+
+  async function importValidieren(rohdaten) {
+    const vorhandene = await orteLaden();
+    const belegteNummern = new Set(vorhandene.map((ort) => Number(ort.nr)));
+    const dateiNummern = new Set();
+    return (rohdaten || []).map((roh, index) => {
+      const zeile = index + 2;
+      const fehlerListe = [];
+      const nrText = String(roh["Nr."] ?? roh.Nr ?? "").trim();
+      const nr = Number(nrText);
+      const name = String(roh.Name ?? "").trim();
+      const info = String(roh.Info ?? "").trim();
+      const reviereinrichtung = jaNein(roh.Reviereinrichtung);
+      const art = String(roh.Art ?? "").trim();
+      const lat = optionaleZahl(roh.Latitude);
+      const lng = optionaleZahl(roh.Longitude);
+
+      if (!nrText || !Number.isInteger(nr) || nr <= 0) fehlerListe.push("Nr. muss eine positive ganze Zahl sein.");
+      if (!name) fehlerListe.push("Name fehlt.");
+      if (reviereinrichtung === null) fehlerListe.push("Reviereinrichtung muss Ja oder Nein sein.");
+      if (reviereinrichtung === true) {
+        if (Number.isInteger(nr) && (nr < 1 || nr > 500))
+          fehlerListe.push(`Reviereinrichtung Nr. ${nr} ist ungültig. Erlaubt sind Nr. 1 bis 500.`);
+        if (!art) fehlerListe.push("Reviereinrichtung = Ja, aber Art fehlt.");
+        else if (!ORT_ARTEN.has(art))
+          fehlerListe.push(`Ungültige Art '${art}'. Erlaubt: ${[...ORT_ARTEN].join(", ")}.`);
+      }
+      if (reviereinrichtung === false) {
+        if (Number.isInteger(nr) && nr < 501)
+          fehlerListe.push(`Abschussort Nr. ${nr} ist ungültig. Abschussorte müssen ab Nr. 501 beginnen.`);
+        if (art) fehlerListe.push("Bei einem Abschussort muss Art leer sein.");
+      }
+      if (lat.leer !== lng.leer) fehlerListe.push("Latitude und Longitude müssen gemeinsam angegeben werden.");
+      if (!lat.leer && (lat.wert === null || lat.wert < -90 || lat.wert > 90))
+        fehlerListe.push("Latitude muss zwischen -90 und 90 liegen.");
+      if (!lng.leer && (lng.wert === null || lng.wert < -180 || lng.wert > 180))
+        fehlerListe.push("Longitude muss zwischen -180 und 180 liegen.");
+      if (Number.isInteger(nr) && belegteNummern.has(nr)) fehlerListe.push(`Nr. ${nr} ist bereits vergeben.`);
+      if (Number.isInteger(nr) && dateiNummern.has(nr)) fehlerListe.push(`Nr. ${nr} kommt in der Importdatei mehrfach vor.`);
+      if (Number.isInteger(nr)) dateiNummern.add(nr);
+
+      return {
+        zeile, nr: nrText, name,
+        typ: reviereinrichtung === true ? "Reviereinrichtung" :
+          reviereinrichtung === false ? "Abschussort" : "Unbekannt",
+        ergebnis: fehlerListe.length ? "Fehler" : "OK",
+        fehler: fehlerListe.map((text) => `Zeile ${zeile}: ${text}`),
+        payload: fehlerListe.length ? null : payload({ nr, name, info, art,
+          latitude: lat.wert, longitude: lng.wert, reviereinrichtung }),
+      };
+    });
+  }
+
+  async function importSpeichern(vorschau) {
+    const bericht = { importiert: 0, fehler: [] };
+    for (const eintrag of (vorschau || []).filter((item) => item.payload)) {
+      try {
+        await ortAnlegen(eintrag.payload);
+        bericht.importiert += 1;
+      } catch (error) {
+        bericht.fehler.push(`Zeile ${eintrag.zeile}: ${error.message}`);
+      }
+    }
+    return bericht;
+  }
+
   return {
     orteLaden, auswahlLaden, naechsteNummer, ortAnlegen, ortAendern, ortLoeschen,
     bilderLaden, bilderAlleLaden, bilderHochladen, bildLoeschen, bilderSortieren,
     kartenEinstellungenLaden, kartenEinstellungenSpeichern, bildValidieren,
+    importVorlageErzeugen, orteExportieren, importDateiEinlesen,
+    importValidieren, importSpeichern,
   };
 })();
 

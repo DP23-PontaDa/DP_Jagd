@@ -85,6 +85,47 @@
     </section>
   </div>
 
+  <h2>Orte</h2>
+  <div class="ie-card-grid">
+    <section id="ieOrteImportKarte" class="ap-overview-group">
+      <h3>Import Orte</h3>
+      <p>Reviereinrichtungen und Abschussorte aus einer Excel-Datei prüfen und importieren.</p>
+      <div class="btn-group">
+        <button id="ieOrteDateiAuswaehlen" class="btn btn-primary" type="button">Datei auswählen</button>
+        <button id="ieOrteVorlage" class="btn btn-outline" type="button">Vorlage herunterladen</button>
+      </div>
+      <input id="ieOrteDatei" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    </section>
+
+    <section id="ieOrteExportKarte" class="ap-overview-group">
+      <h3>Export Orte</h3>
+      <div class="form-group">
+        <label for="ieOrteExportTyp">Auswahl</label>
+        <select id="ieOrteExportTyp" class="form-control">
+          <option value="true">Reviereinrichtungen</option>
+          <option value="false">Abschussorte</option>
+        </select>
+      </div>
+      <button id="ieOrteExport" class="btn btn-primary" type="button">Excel exportieren</button>
+      <p id="ieOrteExportStatus" class="form-message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <section id="ieOrteVorschau" class="ap-overview-group ie-wizard" hidden>
+    <h3>Orte-Importvorschau</h3>
+    <p id="ieOrteImportStatus" class="form-message"></p>
+    <div class="table-wrap">
+      <table class="ap-table">
+        <thead><tr><th>Zeile</th><th>Nr.</th><th>Name</th><th>Typ</th><th>Ergebnis</th><th>Fehler</th></tr></thead>
+        <tbody id="ieOrteVorschauBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-group">
+      <button id="ieOrteImportAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="ieOrteImportBestaetigen" class="btn btn-primary" type="button">Gültige Datensätze importieren</button>
+    </div>
+  </section>
+
   <section id="ieAssistent" class="ap-overview-group ie-wizard" hidden>
     <div class="ie-step-list" aria-label="Importschritte">
       <span data-step="1">1 Datei</span>
@@ -118,6 +159,17 @@
           </thead>
           <tbody id="ieFehlerBody"></tbody>
         </table>
+      </div>
+      <div id="ieJaegerDiagnose" hidden>
+        <h4>Jäger-Zuordnung</h4>
+        <div class="table-wrap">
+          <table class="ap-table">
+            <thead>
+              <tr><th>Zeile</th><th>Abschuss-Nr.</th><th>Jäger</th><th>Ergebnis</th><th>Details</th></tr>
+            </thead>
+            <tbody id="ieJaegerDiagnoseBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 

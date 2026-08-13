@@ -17,6 +17,7 @@ window.ImportExport = (() => {
   let datei = null;
   let zeilen = [];
   let validierung = null;
+  let orteImportVorschau = [];
 
   const element = (id) => document.getElementById(id);
   const aktiveSpalten = () =>
@@ -82,8 +83,98 @@ window.ImportExport = (() => {
     document.querySelectorAll(".ie-member-filter").forEach(
       (input) => input.addEventListener("change", mitgliederAlleFilterAktualisieren),
     );
+    element("ieOrteDateiAuswaehlen").addEventListener("click", () =>
+      element("ieOrteDatei").click());
+    element("ieOrteDatei").addEventListener("change", orteDateiAusgewaehlt);
+    element("ieOrteVorlage").addEventListener("click", orteVorlageHerunterladen);
+    element("ieOrteExport").addEventListener("click", orteExportieren);
+    element("ieOrteImportAbbrechen").addEventListener("click", orteImportZuruecksetzen);
+    element("ieOrteImportBestaetigen").addEventListener("click", orteImportBestaetigen);
+    orteRechteAnwenden();
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
+  }
+
+  function orteRechteAnwenden() {
+    const bearbeiten = BerechtigungService.darf("orte", "Bearbeiten");
+    const lesen = BerechtigungService.darf("orte", "Lesen");
+    element("ieOrteImportKarte").hidden = !bearbeiten;
+    element("ieOrteExportKarte").hidden = !lesen;
+  }
+
+  function orteVorlageHerunterladen() {
+    if (!BerechtigungService.darf("orte", "Bearbeiten")) return;
+    try { OrteService.importVorlageErzeugen(); }
+    catch (error) { AppFeedback.error(error.message); }
+  }
+
+  async function orteExportieren() {
+    if (!BerechtigungService.darf("orte", "Lesen")) return;
+    const status = element("ieOrteExportStatus");
+    try {
+      status.textContent = "Orte werden geladen …";
+      const orte = await OrteService.orteLaden();
+      const reviereinrichtung = element("ieOrteExportTyp").value === "true";
+      OrteService.orteExportieren(orte, reviereinrichtung);
+      status.textContent = "Excel-Export wurde erstellt.";
+    } catch (error) {
+      status.textContent = error.message;
+    }
+  }
+
+  async function orteDateiAusgewaehlt(event) {
+    const ausgewaehlteDatei = event.target.files?.[0];
+    event.target.value = "";
+    if (!ausgewaehlteDatei || !BerechtigungService.darf("orte", "Bearbeiten")) return;
+    try {
+      element("ieOrteVorschau").hidden = false;
+      element("ieOrteImportStatus").textContent = `${ausgewaehlteDatei.name} wird geprüft …`;
+      const rohdaten = await OrteService.importDateiEinlesen(ausgewaehlteDatei);
+      orteImportVorschau = await OrteService.importValidieren(rohdaten);
+      orteVorschauAnzeigen();
+    } catch (error) {
+      console.error("Orte-Import:", error);
+      element("ieOrteImportStatus").textContent = error.message;
+    }
+  }
+
+  function orteVorschauAnzeigen() {
+    element("ieOrteVorschauBody").innerHTML = orteImportVorschau.map((eintrag) => `
+      <tr><td>${eintrag.zeile}</td><td>${htmlSicher(eintrag.nr)}</td>
+      <td>${htmlSicher(eintrag.name)}</td><td>${htmlSicher(eintrag.typ)}</td>
+      <td>${htmlSicher(eintrag.ergebnis)}</td><td>${htmlSicher(eintrag.fehler.join(" "))}</td></tr>`).join("");
+    const gueltig = orteImportVorschau.filter((eintrag) => eintrag.payload).length;
+    element("ieOrteImportStatus").textContent =
+      `${orteImportVorschau.length} Zeilen geprüft: ${gueltig} gültig, ` +
+      `${orteImportVorschau.length - gueltig} fehlerhaft.`;
+    element("ieOrteImportBestaetigen").disabled = gueltig === 0;
+  }
+
+  function orteImportZuruecksetzen() {
+    orteImportVorschau = [];
+    element("ieOrteVorschauBody").innerHTML = "";
+    element("ieOrteVorschau").hidden = true;
+  }
+
+  async function orteImportBestaetigen() {
+    if (!BerechtigungService.darf("orte", "Bearbeiten")) return;
+    const button = element("ieOrteImportBestaetigen");
+    button.disabled = true;
+    try {
+      const bericht = await OrteService.importSpeichern(orteImportVorschau);
+      element("ieOrteImportStatus").textContent = bericht.fehler.length
+        ? `${bericht.importiert} Orte importiert. ${bericht.fehler.join(" ")}`
+        : `${bericht.importiert} Orte erfolgreich importiert.`;
+      if (!bericht.fehler.length) {
+        orteImportVorschau = [];
+        element("ieOrteVorschauBody").innerHTML = "";
+      }
+    } catch (error) {
+      console.error("Orte-Import speichern:", error);
+      element("ieOrteImportStatus").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
   }
 
   async function personenkategorienLaden() {
@@ -404,6 +495,10 @@ window.ImportExport = (() => {
           zeile.Kategorie = element("ieMitgliederKategorie").value;
         }
       } else {
+        zeile["Jäger-Nr."] = roh["Jäger-Nr."] ?? roh["Jäger-Nr"] ??
+          roh["Jaeger-Nr"] ?? "";
+        zeile["Jäger Vorname"] = roh["Jäger Vorname"] ?? roh.Vorname ?? "";
+        zeile["Jäger Nachname"] = roh["Jäger Nachname"] ?? roh.Nachname ?? "";
         zeile.Datum = datumNormalisieren(zeile.Datum);
         zeile.Zahlungseingang = datumNormalisieren(zeile.Zahlungseingang);
         ["Nr", "Gewicht", "Preis/kg", "Gesamtpreis"].forEach((spalte) => {
@@ -521,6 +616,28 @@ window.ImportExport = (() => {
       : `${zeilen.length} Zeilen sind gültig. Import kann bestätigt werden.` +
         (warnungen.length ? ` ${warnungen.length} Warnungen.` : "");
     fehlerTabelle(element("ieFehlerBody"), fehler);
+    const diagnose = validierung?.jaegerDiagnose || [];
+    const diagnoseBereich = element("ieJaegerDiagnose");
+    if (diagnoseBereich) diagnoseBereich.hidden = importTyp !== "abschuesse";
+    const diagnoseBody = element("ieJaegerDiagnoseBody");
+    if (diagnoseBody) {
+      diagnoseBody.innerHTML = diagnose.map((eintrag) => `
+        <tr>
+          <td>${eintrag.zeile}</td>
+          <td>${htmlSicher(eintrag.abschussNr || "–")}</td>
+          <td>${htmlSicher(eintrag.excel.jaeger || "–")}</td>
+          <td>${htmlSicher(eintrag.ergebnis)}</td>
+          <td>${htmlSicher(`Suche: Name='${eintrag.suchwerte.name}', ` +
+            `Vorname='${eintrag.suchwerte.vorname}', Nachname='${eintrag.suchwerte.nachname}', ` +
+            `Jäger-Nr.='${eintrag.suchwerte.jaegerNr}' · ` +
+            `${eintrag.gefundenePersonenanzahl} Treffer · ${eintrag.verwendeteSuchlogik}` +
+            ` · IDs=${eintrag.gefundenePersonenIds.join(", ") || "–"}` +
+            ` · Personen-Nrn.=${eintrag.gefundenePersonennummern.join(", ") || "–"}` +
+            ` · Namen=${eintrag.gefundeneNamen.join(", ") || "–"}` +
+            (eintrag.verwendetePersonenId ? ` · ID=${eintrag.verwendetePersonenId}` : "") +
+            ` · ${eintrag.fehlergrund}`)}</td>
+        </tr>`).join("");
+    }
     element("ieImportBestaetigen").hidden =
       Boolean(fehler.length || !zeilen.length);
     if (!fehler.length && zeilen.length) setStep(5);

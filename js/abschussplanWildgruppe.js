@@ -226,6 +226,44 @@ const AbschussplanWildgruppe = (() => {
     return input;
   }
 
+  function createB1FreigabeInput(
+    planperiode,
+    planpositionId,
+    wildklasseId,
+    jahr,
+    wert,
+    saveButton,
+  ) {
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.step = "1";
+    input.inputMode = "numeric";
+    input.className = "ap-matrix-input ap-b1-release-input";
+    input.value = String(Number(wert) || 0);
+    input.dataset.originalValue = input.value;
+    input.dataset.b1Release = "true";
+    input.dataset.planperiodeId = planperiode.id;
+    input.dataset.planpositionId = planpositionId;
+    input.dataset.wildklasseId = wildklasseId;
+    input.dataset.jahr = String(jahr);
+    input.addEventListener("input", () => {
+      if (
+        input.value !== "" &&
+        (!Number.isInteger(Number(input.value)) || Number(input.value) < 0)
+      ) {
+        input.value = "";
+      }
+      updateMatrixDirtyState(input, saveButton);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (["-", "+", ".", ",", "e", "E"].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
+    return input;
+  }
+
   function appendMatrixMetric(matrix, wert, klasse = "") {
     const cell = document.createElement("div");
     cell.className = "ap-matrix-cell ap-matrix-value ap-matrix-metric";
@@ -266,6 +304,35 @@ const AbschussplanWildgruppe = (() => {
     button.disabled = true;
     try {
       for (const input of inputs) {
+        if (input.dataset.b1Release === "true") {
+          const wert = Number(input.value);
+          if (!Number.isInteger(wert) || wert < 0) {
+            input.focus();
+            throw new Error(
+              "Die interne Hirsch-B1-Freigabe muss eine ganze Zahl ab 0 sein.",
+            );
+          }
+          const gespeichert = await AbschussplanService.saveInterneFreigabe({
+            planperiode_id: input.dataset.planperiodeId,
+            planperiode_planposition_id: input.dataset.planpositionId,
+            wildklasse_id: input.dataset.wildklasseId,
+            jahr: Number(input.dataset.jahr),
+            interne_freigabe: wert,
+            geaendert_am: new Date().toISOString(),
+          });
+          if (!gespeichert) {
+            throw new Error(
+              "Die interne Hirsch-B1-Freigabe konnte nicht gespeichert werden.",
+            );
+          }
+          input.dataset.originalValue = String(wert);
+          const display = input.parentElement.querySelector(
+            ".ap-matrix-display",
+          );
+          if (display) display.textContent = String(wert);
+          input.classList.remove("is-dirty");
+          continue;
+        }
         const revierField = input.dataset.revierField;
         const payload = {
           plan_id: input.dataset.planId,
@@ -347,6 +414,8 @@ const AbschussplanWildgruppe = (() => {
     const groupName = resolveWildgruppe(groupCode);
     const istGamswild =
       String(groupName).trim().toLocaleLowerCase("de") === "gamswild";
+    const istRotwild =
+      String(groupName).trim().toLocaleLowerCase("de") === "rotwild";
     matrix.classList.toggle("ap-matrix-gamswild", istGamswild);
     card._planwertStates = [];
 
@@ -376,7 +445,7 @@ const AbschussplanWildgruppe = (() => {
         : "readonly";
     card._planwertEditable =
       planwertMode === "startjahr" || planwertMode === "endjahr" ||
-      istGamswild;
+      istGamswild || istRotwild;
     const wildgruppeId = await getWildgruppeId(groupName);
     const kjPlan = await getKJPlan(planperiode.id, wildgruppeId);
     const internPlaene = await getInternPlaene(
@@ -421,6 +490,34 @@ const AbschussplanWildgruppe = (() => {
         plan ? AbschussplanService.getPositionen(plan.id) : Promise.resolve([]),
       ),
     );
+    const hirschBPlanposition = istRotwild
+      ? klassen.find((klasse) =>
+          String(klasse.bezeichnung || "").trim().toLocaleLowerCase("de") ===
+            "hirsch b")
+      : null;
+    let b1Konfiguration = null;
+    if (hirschBPlanposition) {
+      const mappings = await AbschussplanService.getPlanpositionWildklassen(
+        planperiode.id,
+        hirschBPlanposition.id,
+      );
+      const b1 = mappings.find((mapping) =>
+        String(mapping.wildklasse_bezeichnung || "")
+          .trim().toLocaleLowerCase("de") === "hirsch b1");
+      if (b1) {
+        const [freigaben, statistik] = await Promise.all([
+          AbschussplanService.getInterneFreigaben(
+            planperiode.id,
+            hirschBPlanposition.id,
+          ),
+          AbschussplanService.getHirschB1Statistik(
+            planperiode,
+            b1.wildklasse_id,
+          ),
+        ]);
+        b1Konfiguration = { b1, freigaben, statistik };
+      }
+    }
 
     const headers = [
       "Planposition",
@@ -576,6 +673,105 @@ const AbschussplanWildgruppe = (() => {
       );
       metriken.forEach(({ wert, klasse }) =>
         appendMatrixMetric(matrix, wert, klasse));
+
+      if (
+        b1Konfiguration &&
+        String(klasse.id) === String(hirschBPlanposition.id)
+      ) {
+        const b1Statistik = b1Konfiguration.statistik;
+        const b1Name = document.createElement("div");
+        b1Name.className =
+          "ap-matrix-cell ap-matrix-class ap-matrix-sticky-column " +
+          "ap-b1-statistics-label";
+        b1Name.textContent = "Hirsch B1";
+        matrix.appendChild(b1Name);
+        appendMatrixMetric(matrix, "–", "ap-matrix-kj");
+        appendMatrixMetric(matrix, "–");
+        appendMatrixMetric(matrix, "–", "ap-matrix-divider-after");
+        appendMatrixMetric(matrix, String(b1Statistik.gesamt));
+        appendMatrixMetric(matrix, String(b1Statistik.startjahr));
+        appendMatrixMetric(
+          matrix,
+          String(b1Statistik.endjahr),
+          "ap-matrix-divider-after",
+        );
+        appendMatrixMetric(matrix, "–");
+        appendMatrixMetric(matrix, "–");
+        appendMatrixMetric(
+          matrix,
+          String(b1Statistik.fallwild),
+          "ap-matrix-row-end",
+        );
+
+        const name = document.createElement("div");
+        name.className =
+          "ap-matrix-cell ap-matrix-class ap-matrix-sticky-column " +
+          "ap-b1-release-label";
+        name.textContent = "Interne Hirsch-B1-Freigabe";
+        matrix.appendChild(name);
+
+        const startFreigabe = Number(
+          b1Konfiguration.freigaben.find((eintrag) =>
+            Number(eintrag.jahr) === Number(planperiode.startjahr))
+            ?.interne_freigabe,
+        ) || 0;
+        const endFreigabe = Number(
+          b1Konfiguration.freigaben.find((eintrag) =>
+            Number(eintrag.jahr) === Number(planperiode.endjahr))
+            ?.interne_freigabe,
+        ) || 0;
+        const gesamtFreigabe = startFreigabe + endFreigabe;
+        const internerRest = gesamtFreigabe - b1Statistik.internGesamt;
+        const interneErfuellung = gesamtFreigabe > 0
+          ? b1Statistik.internGesamt * 100 / gesamtFreigabe
+          : 0;
+        appendMatrixMetric(matrix, String(gesamtFreigabe), "ap-matrix-kj");
+        [planperiode.startjahr, planperiode.endjahr].forEach((jahr, index) => {
+          const freigabe = b1Konfiguration.freigaben.find((eintrag) =>
+            Number(eintrag.jahr) === Number(jahr));
+          const cell = document.createElement("div");
+          cell.className = "ap-matrix-cell ap-matrix-value ap-b1-release-cell";
+          if (index === 1) cell.classList.add("ap-matrix-divider-after");
+          const display = document.createElement("span");
+          display.className = "ap-matrix-display";
+          display.textContent = String(Number(freigabe?.interne_freigabe) || 0);
+          const input = createB1FreigabeInput(
+            planperiode,
+            hirschBPlanposition.id,
+            b1Konfiguration.b1.wildklasse_id,
+            jahr,
+            freigabe?.interne_freigabe ?? 0,
+            saveButton,
+          );
+          cell.append(display, input);
+          matrix.appendChild(cell);
+        });
+        appendMatrixMetric(matrix, String(b1Statistik.internGesamt));
+        appendMatrixMetric(matrix, String(b1Statistik.internStartjahr));
+        appendMatrixMetric(
+          matrix,
+          String(b1Statistik.internEndjahr),
+          "ap-matrix-divider-after",
+        );
+        appendMatrixMetric(
+          matrix,
+          String(internerRest),
+          internerRest > 0
+            ? "ap-matrix-rest-positive"
+            : "ap-matrix-rest-nonpositive",
+        );
+        appendMatrixMetric(
+          matrix,
+          `${interneErfuellung.toLocaleString("de-AT", {
+            maximumFractionDigits: 1,
+          })} %`,
+        );
+        appendMatrixMetric(
+          matrix,
+          String(b1Statistik.internFallwild),
+          "ap-matrix-row-end",
+        );
+      }
     });
 
     noData.style.display = "none";
@@ -904,6 +1100,43 @@ const AbschussplanWildgruppe = (() => {
     `;
 
       body.appendChild(tr);
+
+      if (String(groupName || "").trim().toLocaleLowerCase("de") === "rotwild" &&
+          String(klasse.bezeichnung || "").trim().toLocaleLowerCase("de") === "hirsch b") {
+        const mappings = await AbschussplanService.getPlanpositionWildklassen(
+          planperiode.id, klasse.id,
+        );
+        const b1 = mappings.find((mapping) =>
+          String(mapping.wildklasse_bezeichnung || "").trim().toLocaleLowerCase("de") === "hirsch b1");
+        if (b1) {
+          const freigaben = await AbschussplanService.getInterneFreigaben(
+            planperiode.id, klasse.id,
+          );
+          const freigabeRow = document.createElement("tr");
+          freigabeRow.className = "kj-internal-release-row";
+          freigabeRow.innerHTML = `
+            <td>Interne Hirsch-B1-Freigabe</td>
+            <td class="kj-internal-release-fields">
+              <label>${planperiode.startjahr}
+                <input type="number" min="0" step="1" class="kj-b1-freigabe"
+                  data-planperiode-id="${planperiode.id}"
+                  data-planposition-id="${klasse.id}"
+                  data-wildklasse-id="${b1.wildklasse_id}"
+                  data-jahr="${planperiode.startjahr}"
+                  value="${freigaben.find((x) => Number(x.jahr) === Number(planperiode.startjahr))?.interne_freigabe ?? 0}">
+              </label>
+              <label>${planperiode.endjahr}
+                <input type="number" min="0" step="1" class="kj-b1-freigabe"
+                  data-planperiode-id="${planperiode.id}"
+                  data-planposition-id="${klasse.id}"
+                  data-wildklasse-id="${b1.wildklasse_id}"
+                  data-jahr="${planperiode.endjahr}"
+                  value="${freigaben.find((x) => Number(x.jahr) === Number(planperiode.endjahr))?.interne_freigabe ?? 0}">
+              </label>
+            </td>`;
+          body.appendChild(freigabeRow);
+        }
+      }
     }
 
     modal.style.display = "block";
@@ -1159,6 +1392,27 @@ const AbschussplanWildgruppe = (() => {
         }
 
         input.dataset.positionId = neu.id;
+      }
+    }
+
+    for (const input of body.querySelectorAll(".kj-b1-freigabe")) {
+      const wert = Number(input.value);
+      if (!Number.isInteger(wert) || wert < 0) {
+        alert("Die interne Hirsch-B1-Freigabe muss eine ganze Zahl ab 0 sein.");
+        input.focus();
+        return;
+      }
+      const gespeichert = await AbschussplanService.saveInterneFreigabe({
+        planperiode_id: input.dataset.planperiodeId,
+        planperiode_planposition_id: input.dataset.planpositionId,
+        wildklasse_id: input.dataset.wildklasseId,
+        jahr: Number(input.dataset.jahr),
+        interne_freigabe: wert,
+        geaendert_am: new Date().toISOString(),
+      });
+      if (!gespeichert) {
+        alert("Die interne Hirsch-B1-Freigabe konnte nicht gespeichert werden.");
+        return;
       }
     }
 

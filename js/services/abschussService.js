@@ -12,8 +12,8 @@ const AbschussService = (() => {
       db.from("abschuesse").select(`
         id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
-        zusatzinfo, bemerkung,
-        fallwild, untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
+        zusatzinfo, bemerkung, fallwild, interner_hirsch_b1,
+        untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
         jaeger:personen (id, vorname, nachname),
         wildgruppen (id, bezeichnung, rechnung_moeglich),
         wildklassen (id, bezeichnung, wildgruppe_id),
@@ -127,19 +127,24 @@ const AbschussService = (() => {
     return data || [];
   }
 
-  async function getJaeger() {
+  async function getAuswaehlbareAbschussJaeger() {
     const { data, error } = await db
-      .from("abschuss_jaeger")
-      .select("id, vorname, nachname")
+      .from("personen")
+      .select("id, personen_nr, vorname, nachname, name_kat, aktiv")
+      .in("name_kat", ["Mitglied", "Jagdgast", "Jagdgastkarte"])
       .order("nachname", { ascending: true })
       .order("vorname", { ascending: true });
     if (error) throw fehler(error, "Das Laden der Jäger");
     return data || [];
   }
 
+  const getAuswaehlbareJaeger = getAuswaehlbareAbschussJaeger;
+  const getJaeger = getAuswaehlbareAbschussJaeger;
+
   return {
     getAbschuesse, getAbschuss, createAbschuss, updateAbschuss,
     deleteAbschuss, getNaechsteAbschussnummer,
-    istAbschussnummerVergeben, getAktiveWildhaendler, getJaeger,
+    istAbschussnummerVergeben, getAktiveWildhaendler,
+    getAuswaehlbareAbschussJaeger, getAuswaehlbareJaeger, getJaeger,
   };
 })();

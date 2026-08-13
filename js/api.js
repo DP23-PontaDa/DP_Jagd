@@ -281,6 +281,34 @@
     };
   }
 
+  async function getNextPersonenNr(nameKat) {
+    var kategorie = String(nameKat || "").trim();
+    if (!kategorie) throw new Error("Die Personenkategorie fehlt.");
+
+    var result = await db
+      .from("personen")
+      .select("personen_nr, name_kat")
+      .not("personen_nr", "is", null);
+    if (result.error) throw result.error;
+
+    var verwendeteNummern = new Set();
+    var hoechsteKategorieNummer = 0;
+
+    (result.data || []).forEach(function (row) {
+      var nummer = coerceInteger(row.personen_nr);
+      if (nummer == null || nummer < 1) return;
+
+      verwendeteNummern.add(nummer);
+      if (String(row.name_kat || "").trim() === kategorie) {
+        hoechsteKategorieNummer = Math.max(hoechsteKategorieNummer, nummer);
+      }
+    });
+
+    var vorschlag = hoechsteKategorieNummer + 1;
+    while (verwendeteNummern.has(vorschlag)) vorschlag += 1;
+    return vorschlag;
+  }
+
   function coerceInteger(value) {
     var text = String(value == null ? "" : value).trim();
     if (!text) return null;
@@ -362,11 +390,18 @@
       personResult = await db.from("personen").insert(person).select("id").single();
     }
 
-    if (personResult.error) throw personResult.error;
+    if (personResult.error) {
+      if (personResult.error.code === "23505" &&
+          /personen_nr|person.*nr/i.test([personResult.error.message, personResult.error.details]
+            .filter(Boolean).join(" "))) {
+        throw new Error("Die Person Nr. " + person.personen_nr + " ist bereits vergeben.");
+      }
+      throw personResult.error;
+    }
 
     var savedPersonId = personResult.data && personResult.data.id ? String(personResult.data.id) : originalPersonId;
 
-    if (person.name_kat === "Jagdgast" || person.name_kat === "Jagdgastkarten") {
+    if (person.name_kat === "Jagdgast" || person.name_kat === "Jagdgastkarte") {
       await replaceJagdjahre(savedPersonId, jagdjahre);
     } else {
       await replaceJagdjahre(savedPersonId, []);
@@ -396,6 +431,7 @@
 
   window.DPJagdApi = {
     loadPersonenInitialData: loadPersonenInitialData,
+    getNextPersonenNr: getNextPersonenNr,
     savePerson: savePerson,
     deletePerson: deletePerson
   };

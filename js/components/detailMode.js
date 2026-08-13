@@ -113,9 +113,20 @@ window.DetailMode = (() => {
   }
 
   function cancel(modal) {
+    if (!modal) return;
     restore(modal);
-    setMode(modal, "read", { capture: false });
+    closeToOverview(modal);
   }
 
-  return { setMode, cancel, sync };
+  function closeToOverview(modal) {
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    modal.classList.remove("read-mode", "edit-mode");
+    delete modal.dataset.detailMode;
+    modal._detailSnapshot = null;
+    modal.dispatchEvent(new CustomEvent("detailmode:closed"));
+  }
+
+  return { setMode, cancel, closeToOverview, sync };
 })();

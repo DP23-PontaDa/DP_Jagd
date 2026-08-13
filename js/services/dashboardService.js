@@ -63,47 +63,113 @@ const DashboardService = (() => {
     return handle(result, "Fehler in Dashboard.getPlanpositionen") || [];
   }
 
-  async function getJaeger(planperiodeId) {
+  async function getJaeger(planperiode) {
     const result = await db
-      .from("vw_dashboard_jaeger")
+      .from("abschuesse")
       .select(`
-        planperiode_id,
         jaeger_id,
-        jaeger,
+        datum,
         wildgruppe_id,
-        wildgruppe,
-        wildgruppe_reihenfolge,
         wildklasse_id,
-        wildklasse_code,
-        wildklasse,
-        wildklasse_reihenfolge,
-        anzahl
+        jaeger:personen (id, personen_nr, vorname, nachname),
+        wildgruppe:wildgruppen (id, bezeichnung, reihenfolge),
+        wildklasse:wildklassen (id, code, bezeichnung, reihenfolge)
       `)
-      .eq("planperiode_id", planperiodeId)
-      .order("jaeger", { ascending: true })
-      .order("wildgruppe_reihenfolge", { ascending: true })
-      .order("wildklasse_reihenfolge", { ascending: true });
+      .eq("fallwild", false)
+      .gte("datum", `${planperiode.startjahr}-01-01`)
+      .lt("datum", `${Number(planperiode.endjahr) + 1}-01-01`);
 
-    const rows = handle(result, "Fehler in Dashboard.getJaeger") || [];
-    const jaegerIds = [...new Set(rows.map((row) => row.jaeger_id).filter(Boolean))];
-    if (!jaegerIds.length) return rows;
+    const abschuesse = handle(result, "Fehler in Dashboard.getJaeger") || [];
+    const gruppiert = new Map();
+    abschuesse.forEach((abschuss) => {
+      const person = relationValue(abschuss.jaeger) || {};
+      const gruppe = relationValue(abschuss.wildgruppe) || {};
+      const klasse = relationValue(abschuss.wildklasse) || {};
+      const jahr = Number(String(abschuss.datum || "").slice(0, 4));
+      const key = `${abschuss.jaeger_id}|${abschuss.wildgruppe_id}|${abschuss.wildklasse_id}|${jahr}`;
+      const row = gruppiert.get(key) || {
+        planperiode_id: planperiode.id,
+        jaeger_id: abschuss.jaeger_id,
+        jaeger: [person.vorname, person.nachname].filter(Boolean).join(" "),
+        jaeger_nr: person.personen_nr ?? null,
+        wildgruppe_id: abschuss.wildgruppe_id,
+        wildgruppe: gruppe.bezeichnung,
+        wildgruppe_reihenfolge: gruppe.reihenfolge,
+        wildklasse_id: abschuss.wildklasse_id,
+        wildklasse_code: klasse.code,
+        wildklasse: klasse.bezeichnung,
+        wildklasse_reihenfolge: klasse.reihenfolge,
+        jahr,
+        anzahl: 0,
+      };
+      row.anzahl += 1;
+      gruppiert.set(key, row);
+    });
+    return [...gruppiert.values()];
+  }
 
-    const personenResult = await db
-      .from("personen")
-      .select("id, personen_nr")
-      .in("id", jaegerIds);
-    const personen = handle(
-      personenResult,
-      "Fehler in Dashboard.getJaegerNummern",
-    ) || [];
-    const nummern = new Map(
-      personen.map((person) => [String(person.id), person.personen_nr]),
+  async function getHirschB1Statistik(planperiode) {
+    const klasseResult = await db.from("wildklassen")
+      .select("id")
+      .ilike("bezeichnung", "Hirsch B1")
+      .limit(1)
+      .maybeSingle();
+    const klasse = handle(
+      klasseResult,
+      "Fehler in Dashboard.getHirschB1Statistik.Wildklasse",
     );
+    if (!klasse) return null;
 
-    return rows.map((row) => ({
-      ...row,
-      jaeger_nr: nummern.get(String(row.jaeger_id)) ?? null,
-    }));
+    const [abschussResult, freigabeResult] = await Promise.all([
+      db.from("abschuesse")
+        .select("datum,fallwild,interner_hirsch_b1")
+        .eq("wildklasse_id", klasse.id)
+        .gte("datum", `${planperiode.startjahr}-01-01`)
+        .lt("datum", `${Number(planperiode.endjahr) + 1}-01-01`),
+      db.from("planperiode_wildklasse_freigaben")
+        .select("jahr,interne_freigabe")
+        .eq("planperiode_id", planperiode.id)
+        .eq("wildklasse_id", klasse.id),
+    ]);
+    const abschuesse = handle(
+      abschussResult,
+      "Fehler in Dashboard.getHirschB1Statistik.Abschuesse",
+    ) || [];
+    const freigaben = handle(
+      freigabeResult,
+      "Fehler in Dashboard.getHirschB1Statistik.Freigaben",
+    ) || [];
+    const statistik = {
+      gesamt: 0, startjahr: 0, endjahr: 0, fallwild: 0,
+      internGesamt: 0, internStartjahr: 0, internEndjahr: 0,
+      internFallwild: 0, freigabeStartjahr: 0, freigabeEndjahr: 0,
+    };
+    freigaben.forEach((freigabe) => {
+      if (Number(freigabe.jahr) === Number(planperiode.startjahr)) {
+        statistik.freigabeStartjahr = Number(freigabe.interne_freigabe) || 0;
+      }
+      if (Number(freigabe.jahr) === Number(planperiode.endjahr)) {
+        statistik.freigabeEndjahr = Number(freigabe.interne_freigabe) || 0;
+      }
+    });
+    abschuesse.forEach((abschuss) => {
+      const jahr = Number(String(abschuss.datum || "").slice(0, 4));
+      const intern = abschuss.interner_hirsch_b1 === true;
+      if (abschuss.fallwild === true) {
+        statistik.fallwild += 1;
+        if (intern) statistik.internFallwild += 1;
+        return;
+      }
+      statistik.gesamt += 1;
+      if (jahr === Number(planperiode.startjahr)) statistik.startjahr += 1;
+      if (jahr === Number(planperiode.endjahr)) statistik.endjahr += 1;
+      if (intern) {
+        statistik.internGesamt += 1;
+        if (jahr === Number(planperiode.startjahr)) statistik.internStartjahr += 1;
+        if (jahr === Number(planperiode.endjahr)) statistik.internEndjahr += 1;
+      }
+    });
+    return statistik;
   }
 
   function relationValue(value) {
@@ -150,6 +216,7 @@ const DashboardService = (() => {
         .from("abschuesse")
         .select(`
           wildhaendler_id,
+          datum,
           gewicht,
           gesamtpreis,
           wildhaendler:wildhaendler (id, bezeichnung),
@@ -172,16 +239,21 @@ const DashboardService = (() => {
         String(wildgruppe.id),
       ]),
     );
+    function auswertung(gefilterteZeilen) {
+      return {
+        gesamt: aggregateWildhaendler(gefilterteZeilen, ids),
+        rotwild: aggregateWildhaendler(gefilterteZeilen,
+          new Set([idNachName.get("rotwild")].filter(Boolean))),
+        rehwild: aggregateWildhaendler(gefilterteZeilen,
+          new Set([idNachName.get("rehwild")].filter(Boolean))),
+      };
+    }
     return {
-      gesamt: aggregateWildhaendler(rows, ids),
-      rotwild: aggregateWildhaendler(
-        rows,
-        new Set([idNachName.get("rotwild")].filter(Boolean)),
-      ),
-      rehwild: aggregateWildhaendler(
-        rows,
-        new Set([idNachName.get("rehwild")].filter(Boolean)),
-      ),
+      beide: auswertung(rows),
+      [planperiode.startjahr]: auswertung(rows.filter((row) =>
+        Number(String(row.datum).slice(0, 4)) === Number(planperiode.startjahr))),
+      [planperiode.endjahr]: auswertung(rows.filter((row) =>
+        Number(String(row.datum).slice(0, 4)) === Number(planperiode.endjahr))),
     };
   }
 
@@ -201,18 +273,24 @@ const DashboardService = (() => {
     const wildgruppenIds = new Set(
       wildgruppen.map((wildgruppe) => String(wildgruppe.id)),
     );
-    const [allePlanpositionen, alleJaeger, wildhaendler] = await Promise.all([
+    const [allePlanpositionen, alleJaeger, wildhaendler, hirschB1] = await Promise.all([
       bereiche.abschuss ? getPlanpositionen(planperiode.id) : Promise.resolve([]),
-      bereiche.jaeger ? getJaeger(planperiode.id) : Promise.resolve([]),
+      (bereiche.jaeger || bereiche.abschuss) ? getJaeger(planperiode) : Promise.resolve([]),
       bereiche.wildhaendler
         ? getWildhaendler(planperiode, wildgruppen)
-        : Promise.resolve({ gesamt: [], rotwild: [], rehwild: [] }),
+        : Promise.resolve({ beide: { gesamt: [], rotwild: [], rehwild: [] } }),
+      bereiche.abschuss
+        ? getHirschB1Statistik(planperiode)
+        : Promise.resolve(null),
     ]);
     const planpositionen = allePlanpositionen.filter((row) =>
       wildgruppenIds.has(String(row.wildgruppe_id)));
     const jaeger = alleJaeger.filter((row) =>
       wildgruppenIds.has(String(row.wildgruppe_id)));
-    return { planperiode, wildgruppen, planpositionen, jaeger, wildhaendler };
+    return {
+      planperiode, wildgruppen, planpositionen, jaeger, wildhaendler,
+      hirsch_b1: hirschB1,
+    };
   }
 
   return {
@@ -222,6 +300,7 @@ const DashboardService = (() => {
     getPlanpositionen,
     getJaeger,
     getWildhaendler,
+    getHirschB1Statistik,
   };
 })();
 

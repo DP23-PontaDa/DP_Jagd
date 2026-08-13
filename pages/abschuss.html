@@ -50,8 +50,9 @@
       </div>
       <span id="asSchliessen" class="close-btn" role="button" tabindex="0" aria-label="Schließen">&times;</span>
     </div>
-    <p id="asFehler" class="form-message" hidden></p>
-    <div class="form-grid">
+    <div class="modal-body">
+      <p id="asFehler" class="form-message" hidden></p>
+      <div class="form-grid">
       <div class="form-group">
         <label for="asNr" class="required">Nr</label>
         <input id="asNr" class="form-control" type="number" min="1" step="1">
@@ -109,9 +110,14 @@
         <label for="asFallwild">Fallwild</label>
         <input id="asFallwild" type="checkbox">
       </div>
-      <div id="asProtokollGruppe" class="form-group" hidden>
-        <label for="asProtokoll" class="required">Untersuchungsprotokoll Nr</label>
-        <input id="asProtokoll" class="form-control" type="text" maxlength="100">
+      <div id="asInternerB1Gruppe" class="form-group" hidden>
+        <label for="asInternerB1">Interner Hirsch B1</label>
+        <input id="asInternerB1" type="checkbox">
+      </div>
+        <div id="asProtokollGruppe" class="form-group" hidden>
+          <label for="asProtokoll" class="required">Untersuchungsprotokoll Nr</label>
+          <input id="asProtokoll" class="form-control" type="text" maxlength="100">
+        </div>
       </div>
     </div>
     <div class="modal-footer">

@@ -18,6 +18,7 @@ const AbschussplanService = (() => {
     POSITIONEN: "abschussplan_positionen",
     POSITIONEN_IST: "vw_abschussplan_ist",
     JAHRESUEBERSICHT: "vw_abschussplan_jahresuebersicht",
+    INTERNE_FREIGABEN: "planperiode_wildklasse_freigaben",
   };
 
   function handle(result, text) {
@@ -718,6 +719,68 @@ const AbschussplanService = (() => {
     return true;
   }
 
+  async function getInterneFreigaben(planperiodeId, planpositionId) {
+    const result = await db.from(TABLE.INTERNE_FREIGABEN)
+      .select("id,planperiode_id,planperiode_planposition_id,wildklasse_id,jahr,interne_freigabe")
+      .eq("planperiode_id", planperiodeId)
+      .eq("planperiode_planposition_id", planpositionId);
+    return handle(result, "Fehler in getInterneFreigaben") || [];
+  }
+
+  async function getPlanpositionWildklassen(planperiodeId, planpositionId) {
+    const result = await db.from(TABLE.PLANPERIODE_MAPPING)
+      .select("wildklasse_id,wildklasse_code,wildklasse_bezeichnung")
+      .eq("planperiode_id", planperiodeId)
+      .eq("planperiode_planposition_id", planpositionId);
+    return handle(result, "Fehler in getPlanpositionWildklassen") || [];
+  }
+
+  async function saveInterneFreigabe(daten) {
+    const result = await executePlanMutation("interne_freigabe", "speichern", () =>
+      db.from(TABLE.INTERNE_FREIGABEN).upsert(daten, {
+        onConflict: "planperiode_id,wildklasse_id,jahr",
+      }).select().single());
+    return handle(result, "Fehler in saveInterneFreigabe");
+  }
+
+  async function getHirschB1Statistik(planperiode, wildklasseId) {
+    const result = await db.from("abschuesse")
+      .select("datum,fallwild,interner_hirsch_b1")
+      .eq("wildklasse_id", wildklasseId)
+      .gte("datum", `${planperiode.startjahr}-01-01`)
+      .lt("datum", `${Number(planperiode.endjahr) + 1}-01-01`);
+    const abschuesse = handle(result, "Fehler in getHirschB1Statistik") || [];
+
+    const statistik = {
+      gesamt: 0,
+      startjahr: 0,
+      endjahr: 0,
+      fallwild: 0,
+      internGesamt: 0,
+      internStartjahr: 0,
+      internEndjahr: 0,
+      internFallwild: 0,
+    };
+    abschuesse.forEach((abschuss) => {
+      const jahr = Number(String(abschuss.datum || "").slice(0, 4));
+      const intern = abschuss.interner_hirsch_b1 === true;
+      if (abschuss.fallwild === true) {
+        statistik.fallwild += 1;
+        if (intern) statistik.internFallwild += 1;
+        return;
+      }
+      statistik.gesamt += 1;
+      if (jahr === Number(planperiode.startjahr)) statistik.startjahr += 1;
+      if (jahr === Number(planperiode.endjahr)) statistik.endjahr += 1;
+      if (intern) {
+        statistik.internGesamt += 1;
+        if (jahr === Number(planperiode.startjahr)) statistik.internStartjahr += 1;
+        if (jahr === Number(planperiode.endjahr)) statistik.internEndjahr += 1;
+      }
+    });
+    return statistik;
+  }
+
   return {
     /* Planperioden */
 
@@ -755,5 +818,9 @@ const AbschussplanService = (() => {
     createPosition,
     updatePosition,
     deletePosition,
+    getInterneFreigaben,
+    getPlanpositionWildklassen,
+    saveInterneFreigabe,
+    getHirschB1Statistik,
   };
 })();

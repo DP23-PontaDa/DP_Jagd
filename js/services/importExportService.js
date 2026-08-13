@@ -126,14 +126,14 @@ const ImportExportService = (() => {
     const [
       wildgruppenResult,
       wildklassenResult,
-      jaegerResult,
+      jaeger,
       wildhaendlerResult,
       abschuesseResult,
     ] = await Promise.all([
       db.from("wildgruppen").select("id, code, bezeichnung, aktiv"),
       db.from("wildklassen")
         .select("id, code, bezeichnung, wildgruppe_id, aktiv"),
-      db.from("abschuss_jaeger").select("id, vorname, nachname"),
+      AbschussService.getAuswaehlbareAbschussJaeger(),
       db.from("wildhaendler").select("id, code, bezeichnung, aktiv"),
       db.from("abschuesse").select(`
         id, nr, jahr, datum, jaeger_id, wildgruppe_id, wildklasse_id,
@@ -145,7 +145,6 @@ const ImportExportService = (() => {
     const fehler = [
       wildgruppenResult,
       wildklassenResult,
-      jaegerResult,
       wildhaendlerResult,
       abschuesseResult,
     ].find((result) => result.error);
@@ -154,7 +153,7 @@ const ImportExportService = (() => {
     return {
       wildgruppen: wildgruppenResult.data || [],
       wildklassen: wildklassenResult.data || [],
-      jaeger: jaegerResult.data || [],
+      jaeger: jaeger || [],
       wildhaendler: wildhaendlerResult.data || [],
       bestehendeAbschuesse: abschuesseResult.data || [],
     };
@@ -214,6 +213,7 @@ const ImportExportService = (() => {
     const warnungen = [];
     const payloads = [];
     const dubletten = [];
+    const jaegerDiagnose = [];
     const dateiDubletten = new Map();
     const bestehend = referenzen.bestehendeAbschuesse || [];
     const gruppenIndex = indexNachName(
@@ -285,12 +285,67 @@ const ImportExportService = (() => {
           beschreibung: "Wildklasse ist deaktiviert.",
         });
 
-      const person = eindeutigerTreffer(jaegerIndex, daten["Jäger"]);
-      if (!person)
-        fehlerHinzufuegen(
-          fehler, zeile, "Jäger",
-          "Jäger fehlt, ist unbekannt oder nicht eindeutig.",
-        );
+      const vornameExcel = String(daten["Jäger Vorname"] ?? daten.Vorname ?? "");
+      const nachnameExcel = String(daten["Jäger Nachname"] ?? daten.Nachname ?? "");
+      const jaegerExcel = String(daten["Jäger"] ?? "").trim() ||
+        [vornameExcel, nachnameExcel].filter(Boolean).join(" ");
+      const jaegerNrExcel = String(daten["Jäger-Nr."] ?? "").trim();
+      const normalisierterName = normalisieren(jaegerExcel);
+      const namensTeile = normalisierterName ? normalisierterName.split(" ") : [];
+      const normalisierterVorname = normalisieren(vornameExcel) ||
+        namensTeile.slice(0, -1).join(" ");
+      const normalisierterNachname = normalisieren(nachnameExcel) ||
+        namensTeile.slice(-1).join("");
+      const verwendeteSuchlogik = jaegerNrExcel
+        ? "Jäger-Nr. (zentrale Abschuss-Jägerauswahl)"
+        : "normalisierter vollständiger Name (zentrale Abschuss-Jägerauswahl)";
+      const personTreffer = jaegerNrExcel
+        ? referenzen.jaeger.filter((eintrag) =>
+          normalisieren(eintrag.personen_nr) === normalisieren(jaegerNrExcel))
+        : (jaegerIndex.get(normalisierterName) || []);
+      const person = personTreffer.length === 1 ? personTreffer[0] : null;
+      const trefferDetails = personTreffer.map((eintrag) => ({
+        id: eintrag.id,
+        personenNr: eintrag.personen_nr ?? "",
+        name: vollname(eintrag),
+        kategorie: eintrag.name_kat || "",
+      }));
+      const diagnose = {
+        zeile,
+        abschussNr: nrText,
+        excel: { jaeger: jaegerExcel, vorname: vornameExcel,
+          nachname: nachnameExcel, jaegerNr: jaegerNrExcel },
+        suchwerte: { name: normalisierterName, vorname: normalisierterVorname,
+          nachname: normalisierterNachname, jaegerNr: normalisieren(jaegerNrExcel) },
+        verwendeteSuchlogik,
+        gefundenePersonenanzahl: personTreffer.length,
+        gefundenePersonenIds: trefferDetails.map((treffer) => treffer.id),
+        gefundenePersonennummern: trefferDetails.map((treffer) => treffer.personenNr),
+        gefundeneNamen: trefferDetails.map((treffer) => treffer.name),
+        treffer: trefferDetails,
+        verwendetePersonenId: person?.id || null,
+        ergebnis: person ? "OK" : "Fehler",
+        fehlergrund: person ? "Genau eine Person gefunden."
+          : personTreffer.length === 0 ? "Jäger nicht gefunden."
+            : "Jäger ist nicht eindeutig.",
+      };
+      jaegerDiagnose.push(diagnose);
+      console.log("[Abschuss Import Debug]", diagnose);
+
+      if (!person) {
+        const suchtext = jaegerNrExcel ? `Jäger-Nr.='${jaegerNrExcel}'`
+          : `Vorname='${normalisierterVorname}', Nachname='${normalisierterNachname}', Name='${normalisierterName}'`;
+        const trefferText = trefferDetails.length
+          ? trefferDetails.map((treffer, trefferIndex) =>
+            `${trefferIndex + 1}. ID=${treffer.id}, Personen-Nr.=${treffer.personenNr || "–"}, ` +
+            `${treffer.name}, Kategorie=${treffer.kategorie || "–"}`).join(" | ")
+          : "keine";
+        fehlerHinzufuegen(fehler, zeile, "Jäger",
+          `Zeile ${zeile}, Abschuss-Nr. ${nrText || "–"}: Jäger '${jaegerExcel.trim() || "–"}' ` +
+          `${personTreffer.length ? "ist nicht eindeutig" : "nicht gefunden"}. ` +
+          `Suche nach: ${suchtext}. Suchlogik: ${verwendeteSuchlogik}. ` +
+          `Personen gefunden: ${personTreffer.length}. Treffer: ${trefferText}.`);
+      }
 
       const haendlerName = String(daten["Wildhändler"] || "").trim();
       const wildhaendler = haendlerName
@@ -415,7 +470,7 @@ const ImportExportService = (() => {
       payloads.push(eintrag);
     });
 
-    return { fehler, warnungen, payloads, dubletten };
+    return { fehler, warnungen, payloads, dubletten, jaegerDiagnose };
   }
 
   async function importAbschuesse(eintraege) {

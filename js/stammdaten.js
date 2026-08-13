@@ -88,6 +88,10 @@ window.Stammdaten = (() => {
 
           <td>${klasse.bezeichnung}</td>
 
+          <td>${Number(klasse.stehzeit_jahre) || 0}</td>
+          <td>${Number(klasse.stehzeit_nicht_passend_jahre) || 0}</td>
+          <td>${Number(klasse.kahlwildpflicht) || 0}</td>
+
           <td class="text-center">
               ${klasse.aktiv ? "✓" : "—"}
           </td>
@@ -138,6 +142,9 @@ window.Stammdaten = (() => {
     document.getElementById("sdBezeichnung").value = klasse.bezeichnung;
 
     document.getElementById("sdReihenfolge").value = klasse.reihenfolge;
+    document.getElementById("sdStehzeit").value = klasse.stehzeit_jahre ?? 0;
+    document.getElementById("sdStehzeitNichtPassend").value = klasse.stehzeit_nicht_passend_jahre ?? 0;
+    document.getElementById("sdKahlwildpflicht").value = klasse.kahlwildpflicht ?? 0;
 
     document.getElementById("sdAktiv").checked = klasse.aktiv;
 
@@ -163,6 +170,9 @@ window.Stammdaten = (() => {
     document.getElementById("sdCode").value = "";
     document.getElementById("sdBezeichnung").value = "";
     document.getElementById("sdReihenfolge").value = "";
+    document.getElementById("sdStehzeit").value = "0";
+    document.getElementById("sdStehzeitNichtPassend").value = "0";
+    document.getElementById("sdKahlwildpflicht").value = "0";
     document.getElementById("sdAktiv").checked = true;
 
     DetailMode.setMode(
@@ -217,6 +227,10 @@ window.Stammdaten = (() => {
 
       reihenfolge: Number(document.getElementById("sdReihenfolge").value),
 
+      stehzeit_jahre: Number(document.getElementById("sdStehzeit").value || 0),
+      stehzeit_nicht_passend_jahre: Number(document.getElementById("sdStehzeitNichtPassend").value || 0),
+      kahlwildpflicht: Number(document.getElementById("sdKahlwildpflicht").value || 0),
+
       aktiv: document.getElementById("sdAktiv").checked,
     };
 
@@ -230,6 +244,16 @@ window.Stammdaten = (() => {
 
       if (!daten.bezeichnung) {
         alert("Bitte eine Bezeichnung eingeben.");
+        return;
+      }
+
+      if (!Number.isInteger(daten.stehzeit_jahre) || daten.stehzeit_jahre < 0) {
+        alert("Bitte eine gültige Stehzeit in Jahren eingeben.");
+        return;
+      }
+      if (!Number.isInteger(daten.stehzeit_nicht_passend_jahre) || daten.stehzeit_nicht_passend_jahre < 0 ||
+          !Number.isInteger(daten.kahlwildpflicht) || daten.kahlwildpflicht < 0) {
+        alert("Bitte gültige nicht negative Regelwerte eingeben.");
         return;
       }
 

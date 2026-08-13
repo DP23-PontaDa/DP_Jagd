@@ -6,6 +6,23 @@
 const WildklassenService = (() => {
   const db = window.db || window.supabase;
 
+  const nummer = (wert) => {
+    const zahl = Number(wert);
+    return Number.isFinite(zahl) ? zahl : Number.MAX_SAFE_INTEGER;
+  };
+
+  function vergleicheNachWildgruppeUndWildklasse(a, b) {
+    return nummer(a?.wildgruppe_reihenfolge ?? a?.wildgruppe?.reihenfolge) -
+      nummer(b?.wildgruppe_reihenfolge ?? b?.wildgruppe?.reihenfolge) ||
+      nummer(a?.wildklasse_reihenfolge ?? a?.reihenfolge) -
+      nummer(b?.wildklasse_reihenfolge ?? b?.reihenfolge) ||
+      String(a?.bezeichnung || "").localeCompare(String(b?.bezeichnung || ""), "de");
+  }
+
+  function sortiereNachWildgruppeUndWildklasse(wildklassen) {
+    return [...(wildklassen || [])].sort(vergleicheNachWildgruppeUndWildklasse);
+  }
+
   async function getWildgruppen() {
     const { data, error } = await db
       .from("wildgruppen")
@@ -64,7 +81,7 @@ const WildklassenService = (() => {
 
     const positionenResult = await db
       .from("planperiode_planpositionen")
-      .select("id, wildgruppe_id, reihenfolge")
+      .select("id, wildgruppe_id, reihenfolge, wildgruppen(bezeichnung,reihenfolge)")
       .eq("planperiode_id", periodenResult.data.id)
       .eq("aktiv", true)
       .order("reihenfolge", { ascending: true });
@@ -82,7 +99,7 @@ const WildklassenService = (() => {
         wildklasse_id,
         wildklasse_code,
         wildklasse_bezeichnung,
-        wildklassen!inner (aktiv, reihenfolge)
+        wildklassen!inner (aktiv, reihenfolge, stehzeit_jahre, stehzeit_nicht_passend_jahre, kahlwildpflicht)
       `)
       .eq("planperiode_id", periodenResult.data.id)
       .eq("wildklassen.aktiv", true)
@@ -101,15 +118,16 @@ const WildklassenService = (() => {
           bezeichnung: mapping.wildklasse_bezeichnung || "",
           label: mapping.wildklasse_bezeichnung || "",
           wildgruppe_id: position?.wildgruppe_id,
+          wildgruppe_bezeichnung: position?.wildgruppen?.bezeichnung || "Ohne Wildgruppe",
+          wildgruppe_reihenfolge: Number(position?.wildgruppen?.reihenfolge) || Number.MAX_SAFE_INTEGER,
           planposition_reihenfolge: Number(position?.reihenfolge) || 0,
           wildklasse_reihenfolge: Number(mapping.wildklassen?.reihenfolge) || 0,
+          stehzeit_jahre: Number(mapping.wildklassen?.stehzeit_jahre) || 0,
+          stehzeit_nicht_passend_jahre: Number(mapping.wildklassen?.stehzeit_nicht_passend_jahre) || 0,
+          kahlwildpflicht: Number(mapping.wildklassen?.kahlwildpflicht) || 0,
         };
       })
-      .sort(
-        (left, right) =>
-          left.planposition_reihenfolge - right.planposition_reihenfolge ||
-          left.wildklasse_reihenfolge - right.wildklasse_reihenfolge,
-      );
+      .sort(vergleicheNachWildgruppeUndWildklasse);
   }
 
   async function getAktivePlanWildklassenByWildgruppe(wildgruppeId) {
@@ -145,6 +163,8 @@ const WildklassenService = (() => {
     getAktiveWildklassen,
     getAktivePlanWildklassen,
     getAktivePlanWildklassenByWildgruppe,
+    vergleicheNachWildgruppeUndWildklasse,
+    sortiereNachWildgruppeUndWildklasse,
     createWildklasse,
     updateWildklasse,
     deleteWildklasse

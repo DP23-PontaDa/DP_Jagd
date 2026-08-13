@@ -37,6 +37,9 @@
                 <th class="col-number">Nr.</th>
                 <th class="col-short">Code</th>
                 <th>Bezeichnung</th>
+                <th class="col-short">Stehzeit Jahre</th>
+                <th class="col-short">Nicht passend</th>
+                <th class="col-short">Kahlwildpflicht</th>
                 <th class="col-boolean">Aktiv</th>
                 <th class="col-actions">Aktion</th>
             </tr>
@@ -77,6 +80,24 @@
         </div>
 
         <div class="form-grid">
+
+            <div class="form-group">
+
+                <label for="sdStehzeit">Stehzeit Jahre</label>
+
+                <input id="sdStehzeit" class="form-control" type="number" min="0" step="1">
+
+            </div>
+
+            <div class="form-group">
+                <label for="sdStehzeitNichtPassend">Stehzeit bei nicht passend</label>
+                <input id="sdStehzeitNichtPassend" class="form-control" type="number" min="0" step="1">
+            </div>
+
+            <div class="form-group">
+                <label for="sdKahlwildpflicht">Kahlwildpflicht</label>
+                <input id="sdKahlwildpflicht" class="form-control" type="number" min="0" step="1">
+            </div>
 
             <div class="form-group">
 

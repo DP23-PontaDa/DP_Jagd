@@ -275,6 +275,7 @@
   <div class="pers-tabs">
     <button class="pers-tab-btn active" data-kat="Mitglied" onclick="persSwitchTab('Mitglied')">Mitglieder</button>
     <button class="pers-tab-btn" data-kat="Jagdgast" onclick="persSwitchTab('Jagdgast')">Jagdgäste</button>
+    <button class="pers-tab-btn" data-kat="Jagdgastkarte" onclick="persSwitchTab('Jagdgastkarte')">Jagdgastkarten</button>
     <button class="pers-tab-btn" data-kat="Hundefuehrer" onclick="persSwitchTab('Hundefuehrer')">Hundeführer</button>
     <button class="pers-tab-btn" data-kat="Hegering" onclick="persSwitchTab('Hegering')">Hegering</button>
     <button class="pers-tab-btn" data-kat="Wildfleisch" onclick="persSwitchTab('Wildfleisch')">Wildfleisch</button>
@@ -282,7 +283,7 @@
 
   <div class="action-bar">
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="persOpenNewPersonModal()">+ Neue Person</button>
+      <button id="persNeuButton" class="btn btn-primary" onclick="persOpenNewPersonModal()">+ Neue Person</button>
     </div>
 
     <div class="search-group">
@@ -293,6 +294,7 @@
         <option value="nachname">Nachname</option>
         <option value="kjNr">KJ_Nr</option>
         <option value="jagdgastkarte">Jagdgastkarte</option>
+        <option value="jahr">Jahr</option>
         <option value="jaegerGastId">Jäger_Gast</option>
         <option value="ort">Ort</option>
       </select>
@@ -338,7 +340,7 @@
         <input type="number" id="persPersonenNr" class="form-control" placeholder="Nummer eingeben">
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="persAnredeGroup">
         <label for="persAnrede" class="required">Anrede</label>
         <select id="persAnrede" class="form-control">
           <option value="Herr" selected>Herr</option>
@@ -400,7 +402,7 @@
         <select id="persNameKat" class="form-control" onchange="persHandleNameKatChange()">
           <option value="Mitglied">Mitglied</option>
           <option value="Jagdgast">Jagdgast</option>
-          <option value="Jagdgastkarten">Jagdgastkarten</option>
+          <option value="Jagdgastkarte">Jagdgastkarte</option>
           <option value="Hundefuehrer">Hundeführer</option>
           <option value="Hegering">Hegering</option>
           <option value="Wildfleisch">Wildfleisch</option>
@@ -409,8 +411,8 @@
     </div>
 
     <div id="persJagdBox" class="jagd-box">
-      <h3>Jahresaktivität Jagdgast</h3>
-      <div class="small-note">
+      <h3 id="persJagdBoxTitel">Jahresaktivität Jagdgast</h3>
+      <div id="persJagdBoxHinweis" class="small-note">
         Alle Jahre werden hier gepflegt. In der Tabellenanzeige wird nur das letzte aktive Jahr angezeigt.
         Bei Jäger_Gast sind nur aktive Mitglieder auswählbar.
       </div>
@@ -420,7 +422,7 @@
           <tr>
             <th class="pers-jagd-year-column">Jahr</th>
             <th class="col-boolean">Aktiv</th>
-            <th>Jäger</th>
+            <th id="persJagdMitgliedKopf">Jäger</th>
             <th>Bemerkung</th>
             <th class="col-actions">Aktion</th>
           </tr>

@@ -62,6 +62,15 @@ function persSwitchTab(kat) {
     btn.classList.toggle('active', btn.getAttribute('data-kat') === kat);
   });
   persUpdatePageTitle();
+  const istKarten = kat === 'Jagdgastkarte';
+  const leertext = document.getElementById('persNoData');
+  if (leertext) leertext.textContent = istKarten ? 'Keine Jagdgastkarten gefunden.' : 'Keine Personen in diesem Tab gefunden.';
+  const neuButton = document.getElementById('persNeuButton');
+  if (neuButton) {
+    neuButton.textContent = istKarten ? '+ Neue Jagdgastkarte' : '+ Neue Person';
+    delete neuButton.dataset.rechtCode;
+    neuButton.hidden = !BerechtigungService.darf('personen', 'Bearbeiten');
+  }
   persClearSearch(false);
   persRenderTable();
 }
@@ -75,7 +84,7 @@ function persUpdatePageTitle() {
 function persTabTitle(kat) {
   if (kat === 'Mitglied') return 'Mitglieder';
   if (kat === 'Jagdgast') return 'Jagdgäste';
-  if (kat === 'Jagdgastkarten') return 'Jagdgastkarten';
+  if (kat === 'Jagdgastkarte') return 'Jagdgastkarten';
   if (kat === 'Hundefuehrer') return 'Hundeführer';
   if (kat === 'Hegering') return 'Hegering';
   if (kat === 'Wildfleisch') return 'Wildfleisch';
@@ -83,11 +92,11 @@ function persTabTitle(kat) {
 }
 
 function persIsJagdKategorie(kat) {
-  return kat === 'Jagdgast';
+  return kat === 'Jagdgast' || kat === 'Jagdgastkarte';
 }
 
 function persNeedsJaegerGastColumn(kat) {
-  return kat === 'Jagdgast' || kat === 'Jagdgastkarten';
+  return kat === 'Jagdgast' || kat === 'Jagdgastkarte';
 }
 
 function persCompareByIdNumber(a, b) {
@@ -126,7 +135,7 @@ function persComparePersons(a, b) {
     return persCompareByIdNumber(a, b);
   }
 
-  if (persActiveKat === 'Jagdgastkarten') {
+  if (persActiveKat === 'Jagdgastkarte') {
     const aParts = persParseJagdgastkarteId(a && (a.jagdgastkarte || a.personenNr));
     const bParts = persParseJagdgastkarteId(b && (b.jagdgastkarte || b.personenNr));
 
@@ -187,6 +196,7 @@ function persRenderTable() {
       if (criteria === 'all') {
         return [person.personenNr, person.vorname, person.nachname,
           person.kjNr, person.jagdgastkarte, persJaegerGastDisplay(person),
+          persLastActiveJagdYear(person.personId),
           person.adresse, person.plz, person.ort]
           .join(' ')
           .toLowerCase()
@@ -195,6 +205,9 @@ function persRenderTable() {
 
       if (criteria === 'jaegerGast' || criteria === 'jaegerGastId') {
         return persJaegerGastDisplay(person).toLowerCase().indexOf(query) !== -1;
+      }
+      if (criteria === 'jahr') {
+        return persLastActiveJagdYear(person.personId).toLowerCase().indexOf(query) !== -1;
       }
 
       return String(person[criteria] || '').toLowerCase().indexOf(query) !== -1;
@@ -250,8 +263,19 @@ function persRenderTable() {
     persAddCell(row, person.vorname);
     persAddCell(row, person.nachname);
 
-    if (persActiveKat === 'Jagdgastkarten') {
+    if (persActiveKat === 'Jagdgastkarte') {
+      persAddCell(row, person.adresse);
+      persAddCell(row, person.plz);
+      persAddCell(row, person.ort);
+      persAddCell(row, persLastActiveJagdYear(person.personId));
+      persAddCell(row, persJaegerGastDisplay(person));
       persAddCell(row, person.jagdgastkarte);
+      row.appendChild(persCreatePersonActionCell(person));
+      row.addEventListener('click', function(event) {
+        if (!event.target.closest('button')) persOpenEditPersonModal(person.personId, 'read');
+      });
+      tbody.appendChild(row);
+      return;
     } else {
       persAddCell(row, person.kjNr);
     }
@@ -332,8 +356,19 @@ function persRenderTableHead() {
     return;
   }
   const headers = ['Nr.', 'Vorname', 'Nachname'];
-  if (persActiveKat === 'Jagdgastkarten') {
-    headers.push('Jagdgastkarte');
+  if (persActiveKat === 'Jagdgastkarte') {
+    headers.push('Adresse', 'PLZ', 'Ort', 'Jahr', 'Mitglied', 'Jagdgastkarte', 'Aktion');
+    const tr = document.createElement('tr');
+    headers.forEach(function(header, index) {
+      const th = document.createElement('th');
+      th.textContent = header;
+      if (index === 0) th.className = 'col-number';
+      if (header === 'Aktion') th.className = 'col-actions';
+      tr.appendChild(th);
+    });
+    const head = document.getElementById('persTableHead');
+    if (head) { head.innerHTML = ''; head.appendChild(tr); }
+    return;
   } else {
     headers.push('KJ-Nr.');
   }
@@ -406,13 +441,9 @@ function persLastActiveJagdYear(personId) {
 function persJaegerGastDisplay(person) {
   if (!person) return '';
 
-  if (person.nameKat === 'Jagdgast') {
+  if (persIsJagdKategorie(person.nameKat)) {
     const row = persLastActiveJagdRow(person.personId);
     return row && row.jaegerGastId ? persMemberLabel(row.jaegerGastId) : '';
-  }
-
-  if (person.nameKat === 'Jagdgastkarten') {
-    return person.jaegerGastId ? persMemberLabel(person.jaegerGastId) : '';
   }
 
   return '';
@@ -440,23 +471,29 @@ function persClearSearch(render) {
   if (render !== false) persRenderTable();
 }
 
-function persOpenNewPersonModal() {
+async function persOpenNewPersonModal() {
   persEditMode = 'add';
   document.getElementById('persModalTitle').textContent = 'Person hinzufügen';
   persClearModal();
   document.getElementById('persNameKat').value = persActiveKat;
-  if (persActiveKat === 'Hundefuehrer') {
-    const nummern = persAllPersons.map(persPersonenNrValue)
-      .filter(function(value) {
-        return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER;
-      });
-    document.getElementById('persPersonenNr').value =
-      (nummern.length ? Math.max.apply(null, nummern) : 0) + 1;
-  }
   document.getElementById('persAktiv').checked = true;
   persHandleNameKatChange();
   DetailMode.setMode(document.getElementById('persPersonModal'), 'edit');
   document.getElementById('persPersonModal').style.display = 'block';
+
+  const personenNrInput = document.getElementById('persPersonenNr');
+  try {
+    if (!window.DPJagdApi || typeof window.DPJagdApi.getNextPersonenNr !== 'function') {
+      throw new Error('Die Nummernermittlung für Personen ist nicht verfügbar.');
+    }
+    const vorschlag = await window.DPJagdApi.getNextPersonenNr(persActiveKat);
+    if (persEditMode === 'add' && personenNrInput && !personenNrInput.value) {
+      personenNrInput.value = vorschlag;
+    }
+  } catch (error) {
+    console.error('Personen-Nr. konnte nicht vorgeschlagen werden:', error);
+  }
+
   setTimeout(function() {
     const input = document.getElementById(
       persActiveKat === 'Hundefuehrer' ? 'persVorname' : 'persPersonenNr'
@@ -516,11 +553,7 @@ function persOpenEditPersonModal(personId, mode) {
 
   persHandleNameKatChange();
 
-  if (person.nameKat === 'Jagdgastkarten') {
-    persPopulateJaegerGastSelect(person.jaegerGastId || '');
-  }
-
-  if (person.nameKat === 'Jagdgast') {
+  if (persIsJagdKategorie(person.nameKat)) {
     const body = document.getElementById('persJagdYearsBody');
     if (body) {
       body.innerHTML = '';
@@ -610,7 +643,7 @@ function persClearModal() {
 function persHandleNameKatChange() {
   const nameKat = document.getElementById('persNameKat').value;
   const isJagd = persIsJagdKategorie(nameKat);
-  const isJagdgastkarten = nameKat === 'Jagdgastkarten';
+  const isJagdgastkarte = nameKat === 'Jagdgastkarte';
   const isHundefuehrer = nameKat === 'Hundefuehrer';
   const isWildfleisch = nameKat === 'Wildfleisch';
   const aktiv = document.getElementById('persAktiv');
@@ -622,26 +655,28 @@ function persHandleNameKatChange() {
   const jaegerGastSelect = document.getElementById('persJaegerGast');
   const personenNrGroup = document.getElementById('persPersonenNrGroup');
   const personenNrLabel = document.getElementById('persPersonenNrLabel');
+  const anredeGroup = document.getElementById('persAnredeGroup');
   const aktivGroup = document.getElementById('persAktivGroup');
   const nameKatGroup = document.getElementById('persNameKatGroup');
+  const jagdBoxTitel = document.getElementById('persJagdBoxTitel');
+  const jagdBoxHinweis = document.getElementById('persJagdBoxHinweis');
+  const jagdMitgliedKopf = document.getElementById('persJagdMitgliedKopf');
 
   if (kjNrGroup) kjNrGroup.style.display =
-    isJagdgastkarten || isHundefuehrer || isWildfleisch ? 'none' : 'block';
+    isJagdgastkarte || isHundefuehrer || isWildfleisch ? 'none' : 'block';
   if (personenNrGroup) personenNrGroup.style.display = isHundefuehrer ? 'none' : '';
-  if (personenNrLabel) personenNrLabel.textContent = isWildfleisch ? 'Nr.' : 'Personen_Nr';
-  if (aktivGroup) aktivGroup.style.display = isHundefuehrer || isWildfleisch ? 'none' : '';
-  if (nameKatGroup) nameKatGroup.style.display = isHundefuehrer || isWildfleisch ? 'none' : '';
+  if (personenNrLabel) personenNrLabel.textContent = isWildfleisch ? 'Nr.' : (isJagdgastkarte ? 'Person Nr.' : 'Personen_Nr');
+  if (anredeGroup) anredeGroup.style.display = isJagdgastkarte ? 'none' : '';
+  if (aktivGroup) aktivGroup.style.display = isHundefuehrer || isWildfleisch || isJagdgastkarte ? 'none' : '';
+  if (nameKatGroup) nameKatGroup.style.display = isHundefuehrer || isWildfleisch || isJagdgastkarte ? 'none' : '';
   ['persAdresseGroup', 'persPlzGroup', 'persOrtGroup'].forEach(function(id) {
     const group = document.getElementById(id);
     if (group) group.style.display = isHundefuehrer ? 'none' : '';
   });
-  if (jagdgastkarteGroup) jagdgastkarteGroup.style.display = isJagdgastkarten ? 'block' : 'none';
-  if (jaegerGastGroup) jaegerGastGroup.style.display = isJagdgastkarten ? 'block' : 'none';
+  if (jagdgastkarteGroup) jagdgastkarteGroup.style.display = isJagdgastkarte ? 'block' : 'none';
+  if (jaegerGastGroup) jaegerGastGroup.style.display = 'none';
 
-  if (isJagdgastkarten) {
-    const selectedId = jaegerGastSelect ? (jaegerGastSelect.getAttribute('data-selected') || jaegerGastSelect.value || '') : '';
-    persPopulateJaegerGastSelect(selectedId);
-  } else if (jaegerGastSelect) {
+  if (jaegerGastSelect) {
     jaegerGastSelect.innerHTML = '';
     jaegerGastSelect.value = '';
     jaegerGastSelect.setAttribute('data-selected', '');
@@ -649,6 +684,12 @@ function persHandleNameKatChange() {
 
   const jagdBox = document.getElementById('persJagdBox');
   if (jagdBox) jagdBox.style.display = isJagd ? 'block' : 'none';
+  if (jagdBoxTitel) jagdBoxTitel.textContent = isJagdgastkarte
+    ? 'Jahresaktivität Jagdgastkarte' : 'Jahresaktivität Jagdgast';
+  if (jagdBoxHinweis) jagdBoxHinweis.textContent = isJagdgastkarte
+    ? 'Alle Jahre werden hier gepflegt. Pro Jahr kann optional ein aktives Mitglied zugeordnet werden.'
+    : 'Alle Jahre werden hier gepflegt. In der Tabellenanzeige wird nur das letzte aktive Jahr angezeigt. Bei Jäger_Gast sind nur aktive Mitglieder auswählbar.';
+  if (jagdMitgliedKopf) jagdMitgliedKopf.textContent = isJagdgastkarte ? 'Mitglied' : 'Jäger';
 
   if (isJagd) {
     aktiv.disabled = true;
@@ -851,9 +892,17 @@ function persSavePerson() {
     alert('Bitte Nachname eingeben.');
     return;
   }
+  const nummerBereitsVergeben = persAllPersons.some(function(item) {
+    return String(item.personenNr || '') === String(person.personenNr) &&
+      String(item.personId || '') !== String(person.originalPersonId || '');
+  });
+  if (nummerBereitsVergeben) {
+    alert('Die Person Nr. ' + person.personenNr + ' ist bereits vergeben.');
+    return;
+  }
 
   const allowedNameKats = [
-    'Mitglied', 'Jagdgast', 'Jagdgastkarten', 'Hundefuehrer', 'Hegering', 'Wildfleisch'
+    'Mitglied', 'Jagdgast', 'Jagdgastkarte', 'Hundefuehrer', 'Hegering', 'Wildfleisch'
   ];
   if (allowedNameKats.indexOf(person.nameKat) === -1) {
     alert('Name_Kat ist ungültig.');
@@ -861,6 +910,10 @@ function persSavePerson() {
   }
 
   let jagdRows = [];
+  if (person.nameKat === 'Jagdgastkarte' && !person.jagdgastkarte) {
+    alert('Bitte Jagdgastkarte eingeben.');
+    return;
+  }
   if (persIsJagdKategorie(person.nameKat)) {
     jagdRows = persCollectJagdRows(true);
     if (jagdRows === null) return;
@@ -869,16 +922,6 @@ function persSavePerson() {
       return Number(row.jahr) === Number(persCurrentYear) && row.aktiv === true;
     });
     person.jaegerGastId = '';
-  } else if (person.nameKat === 'Jagdgastkarten') {
-    if (!persValidateJaegerGastSelection(person.jaegerGastId, person.personId, true)) return;
-    if (person.jaegerGastId) {
-      jagdRows = [{
-        jahr: persCurrentYear,
-        aktiv: true,
-        jaegerGastId: person.jaegerGastId,
-        bemerkung: ''
-      }];
-    }
   } else {
     person.jaegerGastId = '';
   }

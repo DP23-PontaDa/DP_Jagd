@@ -11,7 +11,7 @@
     <title>DP Jagd</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.svg">
-    <link rel="stylesheet" href="css/layout.css?v=117">
+    <link rel="stylesheet" href="css/layout.css?v=153">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -132,6 +132,7 @@
                     <button type="button" data-page="abschussplan" data-recht-code="abschussplan-rotwild" data-panel="ap-rotwild">Rotwild</button>
                     <button type="button" data-page="abschussplan" data-recht-code="abschussplan-rehwild" data-panel="ap-rehwild">Rehwild</button>
                     <button type="button" data-page="abschussplan" data-recht-code="abschussplan-gamswild" data-panel="ap-gamswild">Gamswild</button>
+                    <button type="button" data-page="freigaben" data-recht-code="abschussplan-freigaben">Freigaben</button>
                     <button type="button" data-page="abschussplan" data-recht-code="abschussplan-jahre" data-panel="ap-jahre">Übersicht Jahre</button>
                 </div>
             </div>
@@ -166,6 +167,10 @@
                         type="button"
                         data-page="planpositionen">
                         Planpositionen
+                    </button>
+
+                    <button type="button" data-page="abschussregeln">
+                        Abschussregeln
                     </button>
 
                     <button
@@ -228,33 +233,37 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="js/config.js"></script>
-    <script src="js/services/berechtigungService.js?v=111"></script>
+    <script src="js/services/berechtigungService.js?v=140"></script>
     <script src="js/auth.js?v=94"></script>
-    <script src="js/router.js?v=111"></script>
-    <script src="js/api.js"></script>
+    <script src="js/router.js?v=140"></script>
+    <script src="js/api.js?v=122"></script>
     <script src="js/components/wildklasseColors.js"></script>
-    <script src="js/services/dashboardService.js?v=95"></script>
-    <script src="js/dashboard.js?v=95"></script>
-    <script src="js/personen.js"></script>
-    <script src="js/services/abschussplanService.js"></script>
-    <script src="js/abschussplanWildgruppe.js"></script>
-    <script src="js/abschussplan.js?v=95"></script>
+    <script src="js/services/dashboardService.js?v=138"></script>
+    <script src="js/dashboard.js?v=152"></script>
+    <script src="js/personen.js?v=122"></script>
+    <script src="js/services/abschussplanService.js?v=137"></script>
+    <script src="js/abschussplanWildgruppe.js?v=137"></script>
+    <script src="js/abschussplan.js?v=129"></script>
     <script src="js/services/wildgruppenService.js?v=88"></script>
     <script src="js/wildgruppen.js?v=88"></script>
-    <script src="js/services/wildklassenService.js?v=105"></script>
-    <script src="js/stammdaten.js"></script>
+    <script src="js/services/wildklassenService.js?v=151"></script>
+    <script src="js/stammdaten.js?v=146"></script>
     <script src="js/services/planpositionService.js"></script>
     <script src="js/planpositionen.js"></script>
     <script src="js/components/searchDropdown.js"></script>
-    <script src="js/components/detailMode.js"></script>
+    <script src="js/components/detailMode.js?v=129"></script>
     <script src="js/components/clientFilter.js"></script>
     <script src="js/components/appFeedback.js"></script>
     <script src="js/components/epcQr.js"></script>
     <script src="js/mobile.js"></script>
     <script src="js/services/wildhaendlerService.js?v=88"></script>
     <script src="js/wildhaendler.js?v=88"></script>
-    <script src="js/services/abschussService.js?v=99"></script>
-    <script src="js/abschuss.js?v=104"></script>
+    <script src="js/services/abschussService.js?v=151"></script>
+    <script src="js/services/abschussregelnService.js?v=151"></script>
+    <script src="js/services/freigabenService.js?v=151"></script>
+    <script src="js/abschuss.js?v=146"></script>
+    <script src="js/abschussregeln.js?v=151"></script>
+    <script src="js/freigaben.js?v=151"></script>
     <script src="js/services/rechnungPrintService.js?v=88"></script>
     <script src="js/services/rechnungService.js?v=88"></script>
     <script src="js/rechnungen.js?v=88"></script>
@@ -262,12 +271,12 @@
     <script src="js/rechnungsvorlage.js"></script>
     <script src="js/services/benutzerverwaltungService.js?v=95"></script>
     <script src="js/benutzerverwaltung.js?v=95"></script>
-    <script src="js/services/orteService.js?v=110"></script>
-    <script src="js/components/orteKarte.js?v=108"></script>
+    <script src="js/services/orteService.js?v=127"></script>
+    <script src="js/components/orteKarte.js?v=118"></script>
     <script src="js/components/orteAuswahl.js?v=108"></script>
     <script src="js/services/hashtagService.js?v=115"></script>
     <script src="js/components/hashtagInput.js?v=115"></script>
-    <script src="js/orte.js?v=110"></script>
+    <script src="js/orte.js?v=127"></script>
     <script src="js/services/tagebuchartenService.js?v=111"></script>
     <script src="js/services/tagebuchDpService.js?v=112"></script>
     <script src="js/tagebucharten.js?v=111"></script>
@@ -278,8 +287,8 @@
     <script src="js/st-peter-mitterberg.js?v=115"></script>
     <script src="js/services/nachsuchenService.js?v=99"></script>
     <script src="js/nachsuchen.js?v=99"></script>
-    <script src="js/services/importExportService.js"></script>
-    <script src="js/import-export.js"></script>
+    <script src="js/services/importExportService.js?v=126"></script>
+    <script src="js/import-export.js?v=128"></script>
     <script src="js/app.js?v=90"></script>
 </body>
 </html>

@@ -36,6 +36,7 @@ window.Abschuss = (() => {
 
     jaegerDropdown = new SearchDropdown(el("asJaeger"), {
       placeholder: "Jäger suchen",
+      onChange: freigabeZusatzinfoVorschlagen,
     });
     wildgruppeDropdown = new SearchDropdown(el("asWildgruppe"), {
       placeholder: "Wildgruppe suchen",
@@ -44,6 +45,7 @@ window.Abschuss = (() => {
     wildklasseDropdown = new SearchDropdown(el("asWildklasse"), {
       placeholder: "Zuerst Wildgruppe wählen",
       disabled: true,
+      onChange: wildklasseGeaendert,
     });
     wildhaendlerDropdown = new SearchDropdown(el("asWildhaendler"), {
       placeholder: "Wildhändler suchen",
@@ -141,7 +143,7 @@ window.Abschuss = (() => {
   }
 
   async function ladeJaeger() {
-      jaeger = await AbschussService.getJaeger();
+      jaeger = await AbschussService.getAuswaehlbareAbschussJaeger();
       jaegerDropdown.setOptions(
         jaeger.map((person) => ({
           value: person.id,
@@ -442,6 +444,7 @@ window.Abschuss = (() => {
     wildklasseDropdown.clear(false);
     wildklasseDropdown.setOptions([]);
     wildklasseDropdown.setDisabled(true);
+    wildklasseGeaendert(null);
     if (!option) return;
     try {
       const klassen =
@@ -471,6 +474,33 @@ window.Abschuss = (() => {
       el("asPreis").value =
         preis === null || !Number.isFinite(preis) ? "" : preis.toFixed(2);
       berechneGesamtpreis();
+    }
+  }
+
+  function wildklasseGeaendert(option) {
+    const istHirschB1 =
+      erfassungsmodus === "plan" &&
+      String(option?.label || option?.data?.bezeichnung || "")
+        .trim().toLocaleLowerCase("de") === "hirsch b1";
+    el("asInternerB1Gruppe").hidden = !istHirschB1;
+    if (!istHirschB1) el("asInternerB1").checked = false;
+    freigabeZusatzinfoVorschlagen();
+  }
+
+  async function freigabeZusatzinfoVorschlagen() {
+    if (erfassungsmodus !== "plan" || el("asZusatzinfo").value.trim()) return;
+    const jaegerId = jaegerDropdown?.getValue();
+    const wildklasseId = wildklasseDropdown?.getValue();
+    const datum = el("asDatum").value;
+    if (!jaegerId || !wildklasseId || !datum || !window.FreigabenService) return;
+    try {
+      const freigabe = await FreigabenService.freigabeFuer(
+        jaegerId, wildklasseId, Number(datum.slice(0, 4)),
+      );
+      if (!freigabe?.nicht_passend || !freigabe.frei_ab) return;
+      el("asZusatzinfo").value = `Nächster ${freigabe.wildklasse.bezeichnung} frei ab ${formatDatum(freigabe.frei_ab)}`;
+    } catch (error) {
+      console.warn("Freigabe-Vorschlag konnte nicht ermittelt werden:", error);
     }
   }
 
@@ -547,6 +577,7 @@ window.Abschuss = (() => {
 
     const datum = el("asDatum").value;
     const jahr = datum ? Number(datum.slice(0, 4)) : null;
+    freigabeZusatzinfoVorschlagen();
     if (!jahr || jahr === nummerJahr) return;
 
     nummerJahr = jahr;
@@ -603,6 +634,8 @@ window.Abschuss = (() => {
       wildklasseDropdown.setOptions(klassen);
       wildklasseDropdown.setDisabled(!klassen.length);
       wildklasseDropdown.setValue(abschuss.wildklasse_id, false);
+      el("asInternerB1").checked = abschuss.interner_hirsch_b1 === true;
+      wildklasseGeaendert(wildklasseDropdown.getSelected());
       wildhaendlerDropdown.setValue(abschuss.wildhaendler_id, false);
       ortDropdown.setValue(abschuss.ort_id, false);
       wildhaendlerGeaendert(wildhaendlerDropdown.getSelected(), false);
@@ -626,6 +659,8 @@ window.Abschuss = (() => {
       "asZahlungseingang", "asZusatzinfo", "asBemerkung", "asProtokoll"]
       .forEach((id) => { el(id).value = ""; });
     el("asFallwild").checked = false;
+    el("asInternerB1").checked = false;
+    el("asInternerB1Gruppe").hidden = true;
     jaegerDropdown.clear(false);
     wildgruppeDropdown.clear(false);
     wildklasseDropdown.clear(false);
@@ -716,6 +751,8 @@ window.Abschuss = (() => {
       zusatzinfo: el("asZusatzinfo").value.trim() || null,
       bemerkung: el("asBemerkung").value.trim() || null,
       fallwild: el("asFallwild").checked,
+      interner_hirsch_b1: !el("asInternerB1Gruppe").hidden &&
+        el("asInternerB1").checked,
       untersuchungsprotokoll_nr: el("asProtokoll").value.trim() || null,
     };
     el("asFehler").hidden = true;
