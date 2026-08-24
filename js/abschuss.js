@@ -279,6 +279,10 @@ window.Abschuss = (() => {
     ];
     if (erfassungsmodus === "ausserhalb-plan") {
       return basis.concat([
+        {
+          label: "Erlegungsort",
+          wert: (abschuss) => OrteAuswahl.bezeichnung(abschuss.erlegungsort),
+        },
         { label: "Zusatzinfo", wert: (abschuss) => abschuss.zusatzinfo },
         { label: "Bemerkung", wert: (abschuss) => abschuss.bemerkung },
         { label: "Fallwild", wert: (abschuss) => abschuss.fallwild ? "Ja" : "Nein" },
@@ -306,24 +310,8 @@ window.Abschuss = (() => {
     ]);
   }
 
-  function istWildhaendlerKlein(abschuss) {
-    const code = String(abschuss.wildhaendler?.code || "").trim().toLocaleLowerCase("de");
-    const bezeichnung = String(abschuss.wildhaendler?.bezeichnung || "")
-      .trim().toLocaleLowerCase("de");
-    return code === "klein" || ["klein", "klein wildhändler"].includes(bezeichnung);
-  }
-
   function rechnungsStatusKlasse(abschuss) {
-    if (abschuss.fallwild === true) return "";
-    const rechnungMoeglich = abschuss.wildgruppen?.rechnung_moeglich === true &&
-      abschuss.wildhaendler?.rechnung_moeglich === true;
-    const klein = istWildhaendlerKlein(abschuss);
-    if (!rechnungMoeglich && !klein) return "";
-    if (abschuss.zahlungseingang) return "invoice-status-paid";
-    if (klein) return "invoice-status-unpaid";
-    return abschuss.rechnung_vorhanden
-      ? "invoice-status-unpaid"
-      : "invoice-status-open";
+    return InvoiceStatus.klasseFuerAbschuss(abschuss);
   }
 
   function tabelleKonfigurieren() {

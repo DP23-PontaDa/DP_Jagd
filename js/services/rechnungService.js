@@ -8,7 +8,8 @@ const RechnungService = (() => {
     positionen:rechnungspositionen (
       id, rechnung_id, abschuss_id, position_nr, beschreibung, menge,
       einzelpreis, gesamtpreis, abschuss_nr, abschuss_jahr,
-      abschuss_datum, wildgruppe, wildklasse
+      abschuss_datum, wildgruppe, wildklasse,
+      abschuss:abschuesse (zahlungseingang)
     )`;
 
   function serviceFehler(error, fallback) {
@@ -61,7 +62,7 @@ const RechnungService = (() => {
     const [abschussResult, positionResult] = await Promise.all([
       db.from("abschuesse").select(`
         id, nr, jahr, datum, gewicht, preis_pro_kg, gesamtpreis,
-        fallwild, wildhaendler_id, wildhaendler (id, bezeichnung, rechnung_moeglich),
+        fallwild, wildhaendler_id, wildhaendler (id, bezeichnung, rechnungstext, rechnung_moeglich),
         wildgruppen (id, bezeichnung, rechnung_moeglich), wildklassen (id, bezeichnung)
       `).eq("fallwild", false).order("datum", { ascending: false })
         .order("nr", { ascending: false }),

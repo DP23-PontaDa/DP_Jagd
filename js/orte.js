@@ -28,6 +28,14 @@ window.Orte = (() => {
     el("orteSchliessen").addEventListener("click", modalSchliessen);
     el("orteAbbrechen").addEventListener("click", modalSchliessen);
     el("orteSpeichern").addEventListener("click", speichern);
+    el("orteAlsEinrichtung").addEventListener("click", umwandelnOeffnen);
+    el("orteUmwandelnSchliessen").addEventListener("click", umwandelnSchliessen);
+    el("orteUmwandelnAbbrechen").addEventListener("click", umwandelnSchliessen);
+    el("orteUmwandelnSpeichern").addEventListener("click", umwandelnSpeichern);
+    el("orteUmwandelnArt").addEventListener("change", umwandelnBestaetigungAktualisieren);
+    el("orteUmwandelnModal").addEventListener("click", (event) => {
+      if (event.target === el("orteUmwandelnModal")) umwandelnSchliessen();
+    });
     el("ortePositionLoeschen").addEventListener("click", () => positionSetzen(null, null));
     el("orteBilder").addEventListener("change", bilderAuswaehlen);
     el("orteBilderVorschau").addEventListener("click", bildAktion);
@@ -202,6 +210,8 @@ window.Orte = (() => {
     el("orteArt").value = ort.art || "";
     el("orteInfo").value = ort.info || "";
     el("orteArtGruppe").hidden = nurKarte || !ort.reviereinrichtung;
+    el("orteAlsEinrichtung").hidden = nurKarte || !ort.id || ort.reviereinrichtung === true ||
+      !BerechtigungService.darfSeite("orte", "Bearbeiten");
     el("orteBilder").value = "";
     el("orteModalFehler").hidden = true;
     positionSetzen(ort.latitude, ort.longitude);
@@ -209,6 +219,78 @@ window.Orte = (() => {
     el("orteModal").style.display = "block";
     el("orteModal").setAttribute("aria-hidden", "false");
     karteNachModalOeffnungInitialisieren();
+  }
+
+  async function umwandelnOeffnen() {
+    if (!aktuellerOrt?.id || aktuellerOrt.reviereinrichtung === true ||
+        !BerechtigungService.darfSeite("orte", "Bearbeiten")) return;
+    el("orteAlsEinrichtung").disabled = true;
+    try {
+      const neueNr = await OrteService.naechsteNummer(true);
+      el("orteUmwandelnAlteNr").value = aktuellerOrt.nr;
+      el("orteUmwandelnNeueNr").value = neueNr;
+      el("orteUmwandelnArt").value = "";
+      el("orteUmwandelnFehler").hidden = true;
+      umwandelnBestaetigungAktualisieren();
+      el("orteUmwandelnModal").style.display = "block";
+      el("orteUmwandelnModal").setAttribute("aria-hidden", "false");
+    } catch (error) {
+      el("orteModalFehler").textContent = error.message;
+      el("orteModalFehler").hidden = false;
+    } finally {
+      el("orteAlsEinrichtung").disabled = false;
+    }
+  }
+
+  function umwandelnBestaetigungAktualisieren() {
+    const art = el("orteUmwandelnArt").value;
+    el("orteUmwandelnBestaetigung").textContent = art
+      ? `Bisherige Nummer: ${el("orteUmwandelnAlteNr").value}\n` +
+        `Neue Nummer: ${el("orteUmwandelnNeueNr").value}\nArt: ${art}\n\nFortfahren?`
+      : "Bitte eine Art auswählen.";
+  }
+
+  function umwandelnSchliessen() {
+    el("orteUmwandelnModal").style.display = "none";
+    el("orteUmwandelnModal").setAttribute("aria-hidden", "true");
+    el("orteUmwandelnFehler").hidden = true;
+  }
+
+  async function umwandelnSpeichern() {
+    if (!aktuellerOrt?.id || aktuellerOrt.reviereinrichtung === true ||
+        !BerechtigungService.darfSeite("orte", "Bearbeiten")) {
+      umwandelnSchliessen();
+      return;
+    }
+    const art = el("orteUmwandelnArt").value;
+    const neueNr = Number(el("orteUmwandelnNeueNr").value);
+    if (!art) {
+      el("orteUmwandelnFehler").textContent = "Bitte eine Art auswählen.";
+      el("orteUmwandelnFehler").hidden = false;
+      return;
+    }
+    const button = el("orteUmwandelnSpeichern");
+    const text = button.textContent;
+    button.disabled = true;
+    button.textContent = "Wird umgewandelt …";
+    el("orteUmwandelnFehler").hidden = true;
+    try {
+      await OrteService.abschussortInReviereinrichtungUmwandeln(aktuellerOrt.id, neueNr, art);
+      umwandelnSchliessen();
+      modalSchliessen();
+      aktiveEinrichtungen = true;
+      el("orteTabEinrichtungen").classList.add("active");
+      el("orteTabAbschussorte").classList.remove("active");
+      await laden();
+      AppFeedback.success("Abschussort als Reviereinrichtung übernommen.");
+    } catch (error) {
+      console.error("Abschussort umwandeln:", error);
+      el("orteUmwandelnFehler").textContent = error.message || "Der Abschussort konnte nicht umgewandelt werden.";
+      el("orteUmwandelnFehler").hidden = false;
+    } finally {
+      button.disabled = false;
+      button.textContent = text;
+    }
   }
 
   function karteNachModalOeffnungInitialisieren() {
@@ -502,6 +584,7 @@ window.Orte = (() => {
     neueDateien = [];
     el("orteModal").style.display = "none";
     el("orteModal").setAttribute("aria-hidden", "true");
+    umwandelnSchliessen();
     aktuellerOrt = null;
     kartenNurLesen = false;
   }

@@ -92,6 +92,34 @@ const OrteService = (() => {
     return { id };
   }
 
+  async function abschussortInReviereinrichtungUmwandeln(id, neueNr, art) {
+    const nr = Number(neueNr);
+    const erlaubteArten = new Set(["Bodensitz", "Hochsitz", "Sitzbank", "Natur"]);
+    if (!id) throw new Error("Der umzuwandelnde Abschussort wurde nicht gefunden.");
+    if (!Number.isInteger(nr) || nr < 1 || nr > 500) {
+      throw new Error("Die Reviereinrichtungs-Nr. muss zwischen 1 und 500 liegen.");
+    }
+    if (!erlaubteArten.has(art)) throw new Error("Bitte eine gültige Art auswählen.");
+
+    const nummerResult = await db.from("orte").select("id").eq("nr", nr).neq("id", id).limit(1);
+    if (nummerResult.error) throw fehler(nummerResult.error, "Die Reviereinrichtungs-Nr. konnte nicht geprüft werden.");
+    if ((nummerResult.data || []).length) {
+      throw new Error(`Die Reviereinrichtungs-Nr. ${nr} ist bereits vergeben.`);
+    }
+
+    const { data, error } = await db.from("orte").update({
+      nr,
+      reviereinrichtung: true,
+      art,
+    }).eq("id", id).eq("reviereinrichtung", false).select("id,nr,reviereinrichtung,art").maybeSingle();
+    if (error?.code === "23505") {
+      throw new Error(`Die Reviereinrichtungs-Nr. ${nr} ist bereits vergeben.`);
+    }
+    if (error) throw fehler(error, "Der Abschussort konnte nicht umgewandelt werden.");
+    if (!data) throw new Error("Der Ort ist kein Abschussort mehr oder wurde zwischenzeitlich geändert.");
+    return data;
+  }
+
   async function bilderLaden(ortId) {
     const { data, error } = await db.from("ort_bilder")
       .select("id,ort_id,storage_path,dateiname,sortierung")
@@ -354,7 +382,8 @@ const OrteService = (() => {
   }
 
   return {
-    orteLaden, auswahlLaden, naechsteNummer, ortAnlegen, ortAendern, ortLoeschen,
+    orteLaden, auswahlLaden, naechsteNummer, ortAnlegen, ortAendern,
+    abschussortInReviereinrichtungUmwandeln, ortLoeschen,
     bilderLaden, bilderAlleLaden, bilderHochladen, bildLoeschen, bilderSortieren,
     kartenEinstellungenLaden, kartenEinstellungenSpeichern, bildValidieren,
     importVorlageErzeugen, orteExportieren, importDateiEinlesen,

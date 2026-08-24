@@ -27,6 +27,17 @@
     padding: 16px 0;
 }
 
+.sidebar-divider {
+    height: 1px;
+    margin: 7px 14px;
+    background: rgba(255, 255, 255, 0.16);
+    pointer-events: none;
+}
+
+.sidebar-divider[hidden] {
+    display: none;
+}
+
 #sidebar button {
     width: 100%;
     border: 0;

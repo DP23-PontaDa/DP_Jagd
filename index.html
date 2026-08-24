@@ -11,12 +11,13 @@
     <title>DP Jagd</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.svg">
-    <link rel="stylesheet" href="css/layout.css?v=153">
-    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/layout.css?v=165">
+    <link rel="stylesheet" href="css/sidebar.css?v=168">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <link rel="stylesheet" href="css/orte.css?v=110">
+    <link rel="stylesheet" href="css/orte.css?v=160">
     <link rel="stylesheet" href="css/tagebuch.css?v=112">
+    <link rel="stylesheet" href="css/tagebuch-zusammenfassung.css?v=167">
     <link rel="stylesheet" href="css/st-peter-mitterberg.css?v=114">
     <link rel="stylesheet" href="css/hashtag-input.css?v=115">
     <style>
@@ -94,17 +95,28 @@
 
                 <div class="sidebar-submenu" data-group="dashboard">
                     <button type="button" data-page="dashboard" data-recht-code="dashboard-abschuss" data-dashboard-section="dashboard-abschuss">Abschuss</button>
+                    <button type="button" data-page="dashboard-orte-heatmap" data-recht-code="dashboard-abschuss">Orte - Heatmap</button>
                     <button type="button" data-page="dashboard" data-recht-code="dashboard-jaeger" data-dashboard-section="dashboard-jaeger">Jäger</button>
                     <button type="button" data-page="dashboard" data-recht-code="dashboard-wildhaendler" data-dashboard-section="dashboard-wildhaendler">Wildhändler</button>
+                    <button type="button" data-page="dashboard-haar-federwild" data-recht-code="haar-federwild">Haar- und Federwild</button>
                 </div>
             </div>
-            <button type="button" data-page="personen">Personen</button>
             <button type="button" data-page="abschuss">Abschuss</button>
             <button type="button" data-page="haar-federwild">Haar- und Federwild</button>
             <button id="sidebarRechnungen" type="button" data-page="rechnungen">Rechnungen</button>
-            <button type="button" data-page="orte">Orte</button>
-            <button type="button" data-page="tagebuch-dp">Tagebuch DP</button>
+            <div class="sidebar-divider" role="separator" aria-hidden="true" hidden></div>
+            <div class="sidebar-group">
+                <button type="button" class="sidebar-group-toggle" data-toggle="submenu"
+                    data-group="tagebuch-dp" aria-expanded="false">Tagebuch DP</button>
+                <div class="sidebar-submenu" data-group="tagebuch-dp">
+                    <button type="button" data-page="tagebuch-dp" data-recht-code="tagebuch-dp">Einträge</button>
+                    <button type="button" data-page="tagebuch-zusammenfassung" data-recht-code="tagebuch-dp-zusammenfassung">Zusammenfassung</button>
+                </div>
+            </div>
+            <div class="sidebar-divider" role="separator" aria-hidden="true" hidden></div>
             <button type="button" data-page="st-peter-mitterberg">St. Peter/Mitterberg</button>
+            <button type="button" data-page="personen">Personen</button>
+            <button type="button" data-page="orte">Orte</button>
             <div class="sidebar-group">
                 <button type="button" class="sidebar-group-toggle"
                     data-toggle="submenu" data-group="nachsuchen" aria-expanded="false">
@@ -116,6 +128,8 @@
                     <button type="button" data-page="probeschuesse" data-recht-code="probeschuesse">Probeschüsse</button>
                 </div>
             </div>
+
+            <div class="sidebar-divider" role="separator" aria-hidden="true" hidden></div>
 
             <div class="sidebar-group">
                 <button
@@ -136,6 +150,8 @@
                     <button type="button" data-page="abschussplan" data-recht-code="abschussplan-jahre" data-panel="ap-jahre">Übersicht Jahre</button>
                 </div>
             </div>
+
+            <div class="sidebar-divider" role="separator" aria-hidden="true" hidden></div>
 
             <div class="sidebar-group">
                 <button
@@ -232,14 +248,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/services/berechtigungService.js?v=140"></script>
+    <script src="js/services/berechtigungService.js?v=168"></script>
     <script src="js/auth.js?v=94"></script>
-    <script src="js/router.js?v=140"></script>
+    <script src="js/router.js?v=164"></script>
     <script src="js/api.js?v=122"></script>
     <script src="js/components/wildklasseColors.js"></script>
-    <script src="js/services/dashboardService.js?v=138"></script>
-    <script src="js/dashboard.js?v=152"></script>
+    <script src="js/components/dashboardChartOptions.js?v=166"></script>
+    <script src="js/components/invoiceStatus.js?v=155"></script>
+    <script src="js/services/dashboardService.js?v=161"></script>
+    <script src="js/dashboard.js?v=166"></script>
+    <script src="js/services/haarFederwildDashboardService.js?v=157"></script>
+    <script src="js/dashboard-haar-federwild.js?v=166"></script>
     <script src="js/personen.js?v=122"></script>
     <script src="js/services/abschussplanService.js?v=137"></script>
     <script src="js/abschussplanWildgruppe.js?v=137"></script>
@@ -256,31 +277,33 @@
     <script src="js/components/appFeedback.js"></script>
     <script src="js/components/epcQr.js"></script>
     <script src="js/mobile.js"></script>
-    <script src="js/services/wildhaendlerService.js?v=88"></script>
-    <script src="js/wildhaendler.js?v=88"></script>
-    <script src="js/services/abschussService.js?v=151"></script>
+    <script src="js/services/wildhaendlerService.js?v=154"></script>
+    <script src="js/wildhaendler.js?v=154"></script>
+    <script src="js/services/abschussService.js?v=162"></script>
     <script src="js/services/abschussregelnService.js?v=151"></script>
     <script src="js/services/freigabenService.js?v=151"></script>
-    <script src="js/abschuss.js?v=146"></script>
+    <script src="js/abschuss.js?v=162"></script>
     <script src="js/abschussregeln.js?v=151"></script>
     <script src="js/freigaben.js?v=151"></script>
     <script src="js/services/rechnungPrintService.js?v=88"></script>
-    <script src="js/services/rechnungService.js?v=88"></script>
-    <script src="js/rechnungen.js?v=88"></script>
+    <script src="js/services/rechnungService.js?v=155"></script>
+    <script src="js/rechnungen.js?v=155"></script>
     <script src="js/services/rechnungsvorlageService.js"></script>
     <script src="js/rechnungsvorlage.js"></script>
     <script src="js/services/benutzerverwaltungService.js?v=95"></script>
     <script src="js/benutzerverwaltung.js?v=95"></script>
-    <script src="js/services/orteService.js?v=127"></script>
+    <script src="js/services/orteService.js?v=160"></script>
     <script src="js/components/orteKarte.js?v=118"></script>
     <script src="js/components/orteAuswahl.js?v=108"></script>
     <script src="js/services/hashtagService.js?v=115"></script>
     <script src="js/components/hashtagInput.js?v=115"></script>
-    <script src="js/orte.js?v=127"></script>
+    <script src="js/orte.js?v=160"></script>
     <script src="js/services/tagebuchartenService.js?v=111"></script>
     <script src="js/services/tagebuchDpService.js?v=112"></script>
+    <script src="js/services/tagebuchZusammenfassungService.js?v=158"></script>
     <script src="js/tagebucharten.js?v=111"></script>
     <script src="js/tagebuch-dp.js?v=115"></script>
+    <script src="js/tagebuch-zusammenfassung.js?v=167"></script>
     <script src="js/services/journalKategorienService.js?v=114"></script>
     <script src="js/services/stPeterMitterbergService.js?v=114"></script>
     <script src="js/journal-kategorien.js?v=114"></script>

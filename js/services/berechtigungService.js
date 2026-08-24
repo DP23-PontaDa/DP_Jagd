@@ -2,13 +2,16 @@ const BerechtigungService = (() => {
   const db = window.db || window.supabase;
   const rechte = new Map();
   const seitenModule = {
-    dashboard: "dashboard", personen: "personen", abschuss: "abschuss",
+    dashboard: "dashboard", "dashboard-haar-federwild": "haar-federwild",
+    "dashboard-orte-heatmap": "dashboard-abschuss",
+    personen: "personen", abschuss: "abschuss",
     "haar-federwild": "haar-federwild", rechnungen: "rechnungen",
     nachsuchen: "nachsuchen", fehlschuesse: "fehlschuesse",
     probeschuesse: "probeschuesse", abschussplan: "abschussplan",
     freigaben: "abschussplan-freigaben",
     wildgruppen: "wildgruppen", orte: "wildgruppen", stammdaten: "wildklassen",
-    "tagebuch-dp": "tagebuch-dp", tagebucharten: "tagebucharten",
+    "tagebuch-dp": "tagebuch-dp", "tagebuch-zusammenfassung": "tagebuch-dp-zusammenfassung",
+    tagebucharten: "tagebucharten",
     "st-peter-mitterberg": "st-peter-mitterberg", "journal-kategorien": "journal-kategorien",
     planpositionen: "planpositionen", wildhaendler: "wildhaendler",
     rechnungsvorlage: "rechnungsvorlage", abschussregeln: "abschussregeln",
@@ -96,6 +99,29 @@ const BerechtigungService = (() => {
       const hatEintrag = [...gruppe.querySelectorAll(".sidebar-submenu [data-page]")]
         .some((button) => !button.hidden);
       gruppe.hidden = !hatEintrag;
+    });
+    dividerAnwenden(sidebar);
+  }
+
+  function dividerAnwenden(sidebar) {
+    const nav = sidebar.querySelector("nav");
+    if (!nav) return;
+    const elemente = [...nav.children];
+    elemente.filter((element) => element.classList.contains("sidebar-divider"))
+      .forEach((divider) => { divider.hidden = true; });
+    let sichtbarerBereichVorhanden = false;
+    let wartendeDivider = [];
+    elemente.forEach((element) => {
+      if (element.classList.contains("sidebar-divider")) {
+        wartendeDivider.push(element);
+        return;
+      }
+      if (element.hidden) return;
+      if (sichtbarerBereichVorhanden && wartendeDivider.length) {
+        wartendeDivider[0].hidden = false;
+      }
+      wartendeDivider = [];
+      sichtbarerBereichVorhanden = true;
     });
   }
 

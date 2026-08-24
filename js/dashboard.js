@@ -9,6 +9,8 @@ const Dashboard = (() => {
   let dashboardData = null;
   let dashboardBereiche = null;
   let dashboardJahr = "beide";
+  let heatmapKarte = null;
+  let heatmapLadeId = 0;
 
   function withAlpha(color, alpha) {
     if (/^#[0-9a-f]{6}$/i.test(color)) {
@@ -30,6 +32,11 @@ const Dashboard = (() => {
       sectionObserver.disconnect();
       sectionObserver = null;
     }
+    if (heatmapKarte) {
+      heatmapKarte.remove();
+      heatmapKarte = null;
+    }
+    heatmapLadeId += 1;
   }
 
   function numberValue(value) {
@@ -158,7 +165,7 @@ const Dashboard = (() => {
         ],
       },
       plugins: [verticalValueLabels, planAxisLabels],
-      options: {
+      options: DashboardChartOptions.withTooltip({
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
@@ -170,7 +177,7 @@ const Dashboard = (() => {
           x: { stacked: true, grid: { display: false }, ticks: { display: false } },
           y: { stacked: true, beginAtZero: true, grace: "15%", ticks: { precision: 0 } },
         },
-      },
+      }),
     });
     charts.push(chart);
     return chart;
@@ -509,7 +516,7 @@ const Dashboard = (() => {
         datasets,
       },
       plugins: [hunterValueLabels],
-      options: {
+      options: DashboardChartOptions.withTooltip({
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
@@ -535,7 +542,7 @@ const Dashboard = (() => {
           },
           y: { stacked: true, grid: { display: false } },
         },
-      },
+      }),
     }));
   }
 
@@ -659,7 +666,7 @@ const Dashboard = (() => {
         ],
       },
       plugins: [dealerValueLabels],
-      options: {
+      options: DashboardChartOptions.withTooltip({
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
@@ -699,7 +706,7 @@ const Dashboard = (() => {
             grid: { drawOnChartArea: false },
           },
         },
-      },
+      }),
     }));
   }
 
@@ -719,7 +726,7 @@ const Dashboard = (() => {
       createDealerCard(grid, definition, data?.[definition.key] || []));
   }
 
-  function createYearFilter(container, planperiode) {
+  function createYearFilter(container, planperiode, onChange = renderDashboardContent) {
     const section = createElement("section", "dashboard-year-filter");
     section.appendChild(createElement("strong", "", "Jahr:"));
     const group = createElement("div", "dashboard-year-filter-buttons");
@@ -735,12 +742,175 @@ const Dashboard = (() => {
       button.addEventListener("click", () => {
         if (dashboardJahr === option.value) return;
         dashboardJahr = option.value;
-        renderDashboardContent();
+        onChange();
       });
       group.appendChild(button);
     });
     section.appendChild(group);
     container.appendChild(section);
+  }
+
+  function optionenSetzen(select, werte, leertext, selected = "") {
+    select.innerHTML = "";
+    const leer = document.createElement("option");
+    leer.value = "";
+    leer.textContent = leertext;
+    select.appendChild(leer);
+    werte.forEach((wert) => {
+      const option = document.createElement("option");
+      option.value = wert.id;
+      option.textContent = wert.bezeichnung;
+      select.appendChild(option);
+    });
+    select.value = selected || "";
+  }
+
+  function gruppenAuswahlRendern(container, gruppen, onChange) {
+    container.innerHTML = "";
+    gruppen.forEach((gruppe) => {
+      const label = createElement("label", "dashboard-heatmap-check");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = gruppe.id;
+      input.addEventListener("change", onChange);
+      label.append(input, document.createTextNode(gruppe.bezeichnung));
+      container.appendChild(label);
+    });
+  }
+
+  function ausgewaehlteGruppen(container) {
+    return [...container.querySelectorAll('input[type="checkbox"]:checked')]
+      .map((input) => input.value);
+  }
+
+  function heatmapPopup(punkt) {
+    const container = createElement("div", "dashboard-heatmap-popup");
+    container.appendChild(createElement("strong", "", punkt.ort_name));
+    container.appendChild(createElement("div", "", `${punkt.anzahl} Abschüsse`));
+    punkt.wildgruppen.forEach((gruppe) => container.appendChild(
+      createElement("div", "", `${gruppe.bezeichnung}: ${gruppe.anzahl}`),
+    ));
+    return container;
+  }
+
+  async function heatmapKarteRendern(container, daten, modus, ladeId) {
+    let einstellungen = null;
+    try { einstellungen = await OrteService.kartenEinstellungenLaden(); }
+    catch (error) { console.warn("Karteneinstellungen konnten nicht geladen werden:", error); }
+    if (ladeId !== heatmapLadeId || !container.isConnected) return;
+    if (heatmapKarte) heatmapKarte.remove();
+    heatmapKarte = null;
+    const fallback = {
+      lat: Number(einstellungen?.map_lat) || 47.3,
+      lng: Number(einstellungen?.map_lng) || 13.7,
+      zoom: Number(einstellungen?.map_zoom) || 8,
+    };
+    heatmapKarte = OrteKarte.karteAnlegen(container, fallback);
+    const markerLayer = L.layerGroup();
+    const grenzen = [];
+    daten.punkte.forEach((punkt) => {
+      const position = [punkt.latitude, punkt.longitude];
+      grenzen.push(position);
+      L.marker(position).bindPopup(heatmapPopup(punkt)).addTo(markerLayer);
+    });
+    let heatLayer;
+    if (typeof L.heatLayer === "function") {
+      const maximum = Math.max(1, ...daten.punkte.map((punkt) => punkt.anzahl));
+      heatLayer = L.heatLayer(
+        daten.punkte.map((punkt) => [punkt.latitude, punkt.longitude, punkt.anzahl]),
+        { radius: 30, blur: 22, maxZoom: 17, max: maximum, minOpacity: 0.3 },
+      );
+    } else {
+      const maximum = Math.max(1, ...daten.punkte.map((punkt) => punkt.anzahl));
+      heatLayer = L.layerGroup(daten.punkte.map((punkt) => L.circleMarker(
+        [punkt.latitude, punkt.longitude], {
+          radius: 10 + 20 * (punkt.anzahl / maximum), stroke: false,
+          fillColor: "#d73027", fillOpacity: 0.25 + 0.55 * (punkt.anzahl / maximum),
+        },
+      )));
+    }
+    (modus === "orte" ? markerLayer : heatLayer).addTo(heatmapKarte);
+    if (grenzen.length > 1) heatmapKarte.fitBounds(grenzen, { padding: [28, 28], maxZoom: 16 });
+    else if (grenzen.length === 1) heatmapKarte.setView(grenzen[0], 16);
+    setTimeout(() => heatmapKarte?.invalidateSize(), 100);
+  }
+
+  function createHeatmapSection(container, planperiode) {
+    const section = createElement("section", "dashboard-card dashboard-heatmap-card");
+    section.id = "dashboard-orte-heatmap";
+    section.appendChild(createElement("h2", "", "Erlegungsorte – Heatmap"));
+    const controls = createElement("div", "dashboard-heatmap-controls");
+    const gruppeFeld = createElement("div", "dashboard-heatmap-filter");
+    gruppeFeld.appendChild(createElement("span", "dashboard-heatmap-filter-label", "Wildgruppen"));
+    const gruppeAuswahl = createElement("div", "dashboard-heatmap-group-options");
+    gruppeAuswahl.setAttribute("aria-label", "Wildgruppen auswählen; keine Auswahl bedeutet alle Wildgruppen");
+    gruppeFeld.appendChild(gruppeAuswahl);
+    gruppeFeld.appendChild(createElement("small", "dashboard-heatmap-filter-help", "Keine Auswahl = alle Wildgruppen"));
+    const klasseLabel = createElement("label", "", "Wildklasse");
+    const klasseSelect = document.createElement("select");
+    klasseLabel.appendChild(klasseSelect);
+    const modusLabel = createElement("label", "", "Darstellung");
+    const modusSelect = document.createElement("select");
+    modusSelect.innerHTML = '<option value="heatmap">Heatmap</option><option value="orte">Orte</option>';
+    modusLabel.appendChild(modusSelect);
+    const fallwildLabel = createElement("label", "dashboard-heatmap-fallwild");
+    const fallwildInput = document.createElement("input");
+    fallwildInput.type = "checkbox";
+    fallwildInput.checked = false;
+    fallwildLabel.append(fallwildInput, document.createTextNode("Fallwild einblenden"));
+    controls.append(gruppeFeld, klasseLabel, modusLabel, fallwildLabel);
+    section.appendChild(controls);
+    const map = createElement("div", "dashboard-heatmap-map");
+    map.setAttribute("aria-label", "Heatmap der Erlegungsorte");
+    section.appendChild(map);
+    const legend = createElement("div", "dashboard-heatmap-legend");
+    legend.innerHTML = '<span>wenig Abschüsse</span><i aria-hidden="true"></i><span>viele Abschüsse</span>';
+    section.appendChild(legend);
+    const info = createElement("p", "dashboard-heatmap-info");
+    section.appendChild(info);
+    container.appendChild(section);
+
+    let alleGruppen = [];
+    let alleKlassen = [];
+    async function laden(initial = false) {
+      const ladeId = ++heatmapLadeId;
+      section.setAttribute("aria-busy", "true");
+      try {
+        const ergebnis = await DashboardService.getAbschussHeatmapDaten({
+          planperiode,
+          jahr: dashboardJahr,
+          wildgruppeIds: ausgewaehlteGruppen(gruppeAuswahl),
+          wildklasseId: klasseSelect.value || null,
+          inklusiveFallwild: fallwildInput.checked,
+        });
+        if (ladeId !== heatmapLadeId || !section.isConnected) return;
+        if (initial) {
+          alleGruppen = ergebnis.wildgruppen;
+          alleKlassen = ergebnis.wildklassen;
+          gruppenAuswahlRendern(gruppeAuswahl, alleGruppen, gruppenGeaendert);
+          optionenSetzen(klasseSelect, alleKlassen, "Alle Wildklassen");
+        }
+        info.textContent = `${ergebnis.ohneKoordinaten} Abschüsse ohne gespeicherte Koordinaten.`;
+        await heatmapKarteRendern(map, ergebnis, modusSelect.value, ladeId);
+      } catch (error) {
+        console.error("Erlegungsorte-Heatmap konnte nicht geladen werden:", error);
+        info.textContent = "Die Heatmap konnte nicht geladen werden.";
+      } finally {
+        if (ladeId === heatmapLadeId) section.removeAttribute("aria-busy");
+      }
+    }
+    function gruppenGeaendert() {
+      const gruppenIds = ausgewaehlteGruppen(gruppeAuswahl);
+      const klassen = gruppenIds.length
+        ? alleKlassen.filter((klasse) => gruppenIds.includes(String(klasse.wildgruppe_id)))
+        : alleKlassen;
+      optionenSetzen(klasseSelect, klassen, "Alle Wildklassen");
+      laden();
+    }
+    klasseSelect.addEventListener("change", () => laden());
+    modusSelect.addEventListener("change", () => laden());
+    fallwildInput.addEventListener("change", () => laden());
+    laden(true);
   }
 
   function renderDashboardContent() {
@@ -763,7 +933,7 @@ const Dashboard = (() => {
         ));
       });
     }
-    if (bereiche.jaeger || bereiche.wildhaendler) {
+    if (bereiche.abschuss || bereiche.jaeger || bereiche.wildhaendler) {
       createYearFilter(content, data.planperiode);
     }
     const jaegerRows = dashboardJahr === "beide" ? data.jaeger :
@@ -845,6 +1015,9 @@ const Dashboard = (() => {
         data.planperiode.endjahr;
       dashboardData = data;
       dashboardBereiche = bereiche;
+      const aktuellesJahr = new Date().getFullYear();
+      dashboardJahr = [Number(data.planperiode.startjahr), Number(data.planperiode.endjahr)]
+        .includes(aktuellesJahr) ? String(aktuellesJahr) : "beide";
       renderDashboardContent();
       if (initialSection) {
         requestAnimationFrame(() => scrollToSection(initialSection));
@@ -855,7 +1028,42 @@ const Dashboard = (() => {
     }
   }
 
-  return { init, scrollToSection };
+  async function initHeatmapPage() {
+    const content = document.getElementById("heatmapDashboardContent");
+    const period = document.getElementById("heatmapDashboardPeriode");
+    const error = document.getElementById("heatmapDashboardFehler");
+    if (!content || !period || !error) return;
+    destroyCharts();
+    content.innerHTML = "";
+    error.hidden = true;
+    try {
+      const planperiode = await DashboardService.getAktivePlanperiode();
+      if (!planperiode) {
+        period.textContent = "Keine aktive Planperiode";
+        content.appendChild(createElement("div", "no-data",
+          "Für die Heatmap ist eine aktive Planperiode erforderlich."));
+        return;
+      }
+      period.textContent = `Aktive Planperiode: ${planperiode.startjahr} / ${planperiode.endjahr}`;
+      const aktuellesJahr = new Date().getFullYear();
+      dashboardJahr = [Number(planperiode.startjahr), Number(planperiode.endjahr)]
+        .includes(aktuellesJahr) ? String(aktuellesJahr) : "beide";
+      const rendern = () => {
+        if (!content.isConnected) return;
+        if (heatmapKarte) { heatmapKarte.remove(); heatmapKarte = null; }
+        heatmapLadeId += 1;
+        content.innerHTML = "";
+        createYearFilter(content, planperiode, rendern);
+        createHeatmapSection(content, planperiode);
+      };
+      rendern();
+    } catch (loadError) {
+      console.error("Heatmap-Dashboard konnte nicht geladen werden:", loadError);
+      error.hidden = false;
+    }
+  }
+
+  return { init, initHeatmapPage, scrollToSection };
 })();
 
 window.Dashboard = Dashboard;

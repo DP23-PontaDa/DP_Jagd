@@ -257,6 +257,93 @@ const DashboardService = (() => {
     };
   }
 
+  async function getAbschussHeatmapDaten({
+    planperiode, jahr = "beide", wildgruppeIds = [], wildklasseId = null,
+    inklusiveFallwild = false,
+  }) {
+    if (!planperiode) return { punkte: [], wildgruppen: [], wildklassen: [], ohneKoordinaten: 0 };
+    const pageSize = 1000;
+    const rows = [];
+    let offset = 0;
+    let page = [];
+    do {
+      let query = db.from("abschuesse").select(`
+        id,datum,ort_id,wildgruppe_id,wildklasse_id,
+        wildgruppe:wildgruppen(id,bezeichnung,reihenfolge),
+        wildklasse:wildklassen(id,bezeichnung,reihenfolge,wildgruppe_id),
+        erlegungsort:orte(id,name,art,reviereinrichtung,latitude,longitude)
+      `);
+      if (jahr === "beide") {
+        query = query.gte("datum", `${planperiode.startjahr}-01-01`)
+          .lt("datum", `${Number(planperiode.endjahr) + 1}-01-01`);
+      } else {
+        query = query.gte("datum", `${jahr}-01-01`)
+          .lt("datum", `${Number(jahr) + 1}-01-01`);
+      }
+      if (!inklusiveFallwild) query = query.eq("fallwild", false);
+      if (wildgruppeIds.length) query = query.in("wildgruppe_id", wildgruppeIds);
+      if (wildklasseId) query = query.eq("wildklasse_id", wildklasseId);
+      const result = await query.order("datum", { ascending: true })
+        .order("id", { ascending: true }).range(offset, offset + pageSize - 1);
+      page = handle(result, "Fehler in Dashboard.getAbschussHeatmapDaten") || [];
+      rows.push(...page);
+      offset += pageSize;
+    } while (page.length === pageSize);
+
+    const gruppen = new Map();
+    const klassen = new Map();
+    const orte = new Map();
+    let ohneKoordinaten = 0;
+    rows.forEach((row) => {
+      const gruppe = relationValue(row.wildgruppe) || {};
+      const klasse = relationValue(row.wildklasse) || {};
+      const ort = relationValue(row.erlegungsort);
+      if (gruppe.id) gruppen.set(String(gruppe.id), gruppe);
+      if (klasse.id) klassen.set(String(klasse.id), klasse);
+      const latitude = Number(ort?.latitude);
+      const longitude = Number(ort?.longitude);
+      if (!row.ort_id || !ort || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        ohneKoordinaten += 1;
+        return;
+      }
+      const key = String(ort.id);
+      const punkt = orte.get(key) || {
+        ort_id: ort.id,
+        ort_name: ort.reviereinrichtung
+          ? [ort.name, ort.art].filter(Boolean).join(" - ")
+          : ort.name,
+        latitude,
+        longitude,
+        anzahl: 0,
+        wildgruppen: new Map(),
+      };
+      punkt.anzahl += 1;
+      if (gruppe.id) {
+        const gruppenKey = String(gruppe.id);
+        const wert = punkt.wildgruppen.get(gruppenKey) || {
+          id: gruppe.id, bezeichnung: gruppe.bezeichnung, anzahl: 0,
+        };
+        wert.anzahl += 1;
+        punkt.wildgruppen.set(gruppenKey, wert);
+      }
+      orte.set(key, punkt);
+    });
+
+    const nachReihenfolge = (left, right) =>
+      Number(left.reihenfolge || 0) - Number(right.reihenfolge || 0) ||
+      String(left.bezeichnung || "").localeCompare(String(right.bezeichnung || ""), "de");
+    return {
+      punkte: [...orte.values()].map((punkt) => ({
+        ...punkt,
+        wildgruppen: [...punkt.wildgruppen.values()].sort((a, b) =>
+          a.bezeichnung.localeCompare(b.bezeichnung, "de")),
+      })),
+      wildgruppen: [...gruppen.values()].sort(nachReihenfolge),
+      wildklassen: [...klassen.values()].sort(nachReihenfolge),
+      ohneKoordinaten,
+    };
+  }
+
   async function loadDashboard(bereiche = {}) {
     const planperiode = await getAktivePlanperiode();
     if (!planperiode) {
@@ -301,6 +388,7 @@ const DashboardService = (() => {
     getJaeger,
     getWildhaendler,
     getHirschB1Statistik,
+    getAbschussHeatmapDaten,
   };
 })();
 

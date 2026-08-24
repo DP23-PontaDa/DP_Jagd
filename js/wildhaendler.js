@@ -46,6 +46,7 @@ window.Wildhaendler = (() => {
         wildhaendler.reihenfolge,
         wildhaendler.code,
         wildhaendler.bezeichnung,
+        wildhaendler.rechnungstext,
         formatPreis(wildhaendler.preis_pro_kg),
         wildhaendler.rechnung_moeglich ? "Ja" : "Nein",
         wildhaendler.aktiv ? "✓" : "—",
@@ -95,6 +96,7 @@ window.Wildhaendler = (() => {
     el("abModalTitel").textContent = "Neuer Wildhändler";
     el("abCode").value = "";
     el("abBezeichnung").value = "";
+    el("abRechnungstext").value = "";
     el("abPreisProKg").value = "0.00";
     el("abRechnungMoeglich").checked = true;
     el("abAktiv").checked = true;
@@ -109,6 +111,7 @@ window.Wildhaendler = (() => {
       mode === "read" ? "Wildhändler" : "Wildhändler bearbeiten";
     el("abCode").value = wildhaendler.code || "";
     el("abBezeichnung").value = wildhaendler.bezeichnung || "";
+    el("abRechnungstext").value = wildhaendler.rechnungstext || "";
     el("abPreisProKg").value = Number(wildhaendler.preis_pro_kg || 0).toFixed(2);
     el("abRechnungMoeglich").checked = wildhaendler.rechnung_moeglich === true;
     el("abAktiv").checked = wildhaendler.aktiv === true;
@@ -149,6 +152,7 @@ window.Wildhaendler = (() => {
       reihenfolge: Number(el("abReihenfolge").value),
       code: el("abCode").value.trim().toUpperCase(),
       bezeichnung: el("abBezeichnung").value.trim(),
+      rechnungstext: el("abRechnungstext").value.trim() || null,
       preis_pro_kg: Number(el("abPreisProKg").value || 0),
       rechnung_moeglich: el("abRechnungMoeglich").checked,
       aktiv: el("abAktiv").checked,

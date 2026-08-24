@@ -18,7 +18,7 @@ const AbschussService = (() => {
         wildgruppen (id, bezeichnung, rechnung_moeglich),
         wildklassen (id, bezeichnung, wildgruppe_id),
         wildhaendler (id, code, bezeichnung, rechnung_moeglich),
-        erlegungsort:orte (id, nr, name, art, latitude, longitude)
+        erlegungsort:orte (id, nr, name, art, reviereinrichtung, latitude, longitude)
       `)
       .order("datum", { ascending: false })
       .order("nr", { ascending: false }),

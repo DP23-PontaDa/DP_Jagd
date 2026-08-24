@@ -50,8 +50,31 @@
       </div>
     </div>
     <div class="modal-footer orte-edit-only">
+      <button id="orteAlsEinrichtung" class="btn btn-outline" type="button" hidden>Als Reviereinrichtung übernehmen</button>
       <button id="orteAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
       <button id="orteSpeichern" class="btn btn-primary" type="button">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div id="orteUmwandelnModal" class="modal" aria-hidden="true">
+  <div class="modal-content orte-convert-modal-content">
+    <div class="modal-header">
+      <h2>Als Reviereinrichtung übernehmen</h2>
+      <button id="orteUmwandelnSchliessen" class="close-btn" type="button" aria-label="Schließen">&times;</button>
+    </div>
+    <p id="orteUmwandelnFehler" class="form-message" hidden></p>
+    <p>Dieser Abschussort wird in eine Reviereinrichtung umgewandelt.<br>
+      Die bestehende Ort-ID, Position und Verknüpfungen bleiben erhalten.</p>
+    <div class="form-grid">
+      <div class="form-group"><label>Bisherige Nummer</label><input id="orteUmwandelnAlteNr" class="form-control" type="number" readonly></div>
+      <div class="form-group"><label>Neue Nummer</label><input id="orteUmwandelnNeueNr" class="form-control" type="number" readonly></div>
+      <div class="form-group full-width"><label class="required" for="orteUmwandelnArt">Art</label><select id="orteUmwandelnArt" class="form-control"><option value="">Bitte wählen</option><option>Bodensitz</option><option>Hochsitz</option><option>Sitzbank</option><option>Natur</option></select></div>
+    </div>
+    <p id="orteUmwandelnBestaetigung" class="orte-convert-confirmation">Bitte eine Art auswählen.</p>
+    <div class="modal-footer">
+      <button id="orteUmwandelnAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="orteUmwandelnSpeichern" class="btn btn-primary" type="button">Umwandeln</button>
     </div>
   </div>
 </div>

@@ -14,6 +14,8 @@ const Router = {
   routes: {
     login: "pages/login.html",
     dashboard: "pages/dashboard.html",
+    "dashboard-orte-heatmap": "pages/dashboard-orte-heatmap.html",
+    "dashboard-haar-federwild": "pages/dashboard-haar-federwild.html",
     personen: "pages/personen.html",
     abschuss: "pages/abschuss.html",
     "haar-federwild": "pages/abschuss.html",
@@ -27,6 +29,7 @@ const Router = {
     wildgruppen: "pages/wildgruppen.html",
     orte: "pages/orte.html",
     "tagebuch-dp": "pages/tagebuch-dp.html",
+    "tagebuch-zusammenfassung": "pages/tagebuch-zusammenfassung.html",
     tagebucharten: "pages/tagebucharten.html",
     "st-peter-mitterberg": "pages/st-peter-mitterberg.html",
     "journal-kategorien": "pages/journal-kategorien.html",
@@ -134,6 +137,16 @@ const Router = {
       window.Dashboard.init(section);
     }
 
+    if (page === "dashboard-haar-federwild" && window.HaarFederwildDashboard &&
+        typeof window.HaarFederwildDashboard.init === "function") {
+      window.HaarFederwildDashboard.init();
+    }
+
+    if (page === "dashboard-orte-heatmap" && window.Dashboard &&
+        typeof window.Dashboard.initHeatmapPage === "function") {
+      window.Dashboard.initHeatmapPage();
+    }
+
     if (
       page === "personen" &&
       window.Personen &&
@@ -169,6 +182,11 @@ const Router = {
 
     if (page === "tagebuch-dp" && window.TagebuchDp && typeof window.TagebuchDp.init === "function") {
       window.TagebuchDp.init();
+    }
+
+    if (page === "tagebuch-zusammenfassung" && window.TagebuchZusammenfassung &&
+        typeof window.TagebuchZusammenfassung.init === "function") {
+      window.TagebuchZusammenfassung.init();
     }
 
     if (page === "tagebucharten" && window.Tagebucharten && typeof window.Tagebucharten.init === "function") {

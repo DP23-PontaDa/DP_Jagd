@@ -1,0 +1,29 @@
+.tagebuch-summary-page { display: grid; gap: 16px; }
+.summary-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.summary-heading h1, .summary-heading p, .summary-card h2 { margin: 0; }
+.summary-heading p { margin-top: 4px; color: #667582; }
+.summary-period { display: grid; min-width: 150px; gap: 5px; font-size: .85rem; }
+.summary-kpis { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 10px; }
+.summary-kpi, .summary-card { border: 1px solid #d8e0e6; border-radius: 10px; background: #fff; box-shadow: 0 2px 7px rgba(30, 50, 65, .07); }
+.summary-kpi { padding: 13px; }
+.summary-kpi span { display: block; color: #62717e; font-size: .82rem; }
+.summary-kpi strong { display: block; margin-top: 3px; color: #203b4d; font-size: 1.65rem; }
+.summary-card { min-width: 0; padding: 16px; }
+.summary-card h2 { color: #263f50; font-size: 1.05rem; }
+.summary-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.summary-chart { position: relative; min-width: 620px; height: 310px; margin-top: 12px; }
+.summary-chart-places { height: 360px; }
+.summary-card { overflow-x: auto; }
+.summary-switch { display: inline-flex; padding: 3px; border-radius: 8px; background: #e9eef2; }
+.summary-switch button { padding: 7px 10px; border: 0; border-radius: 6px; background: transparent; color: #405665; cursor: pointer; }
+.summary-switch button.active { background: #365f77; color: #fff; }
+.summary-map { width: 100%; height: 420px; margin-top: 12px; border-radius: 8px; overflow: hidden; }
+.summary-map-mode { display: grid; min-width: 150px; gap: 4px; color: #526674; font-size: .82rem; }
+.summary-ranking { display: grid; gap: 7px; margin: 13px 0 0; padding-left: 28px; }
+.summary-ranking li { padding: 6px 8px; border-bottom: 1px solid #edf1f4; }
+.summary-ranking span, .summary-linked span { float: right; font-weight: 700; }
+.summary-linked { display: grid; gap: 8px; margin-top: 13px; }
+.summary-linked div { padding: 7px 8px; border-bottom: 1px solid #edf1f4; }
+.summary-empty { color: #697783; font-style: italic; }
+@media (max-width: 900px) { .summary-kpis { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) { .summary-heading { align-items: stretch; flex-direction: column; } .summary-period { width: 100%; } .summary-kpis { grid-template-columns: repeat(2, 1fr); } .summary-kpi { padding: 10px; } .summary-kpi strong { font-size: 1.35rem; } .summary-card { padding: 12px; } .summary-card-heading { align-items: stretch; flex-direction: column; } .summary-switch { width: 100%; } .summary-switch button { flex: 1; } .summary-chart { min-width: 580px; height: 300px; } .summary-chart-places { min-width: 500px; } .summary-map { height: 340px; } }

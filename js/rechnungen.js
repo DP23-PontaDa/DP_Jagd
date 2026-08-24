@@ -57,12 +57,13 @@ window.Rechnungen = (() => {
       const abschussNummernText = (rechnung.positionen || [])
         .map((position) => `${position.abschuss_nr}/${position.abschuss_jahr}`)
         .join(", ");
+      const betragStatus = InvoiceStatus.klasseFuerRechnung(rechnung);
       row.innerHTML = `
         <td>${escapeHtml(rechnung.rechnungsnummer)}</td>
         <td>${formatDatum(rechnung.rechnungsdatum)}</td>
         <td>${escapeHtml(person)}</td>
         <td>${escapeHtml(abschussNummernText)}</td>
-        <td class="number-cell">${formatGeld(rechnung.gesamtbetrag)}</td>
+        <td class="number-cell ${betragStatus}">${formatGeld(rechnung.gesamtbetrag)}</td>
         <td class="action-cell">
           <button class="action-btn edit-btn" type="button" data-aktion="bearbeiten" data-id="${rechnung.id}" title="Bearbeiten" aria-label="Bearbeiten"></button>
           <button class="action-btn invoice-pdf-btn" type="button" data-aktion="pdf" data-id="${rechnung.id}" title="PDF speichern" aria-label="PDF speichern">PDF</button>

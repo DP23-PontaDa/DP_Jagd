@@ -1,0 +1,26 @@
+<section class="tagebuch-summary-page">
+  <div class="summary-heading">
+    <div><h1>Zusammenfassung</h1><p>Persönliche Auswertung Ihrer Revieraktivitäten</p></div>
+    <label class="summary-period">Zeitraum
+      <select id="tzZeitraum"><option value="alle">Alle</option><option value="2025">2025</option><option value="2026">2026</option></select>
+    </label>
+  </div>
+  <p id="tzFehler" class="form-message" hidden></p>
+  <div id="tzInhalt">
+    <div id="tzKennzahlen" class="summary-kpis"></div>
+    <section class="summary-card summary-wide"><h2>Ansitze pro Monat</h2><div class="summary-chart summary-chart-wide"><canvas id="tzAnsitzeChart"></canvas></div></section>
+    <section class="summary-card summary-wide">
+      <div class="summary-card-heading"><h2>Meistbesuchte Orte</h2><div class="summary-switch" role="group" aria-label="Ortsauswertung"><button type="button" class="active" data-ortmodus="alle">Alle Einträge</button><button type="button" data-ortmodus="ansitze">Nur Ansitze</button></div></div>
+      <div class="summary-chart summary-chart-places"><canvas id="tzOrteChart"></canvas></div>
+    </section>
+    <section class="summary-card summary-wide">
+      <div class="summary-card-heading"><h2>Revieraktivitäten auf Karte</h2><label class="summary-map-mode">Darstellung<select id="tzKartenModus"><option value="heatmap">Heatmap</option><option value="orte">Orte</option></select></label></div>
+      <div id="tzKarte" class="summary-map" aria-label="Karte der Revieraktivitäten"></div>
+      <div id="tzHeatmapLegende" class="dashboard-heatmap-legend"><span>wenige Aktivitäten</span><i aria-hidden="true"></i><span>viele Aktivitäten</span></div>
+      <p id="tzKarteLeer" class="summary-empty" hidden>Im gewählten Zeitraum sind keine Orte mit Koordinaten verknüpft.</p>
+    </section>
+    <section class="summary-card summary-wide"><h2>Häufigste Hashtags</h2><ol id="tzHashtags" class="summary-ranking"></ol></section>
+    <section class="summary-card summary-wide"><h2>Tagebuchaktivitäten</h2><div class="summary-chart summary-chart-wide"><canvas id="tzArtenChart"></canvas></div></section>
+    <section class="summary-card summary-wide"><h2>Mit Tagebuch verknüpfte Abschüsse</h2><div id="tzAbschuesse" class="summary-linked"></div></section>
+  </div>
+</section>
