@@ -3,6 +3,7 @@ window.Orte = (() => {
   let orte = [];
   let bilder = [];
   let aktiveEinrichtungen = true;
+  let aktiveAnsicht = "einrichtungen";
   let aktuellerOrt = null;
   let vorhandeneBilder = [];
   let neueDateien = [];
@@ -13,6 +14,9 @@ window.Orte = (() => {
   let kartenEinstellungen = null;
   let kartenNurLesen = false;
   let kartenInitialisierung = 0;
+  let uebersichtKarte = null;
+  let einrichtungenLayer = null;
+  let abschussorteLayer = null;
   const KARTEN_FALLBACK = { map_lat: 47.3, map_lng: 13.7, map_zoom: 8 };
   const ORT_DETAIL_ZOOM = 17;
 
@@ -21,6 +25,9 @@ window.Orte = (() => {
   async function init() {
     el("orteTabEinrichtungen").addEventListener("click", () => tabOeffnen(true));
     el("orteTabAbschussorte").addEventListener("click", () => tabOeffnen(false));
+    el("orteTabKarte").addEventListener("click", kartenansichtOeffnen);
+    el("orteFilterEinrichtungen").addEventListener("change", kartenfilterAnwenden);
+    el("orteFilterAbschussorte").addEventListener("change", kartenfilterAnwenden);
     el("orteSuche").addEventListener("input", renderTabelle);
     el("orteNeu").addEventListener("click", neuerOrt);
     el("orteKartenEinstellungen").addEventListener("click", kartenEinstellungenOeffnen);
@@ -68,10 +75,113 @@ window.Orte = (() => {
   }
 
   function tabOeffnen(einrichtungen) {
+    aktiveAnsicht = einrichtungen ? "einrichtungen" : "abschussorte";
     aktiveEinrichtungen = einrichtungen;
     el("orteTabEinrichtungen").classList.toggle("active", einrichtungen);
     el("orteTabAbschussorte").classList.toggle("active", !einrichtungen);
+    el("orteTabKarte").classList.remove("active");
+    el("orteKartenUebersicht").hidden = true;
+    el("orteTabelleWrap").hidden = false;
+    el("orteLeer").hidden = true;
+    el("orteSuche").closest(".action-bar").hidden = false;
     renderTabelle();
+  }
+
+  function kartenansichtOeffnen() {
+    aktiveAnsicht = "karte";
+    el("orteTabEinrichtungen").classList.remove("active");
+    el("orteTabAbschussorte").classList.remove("active");
+    el("orteTabKarte").classList.add("active");
+    el("orteSuche").closest(".action-bar").hidden = true;
+    el("orteLeer").hidden = true;
+    el("orteTabelleWrap").hidden = true;
+    el("orteKartenUebersicht").hidden = false;
+    window.requestAnimationFrame(() => window.requestAnimationFrame(kartenuebersichtRendern));
+  }
+
+  function uebersichtStart() {
+    const werte = kartenEinstellungen || KARTEN_FALLBACK;
+    return { lat: Number(werte.map_lat), lng: Number(werte.map_lng), zoom: Number(werte.map_zoom) };
+  }
+
+  function markerIcon(einrichtung) {
+    const klasse = einrichtung ? "einrichtung" : "abschussort";
+    const symbol = einrichtung ? "⌂" : "⊙";
+    return L.divIcon({ className: "", html: `<span class="orte-overview-marker ${klasse}" aria-hidden="true">${symbol}</span>`, iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -19] });
+  }
+
+  function popupInhalt(ort) {
+    const container = document.createElement("div");
+    container.className = "orte-map-popup";
+    const titel = document.createElement("h3");
+    titel.textContent = ort.reviereinrichtung && ort.art ? `${ort.name} - ${ort.art}` : ort.name;
+    container.append(titel);
+    if (ort.reviereinrichtung && ort.art) {
+      const art = document.createElement("p"); art.textContent = `Art: ${ort.art}`; container.append(art);
+    }
+    if (ort.info) { const info = document.createElement("p"); info.textContent = `Info: ${ort.info}`; container.append(info); }
+    const erstesBild = bilder.find((bild) => String(bild.ort_id) === String(ort.id) && bild.vorschau_url);
+    if (erstesBild) {
+      const bild = document.createElement("img"); bild.src = erstesBild.vorschau_url;
+      bild.alt = `Vorschaubild ${ort.name}`; bild.loading = "lazy"; container.append(bild);
+    }
+    const oeffnen = document.createElement("button");
+    oeffnen.type = "button"; oeffnen.className = "btn btn-outline"; oeffnen.textContent = "Ort öffnen";
+    oeffnen.addEventListener("click", () => modalOeffnen(ort, true).catch((error) => AppFeedback.error(error.message)));
+    container.append(oeffnen);
+    return container;
+  }
+
+  function legendeHinzufuegen() {
+    const legende = L.control({ position: "bottomright" });
+    legende.onAdd = () => {
+      const element = L.DomUtil.create("div", "orte-map-legend");
+      element.innerHTML = '<div><span class="orte-map-legend-symbol einrichtung">⌂</span>Reviereinrichtung</div><div><span class="orte-map-legend-symbol abschussort">⊙</span>Abschussort</div>';
+      L.DomEvent.disableClickPropagation(element);
+      return element;
+    };
+    legende.addTo(uebersichtKarte);
+  }
+
+  function kartenuebersichtRendern() {
+    if (aktiveAnsicht !== "karte") return;
+    const container = el("orteUebersichtKarte");
+    if (uebersichtKarte && uebersichtKarte.getContainer() !== container) {
+      uebersichtKarte.remove();
+      uebersichtKarte = null; einrichtungenLayer = null; abschussorteLayer = null;
+    }
+    if (!uebersichtKarte) {
+      uebersichtKarte = OrteKarte.karteAnlegen(container, uebersichtStart());
+      einrichtungenLayer = L.layerGroup(); abschussorteLayer = L.layerGroup();
+      legendeHinzufuegen();
+    }
+    einrichtungenLayer.clearLayers(); abschussorteLayer.clearLayers();
+    let ohnePosition = 0;
+    orte.forEach((ort) => {
+      if (!istZahl(ort.latitude) || !istZahl(ort.longitude)) { ohnePosition += 1; return; }
+      L.marker([Number(ort.latitude), Number(ort.longitude)], { icon: markerIcon(ort.reviereinrichtung) })
+        .bindPopup(popupInhalt(ort), { maxWidth: 270 })
+        .addTo(ort.reviereinrichtung ? einrichtungenLayer : abschussorteLayer);
+    });
+    el("orteOhnePosition").textContent = ohnePosition === 1
+      ? "1 Ort ohne gespeicherte Position" : `${ohnePosition} Orte ohne gespeicherte Position`;
+    kartenfilterAnwenden();
+    const start = uebersichtStart();
+    uebersichtKarte.setView([start.lat, start.lng], start.zoom);
+    uebersichtKarte.invalidateSize({ pan: false });
+    window.setTimeout(() => uebersichtKarte?.invalidateSize({ pan: false }), 100);
+  }
+
+  function kartenfilterAnwenden() {
+    if (!uebersichtKarte) return;
+    const layerStatus = [
+      [einrichtungenLayer, el("orteFilterEinrichtungen").checked],
+      [abschussorteLayer, el("orteFilterAbschussorte").checked],
+    ];
+    layerStatus.forEach(([layer, sichtbar]) => {
+      if (sichtbar && !uebersichtKarte.hasLayer(layer)) layer.addTo(uebersichtKarte);
+      if (!sichtbar && uebersichtKarte.hasLayer(layer)) uebersichtKarte.removeLayer(layer);
+    });
   }
 
   function gefilterteOrte() {
@@ -89,6 +199,7 @@ window.Orte = (() => {
   }
 
   function renderTabelle() {
+    if (aktiveAnsicht === "karte") { kartenuebersichtRendern(); return; }
     const liste = gefilterteOrte();
     const kopf = aktiveEinrichtungen
       ? ["Nr.", "Name", "Art", "Info", "Reviereinrichtung", "Latitude", "Longitude", "Position / Karte", "Bilder", "Aktionen"]

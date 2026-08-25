@@ -3,6 +3,7 @@
   <div class="tabs orte-tabs" role="tablist">
     <button id="orteTabEinrichtungen" class="tab-button active" type="button">Reviereinrichtungen</button>
     <button id="orteTabAbschussorte" class="tab-button" type="button">Abschussorte</button>
+    <button id="orteTabKarte" class="tab-button" type="button">Karte</button>
   </div>
 
   <div class="action-bar">
@@ -23,6 +24,14 @@
       <tbody id="orteBody"></tbody>
     </table>
   </div>
+  <section id="orteKartenUebersicht" class="orte-map-overview" hidden>
+    <div class="orte-map-filter" aria-label="Orte auf der Karte filtern">
+      <label><input id="orteFilterEinrichtungen" type="checkbox" checked> Reviereinrichtungen</label>
+      <label><input id="orteFilterAbschussorte" type="checkbox" checked> Abschussorte</label>
+    </div>
+    <div id="orteUebersichtKarte" class="orte-map orte-overview-map" aria-label="Kartenübersicht aller Orte"></div>
+    <p id="orteOhnePosition" class="field-help"></p>
+  </section>
 </section>
 
 <div id="orteModal" class="modal" aria-hidden="true">

@@ -1,6 +1,11 @@
 window.Freigaben = (() => {
   const el = (id) => document.getElementById(id);
   const esc = (wert) => { const div = document.createElement("div"); div.textContent = wert ?? ""; return div.innerHTML; };
+  const jahrAnzeigen = (datum) => {
+    if (!datum) return "–";
+    const treffer = String(datum).match(/(?:^|\D)(\d{4})(?:\D|$)/);
+    return treffer ? treffer[1] : datum;
+  };
   let daten = []; let basis = null;
 
   async function init() {
@@ -132,8 +137,8 @@ window.Freigaben = (() => {
     if (!gefiltert.length) container.innerHTML = '<p class="freigabe-empty">Keine Freigaben für diese Filter.</p>';
   }
   function statusZellen(wert) {
-    return `<td data-label="Letzte Erlegung">${esc(wert.letzte_erlegung || "–")}</td>` +
-      `<td data-label="Frei ab">${esc(wert.endgueltige_freigabe_ab || wert.frei_ab || "–")}</td>` +
+    return `<td data-label="Letzte Erlegung">${esc(jahrAnzeigen(wert.letzte_erlegung))}</td>` +
+      `<td data-label="Frei ab">${esc(jahrAnzeigen(wert.endgueltige_freigabe_ab || wert.frei_ab))}</td>` +
       `<td data-label="Status"><strong class="freigabe-status ${wert.status === "FREI" ? "frei" : "nicht-frei"}">${esc(wert.status)}</strong></td>` +
       `<td data-label="Grund" class="freigabe-grund">${esc(wert.grund)}</td>`;
   }
