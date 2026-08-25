@@ -1,10 +1,13 @@
 window.Rechnungen = (() => {
   const el = (id) => document.getElementById(id);
   let rechnungen = [];
+  let kleinAbschuesse = [];
   let abschuesse = [];
   let personDropdown = null;
   let aktuelleId = null;
   let vorauswahlId = null;
+  let zahlungRechnungId = null;
+  let zahlungDatensatzTyp = null;
 
   async function init() {
     personDropdown = new SearchDropdown(el("rePerson"), { placeholder: "Person suchen" });
@@ -18,6 +21,16 @@ window.Rechnungen = (() => {
     });
     el("reAbschussAuswahl").addEventListener("change", auswahlGeaendert);
     el("reTabelleBody").addEventListener("click", tabellenAktion);
+    el("reJahrFilter").addEventListener("change", rendern);
+    el("reTypFilter").addEventListener("change", rendern);
+    el("reZahlungsFilter").addEventListener("change", rendern);
+    el("reZahlungSpeichern").addEventListener("click", () => zahlungSpeichern(false));
+    el("reZahlungEntfernen").addEventListener("click", zahlungEntfernen);
+    el("reZahlungAbbrechen").addEventListener("click", zahlungSchliessen);
+    el("reZahlungSchliessen").addEventListener("click", zahlungSchliessen);
+    el("reZahlungModal").addEventListener("click", (event) => {
+      if (event.target === el("reZahlungModal")) zahlungSchliessen();
+    });
     vorauswahlId = Router.pendingRechnungAbschussId || null;
     Router.pendingRechnungAbschussId = null;
     await laden();
@@ -26,10 +39,13 @@ window.Rechnungen = (() => {
 
   async function laden() {
     try {
-      const [liste, personen] = await Promise.all([
-        RechnungService.getRechnungen(), RechnungService.getPersonen(),
+      const [liste, kleinListe, personen] = await Promise.all([
+        RechnungService.getRechnungen(), RechnungService.getKleinAbschuesse(),
+        RechnungService.getPersonen(),
       ]);
       rechnungen = liste;
+      kleinAbschuesse = kleinListe;
+      jahresfilterAktualisieren();
       personDropdown.setOptions(personen.map((person) => ({
         value: person.id,
         label: `${person.vorname || ""} ${person.nachname || ""}`.trim(),
@@ -46,31 +62,117 @@ window.Rechnungen = (() => {
   function rendern() {
     const body = el("reTabelleBody");
     body.innerHTML = "";
-    if (!rechnungen.length) {
-      body.innerHTML = '<tr><td colspan="6" class="empty-state">Noch keine Rechnungen vorhanden.</td></tr>';
+    const eintraege = gefilterteEintraege();
+    if (!eintraege.length) {
+      body.innerHTML = '<tr><td colspan="8" class="empty-state">Keine passenden Rechnungen oder Zahlungsvorgänge vorhanden.</td></tr>';
       return;
     }
-    rechnungen.forEach((rechnung) => {
+    eintraege.forEach((eintrag) => {
+      if (eintrag.typ === "klein") renderKleinZeile(body, eintrag.datensatz);
+      else renderRechnungsZeile(body, eintrag.datensatz);
+    });
+  }
+
+  function renderRechnungsZeile(body, rechnung) {
       const row = document.createElement("tr");
       row.dataset.id = rechnung.id;
+      row.dataset.typ = "rechnung";
       const person = `${rechnung.person?.vorname || ""} ${rechnung.person?.nachname || ""}`.trim();
       const abschussNummernText = (rechnung.positionen || [])
         .map((position) => `${position.abschuss_nr}/${position.abschuss_jahr}`)
         .join(", ");
+      const wildText = [...new Set((rechnung.positionen || []).map((position) =>
+        [position.wildgruppe, position.wildklasse].filter(Boolean).join(" – ")))].join(", ");
       const betragStatus = InvoiceStatus.klasseFuerRechnung(rechnung);
+      const zahlung = gemeinsamerZahlungseingang(rechnung);
+      const darfZahlungBearbeiten = BerechtigungService.darf("rechnungen", "Bearbeiten");
+      const zahlungAnzeige = zahlung.uneinheitlich ? "Unterschiedlich" :
+        (zahlung.datum ? formatDatum(zahlung.datum) : "Zahlung erfassen");
+      const zahlungButtonStatus = !zahlung.datum && !zahlung.uneinheitlich
+        ? " invoice-payment-unpaid" : "";
+      const zahlungHtml = darfZahlungBearbeiten
+        ? `<button class="invoice-payment-button${zahlungButtonStatus}" type="button" data-aktion="zahlung" data-id="${rechnung.id}" title="Zahlungseingang erfassen oder ändern">${escapeHtml(zahlungAnzeige)}</button>`
+        : escapeHtml(zahlung.uneinheitlich ? "Unterschiedlich" :
+          (zahlung.datum ? formatDatum(zahlung.datum) : "–"));
       row.innerHTML = `
-        <td>${escapeHtml(rechnung.rechnungsnummer)}</td>
-        <td>${formatDatum(rechnung.rechnungsdatum)}</td>
-        <td>${escapeHtml(person)}</td>
-        <td>${escapeHtml(abschussNummernText)}</td>
-        <td class="number-cell ${betragStatus}">${formatGeld(rechnung.gesamtbetrag)}</td>
-        <td class="action-cell">
+        <td data-label="Rechnungsnummer">${escapeHtml(rechnung.rechnungsnummer)}</td>
+        <td data-label="Datum">${formatDatum(rechnung.rechnungsdatum)}</td>
+        <td data-label="Empfänger">${escapeHtml(person)}</td>
+        <td data-label="Abschuss Nr.">${escapeHtml(abschussNummernText)}</td>
+        <td data-label="Wild">${escapeHtml(wildText)}</td>
+        <td data-label="Zahlungseingang">${zahlungHtml}</td>
+        <td data-label="Gesamtbetrag" class="number-cell ${betragStatus}">${formatGeld(rechnung.gesamtbetrag)}</td>
+        <td data-label="Aktion" class="action-cell">
           <button class="action-btn edit-btn" type="button" data-aktion="bearbeiten" data-id="${rechnung.id}" title="Bearbeiten" aria-label="Bearbeiten"></button>
           <button class="action-btn invoice-pdf-btn" type="button" data-aktion="pdf" data-id="${rechnung.id}" title="PDF speichern" aria-label="PDF speichern">PDF</button>
           <button class="action-btn delete-btn" type="button" data-aktion="loeschen" data-id="${rechnung.id}" title="Löschen" aria-label="Löschen"></button>
         </td>`;
       body.appendChild(row);
-    });
+  }
+
+  function renderKleinZeile(body, abschuss) {
+    const row = document.createElement("tr");
+    row.dataset.id = abschuss.id;
+    row.dataset.typ = "klein";
+    const darfBearbeiten = BerechtigungService.darf("rechnungen", "Bearbeiten");
+    const zahlungAnzeige = abschuss.zahlungseingang
+      ? formatDatum(abschuss.zahlungseingang) : "Zahlung erfassen";
+    const zahlungHtml = darfBearbeiten
+      ? `<button class="invoice-payment-button${abschuss.zahlungseingang ? "" : " invoice-payment-unpaid"}" type="button" data-aktion="zahlung-klein" data-id="${abschuss.id}" title="Zahlungseingang erfassen oder ändern">${escapeHtml(zahlungAnzeige)}</button>`
+      : escapeHtml(abschuss.zahlungseingang ? zahlungAnzeige : "–");
+    const status = InvoiceStatus.klasseFuerAbschuss({ ...abschuss, rechnung_vorhanden: false });
+    const wild = [abschuss.wildgruppen?.bezeichnung, abschuss.wildklassen?.bezeichnung]
+      .filter(Boolean).join(" – ");
+    row.innerHTML = `
+      <td data-label="Rechnungsnummer"><strong class="invoice-klein-label">Keine Rechnung – Klein</strong></td>
+      <td data-label="Datum">${formatDatum(abschuss.datum)}</td>
+      <td data-label="Empfänger / Abnehmer">${escapeHtml(abschuss.wildhaendler?.bezeichnung || "Klein")}</td>
+      <td data-label="Abschuss Nr.">${escapeHtml(`${abschuss.nr}/${abschuss.jahr}`)}</td>
+      <td data-label="Wild">${escapeHtml(wild)}</td>
+      <td data-label="Zahlungseingang">${zahlungHtml}</td>
+      <td data-label="Gesamtbetrag" class="number-cell ${status}">${formatGeld(abschuss.gesamtpreis)}</td>
+      <td data-label="Aktion" class="action-cell"><span class="invoice-no-actions">–</span></td>`;
+    body.appendChild(row);
+  }
+
+  function gefilterteEintraege() {
+    const jahrFilter = el("reJahrFilter")?.value || String(new Date().getFullYear());
+    const typFilter = el("reTypFilter")?.value || "alle";
+    const zahlungsFilter = el("reZahlungsFilter")?.value || "alle";
+    const eintraege = [
+      ...rechnungen.map((datensatz) => ({ typ: "rechnung", datensatz,
+        datum: datensatz.rechnungsdatum,
+        jahr: String(datensatz.rechnungsjahr || String(datensatz.rechnungsdatum || "").slice(0, 4)),
+        bezahlt: InvoiceStatus.istRechnungBezahlt(datensatz) })),
+      ...kleinAbschuesse.map((datensatz) => ({ typ: "klein", datensatz,
+        datum: datensatz.datum,
+        jahr: String(datensatz.jahr || String(datensatz.datum || "").slice(0, 4)),
+        bezahlt: Boolean(datensatz.zahlungseingang) })),
+    ];
+    return eintraege.filter((eintrag) =>
+      (jahrFilter === "alle" || eintrag.jahr === jahrFilter) &&
+      (typFilter === "alle" || eintrag.typ === typFilter) &&
+      (zahlungsFilter === "alle" ||
+        (zahlungsFilter === "bezahlt" ? eintrag.bezahlt : !eintrag.bezahlt)))
+      .sort((a, b) => String(b.datum || "").localeCompare(String(a.datum || "")));
+  }
+
+  function jahresfilterAktualisieren() {
+    const select = el("reJahrFilter");
+    const aktuellesJahr = String(new Date().getFullYear());
+    const vorherigerWert = select.value;
+    const jahre = [...new Set([
+      ...rechnungen.map((rechnung) => String(rechnung.rechnungsjahr ||
+        String(rechnung.rechnungsdatum || "").slice(0, 4))),
+      ...kleinAbschuesse.map((abschuss) => String(abschuss.jahr ||
+        String(abschuss.datum || "").slice(0, 4))),
+      aktuellesJahr,
+    ].filter((jahr) => /^\d{4}$/.test(jahr)))].sort((a, b) => Number(b) - Number(a));
+    select.innerHTML = '<option value="alle">Alle Jahre</option>' + jahre
+      .map((jahr) => `<option value="${jahr}">${jahr}</option>`).join("");
+    const sollwert = vorherigerWert && [...select.options]
+      .some((option) => option.value === vorherigerWert) ? vorherigerWert : aktuellesJahr;
+    select.value = sollwert;
   }
 
   async function oeffneEditor(id = null, startAbschussId = null) {
@@ -214,6 +316,8 @@ window.Rechnungen = (() => {
     const button = event.target.closest("[data-aktion]");
     if (!button) return;
     const { id, aktion } = button.dataset;
+    if (aktion === "zahlung") return zahlungOeffnen(id);
+    if (aktion === "zahlung-klein") return zahlungKleinOeffnen(id);
     if (aktion === "bearbeiten") return oeffneEditor(id);
     if (aktion === "pdf") {
       const druckFenster = oeffneDruckFenster();
@@ -240,6 +344,108 @@ window.Rechnungen = (() => {
         AppFeedback.success("Rechnung wurde gelöscht.");
       } catch (error) { AppFeedback.error(error.message || "Löschen fehlgeschlagen."); }
     }
+  }
+
+  function gemeinsamerZahlungseingang(rechnung) {
+    const positionen = rechnung?.positionen || [];
+    const daten = positionen.map((position) => position.abschuss?.zahlungseingang || null);
+    if (!daten.length || daten.every((datum) => !datum)) return { datum: null, uneinheitlich: false };
+    const erstesDatum = daten[0];
+    const einheitlich = Boolean(erstesDatum) && daten.every((datum) => datum === erstesDatum);
+    return { datum: einheitlich ? erstesDatum : null, uneinheitlich: !einheitlich };
+  }
+
+  function heuteLokal() {
+    const heute = new Date();
+    const zweistellig = (wert) => String(wert).padStart(2, "0");
+    return `${heute.getFullYear()}-${zweistellig(heute.getMonth() + 1)}-${zweistellig(heute.getDate())}`;
+  }
+
+  function zahlungOeffnen(id) {
+    if (!BerechtigungService.darf("rechnungen", "Bearbeiten")) return;
+    const rechnung = rechnungen.find((eintrag) => String(eintrag.id) === String(id));
+    if (!rechnung) return;
+    const zahlung = gemeinsamerZahlungseingang(rechnung);
+    zahlungRechnungId = rechnung.id;
+    zahlungDatensatzTyp = "rechnung";
+    el("reZahlungDatum").value = zahlung.datum || heuteLokal();
+    el("reZahlungEntfernen").hidden = !zahlung.datum && !zahlung.uneinheitlich;
+    el("reZahlungFehler").hidden = true;
+    const modal = el("reZahlungModal");
+    modal.style.display = "block";
+    modal.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => {
+      modal.classList.add("is-open");
+      el("reZahlungDatum").focus();
+    });
+  }
+
+  function zahlungKleinOeffnen(id) {
+    if (!BerechtigungService.darf("rechnungen", "Bearbeiten")) return;
+    const abschuss = kleinAbschuesse.find((eintrag) => String(eintrag.id) === String(id));
+    if (!abschuss) return;
+    zahlungRechnungId = abschuss.id;
+    zahlungDatensatzTyp = "klein";
+    el("reZahlungDatum").value = abschuss.zahlungseingang || heuteLokal();
+    el("reZahlungEntfernen").hidden = !abschuss.zahlungseingang;
+    el("reZahlungFehler").hidden = true;
+    const modal = el("reZahlungModal");
+    modal.style.display = "block";
+    modal.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => {
+      modal.classList.add("is-open");
+      el("reZahlungDatum").focus();
+    });
+  }
+
+  async function zahlungSpeichern(entfernen) {
+    if (!zahlungRechnungId || !BerechtigungService.darf("rechnungen", "Bearbeiten")) return;
+    const datum = entfernen ? null : el("reZahlungDatum").value;
+    if (!entfernen && !datum) {
+      zahlungFehler("Bitte ein Zahlungseingangsdatum auswählen.");
+      return;
+    }
+    const speichernButton = el("reZahlungSpeichern");
+    const entfernenButton = el("reZahlungEntfernen");
+    speichernButton.disabled = true;
+    entfernenButton.disabled = true;
+    try {
+      const rechnungId = zahlungRechnungId;
+      if (zahlungDatensatzTyp === "klein") {
+        await RechnungService.kleinZahlungseingangSetzen(rechnungId, datum);
+      } else {
+        await RechnungService.zahlungseingangSetzen(rechnungId, datum);
+      }
+      await laden();
+      zahlungSchliessen();
+      AppFeedback.success(entfernen ? "Zahlungseingang wurde entfernt." : "Zahlungseingang wurde gespeichert.");
+      AppFeedback.focusRow(`#reTabelleBody tr[data-id="${rechnungId}"]`);
+    } catch (error) {
+      console.error("Zahlungseingang speichern:", error);
+      zahlungFehler(error.message || "Der Zahlungseingang konnte nicht gespeichert werden.");
+    } finally {
+      speichernButton.disabled = false;
+      entfernenButton.disabled = false;
+    }
+  }
+
+  async function zahlungEntfernen() {
+    if (!window.confirm("Zahlungseingangsdatum wirklich entfernen?")) return;
+    await zahlungSpeichern(true);
+  }
+
+  function zahlungSchliessen() {
+    const modal = el("reZahlungModal");
+    modal.classList.remove("is-open");
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    zahlungRechnungId = null;
+    zahlungDatensatzTyp = null;
+  }
+
+  function zahlungFehler(text) {
+    el("reZahlungFehler").textContent = text;
+    el("reZahlungFehler").hidden = false;
   }
 
   function schliessen() {

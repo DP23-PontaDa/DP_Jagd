@@ -1,12 +1,34 @@
 <section class="rechnungen-page">
   <div class="page-title-row">
-    <div><h1>Rechnungen</h1><p class="page-subtitle">Wildfleischrechnungen verwalten und als PDF speichern.</p></div>
+    <div><h1>Rechnungen</h1><p class="page-subtitle">Wildfleischrechnungen und Zahlungseingänge verwalten.</p></div>
     <button id="reNeu" class="btn btn-primary" type="button">+ Neue Rechnung</button>
   </div>
   <p id="reSeitenFehler" class="form-message" hidden></p>
+  <div class="invoice-overview-filters" aria-label="Rechnungs- und Zahlungsfilter">
+    <div class="form-group">
+      <label for="reJahrFilter">Jahr</label>
+      <select id="reJahrFilter" class="form-control"></select>
+    </div>
+    <div class="form-group">
+      <label for="reTypFilter">Typ</label>
+      <select id="reTypFilter" class="form-control">
+        <option value="alle">Alle</option>
+        <option value="rechnung">Rechnungen</option>
+        <option value="klein">Klein</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="reZahlungsFilter">Zahlungsstatus</label>
+      <select id="reZahlungsFilter" class="form-control">
+        <option value="alle">Alle</option>
+        <option value="offen">Offen</option>
+        <option value="bezahlt">Bezahlt</option>
+      </select>
+    </div>
+  </div>
   <div class="table-wrap">
     <table class="ap-table">
-      <thead><tr><th>Rechnungsnummer</th><th>Datum</th><th>Empfänger</th><th>Abschuss Nr.</th><th class="number-cell">Gesamtbetrag</th><th class="col-actions">Aktion</th></tr></thead>
+      <thead><tr><th>Rechnungsnummer</th><th>Datum</th><th>Empfänger / Abnehmer</th><th>Abschuss Nr.</th><th>Wild</th><th>Zahlungseingang</th><th class="number-cell">Gesamtbetrag</th><th class="col-actions">Aktion</th></tr></thead>
       <tbody id="reTabelleBody"></tbody>
     </table>
   </div>
@@ -30,6 +52,25 @@
       <button id="reSpeichern" class="btn btn-primary" type="button">Speichern</button>
       <button id="reSpeichernDrucken" class="btn btn-secondary" type="button">Speichern und Drucken</button>
       <button id="reAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="reZahlungModal" class="modal" aria-hidden="true">
+  <div class="modal-content invoice-payment-modal-content" role="dialog" aria-modal="true" aria-labelledby="reZahlungTitel">
+    <div class="modal-header">
+      <h2 id="reZahlungTitel">Zahlungseingang</h2>
+      <button id="reZahlungSchliessen" class="modal-close-button" type="button" aria-label="Schließen">&times;</button>
+    </div>
+    <p id="reZahlungFehler" class="form-message" hidden></p>
+    <div class="form-group">
+      <label for="reZahlungDatum" class="required">Zahlungseingangsdatum</label>
+      <input id="reZahlungDatum" class="form-control" type="date">
+    </div>
+    <div class="modal-footer invoice-payment-modal-actions">
+      <button id="reZahlungSpeichern" class="btn btn-primary" type="button">Speichern</button>
+      <button id="reZahlungEntfernen" class="btn btn-danger" type="button">Zahlungseingang entfernen</button>
+      <button id="reZahlungAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
     </div>
   </div>
 </div>

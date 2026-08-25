@@ -27,13 +27,18 @@ window.InvoiceStatus = (() => {
     });
   }
 
-  function klasseFuerRechnung(rechnung) {
+  function istRechnungBezahlt(rechnung) {
     const positionen = rechnung?.positionen || [];
-    const bezahlt = positionen.length > 0 && positionen.every((position) =>
+    return positionen.length > 0 && positionen.every((position) =>
       Boolean(position.abschuss?.zahlungseingang));
+  }
+
+  function klasseFuerRechnung(rechnung) {
+    const bezahlt = istRechnungBezahlt(rechnung);
     return klasse({ rechnungMoeglich: true, rechnungVorhanden: true,
       zahlungseingang: bezahlt });
   }
 
-  return { klasse, klasseFuerAbschuss, klasseFuerRechnung, istWildhaendlerKlein };
+  return { klasse, klasseFuerAbschuss, klasseFuerRechnung,
+    istRechnungBezahlt, istWildhaendlerKlein };
 })();

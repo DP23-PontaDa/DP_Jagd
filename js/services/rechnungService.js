@@ -100,6 +100,51 @@ const RechnungService = (() => {
     if (error) throw serviceFehler(error, "Die Rechnung konnte nicht gelöscht werden.");
   }
 
+  async function getKleinAbschuesse() {
+    const [abschussResult, positionResult] = await Promise.all([
+      db.from("abschuesse").select(`
+        id, nr, jahr, datum, gesamtpreis, zahlungseingang, fallwild,
+        wildhaendler (id, code, bezeichnung, rechnung_moeglich),
+        wildgruppen (id, bezeichnung, rechnung_moeglich),
+        wildklassen (id, bezeichnung)
+      `).order("datum", { ascending: false }).order("nr", { ascending: false }),
+      db.from("rechnungspositionen").select("abschuss_id"),
+    ]);
+    if (abschussResult.error) {
+      throw serviceFehler(abschussResult.error, "Klein-Abschüsse konnten nicht geladen werden.");
+    }
+    if (positionResult.error) {
+      throw serviceFehler(positionResult.error, "Rechnungszuordnungen konnten nicht geprüft werden.");
+    }
+    const bereitsVerrechnet = new Set((positionResult.data || [])
+      .map((position) => String(position.abschuss_id)));
+    return (abschussResult.data || []).filter((abschuss) =>
+      InvoiceStatus.istWildhaendlerKlein(abschuss.wildhaendler) &&
+      !bereitsVerrechnet.has(String(abschuss.id)));
+  }
+
+  async function zahlungseingangSetzen(rechnungId, zahlungseingang) {
+    const { data, error } = await db.rpc("set_rechnung_zahlungseingang", {
+      p_rechnung_id: rechnungId,
+      p_zahlungseingang: zahlungseingang || null,
+    });
+    if (error) {
+      throw serviceFehler(error, "Der Zahlungseingang konnte nicht gespeichert werden.");
+    }
+    return Number(data || 0);
+  }
+
+  async function kleinZahlungseingangSetzen(abschussId, zahlungseingang) {
+    const { data, error } = await db.rpc("set_klein_abschuss_zahlungseingang", {
+      p_abschuss_id: abschussId,
+      p_zahlungseingang: zahlungseingang || null,
+    });
+    if (error) {
+      throw serviceFehler(error, "Der Zahlungseingang konnte nicht gespeichert werden.");
+    }
+    return data;
+  }
+
   async function ergaenzeFehlendeVorlagenwerte(rechnung) {
     const { data, error } = await db.from("rechnungsvorlagen").select("*").eq("id", 1).single();
     if (error) throw serviceFehler(error, "Die Rechnungsvorlage konnte nicht geladen werden.");
@@ -247,8 +292,8 @@ const RechnungService = (() => {
   }
 
   return {
-    getRechnungen, getRechnung, getPersonen, getVerrechenbareAbschuesse,
-    saveRechnung, deleteRechnung, generatePdf,
+    getRechnungen, getKleinAbschuesse, getRechnung, getPersonen, getVerrechenbareAbschuesse,
+    saveRechnung, deleteRechnung, zahlungseingangSetzen, kleinZahlungseingangSetzen, generatePdf,
     istAbschussVerrechenbar,
   };
 })();
