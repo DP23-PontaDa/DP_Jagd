@@ -1,7 +1,34 @@
 <section class="freigaben-page"><div class="action-bar"><h1>Freigaben</h1></div>
+<div class="benutzer-tabs freigaben-tabs" role="tablist" aria-label="Freigaben-Ansichten">
+  <button id="fgTabHirsche" class="tab-button active" type="button" role="tab" aria-selected="true">Hirsche</button>
+  <button id="fgTabUebersicht" class="tab-button" type="button" role="tab" aria-selected="false">Übersicht</button>
+</div>
 <div class="abschuss-filter-bar"><select id="fgJahr" class="search-select"></select><select id="fgJaeger" class="search-select"><option value="">Alle Jäger</option></select><select id="fgWildklasse" class="search-select"><option value="">Alle Wildklassen</option></select><select id="fgStatus" class="search-select"><option value="">Alle Status</option><option>FREI</option><option>NICHT FREI</option></select></div>
+<div id="fgUebersichtPanel" role="tabpanel" hidden>
 <div id="fgEinzelansicht" class="freigabe-einzelansicht" hidden>
   <h2 id="fgEinzelTitel"></h2>
   <div id="fgWildgruppen"></div>
 </div>
-<div id="fgSammelansicht" class="table-wrap"><table class="ap-table"><thead><tr><th>Jäger</th><th>Wildklasse</th><th>Letzte Erlegung</th><th>Frei ab</th><th>Status</th><th>Grund</th></tr></thead><tbody id="fgBody"></tbody></table></div></section>
+<div id="fgSammelansicht" class="table-wrap"><table class="ap-table"><thead><tr><th>Jäger</th><th>Wildklasse</th><th>Letzte Erlegung</th><th>Frei ab</th><th>Status</th><th>Grund</th></tr></thead><tbody id="fgBody"></tbody></table></div>
+</div>
+<div id="fgHirschePanel" class="freigabe-hirsche" role="tabpanel">
+  <div class="freigabe-hirsche-kopf">
+    <h2 id="fgHirschJahr"></h2>
+    <button id="fgSortJahre" class="btn btn-secondary active" type="button" aria-pressed="true">Sortierung Jahre</button>
+  </div>
+  <div class="freigabe-matrix-legende" aria-label="Legende">
+    <span><i class="hirsch-legende frei"></i>Frei</span>
+    <span><i class="hirsch-legende kahlwild"></i>Frei, Kahlwildpflicht offen</span>
+    <span><i class="hirsch-legende sonder"></i>Sonderfreigabe / Vorziehung</span>
+    <span><i class="hirsch-legende nicht-frei"></i>Nicht frei</span>
+  </div>
+  <div id="fgHirschMatrizen"></div>
+</div>
+</section>
+<div id="fgHirschDetail" class="modal" aria-hidden="true">
+  <div class="modal-content freigabe-hirsch-detail" role="dialog" aria-modal="true" aria-labelledby="fgHirschDetailTitel">
+    <div class="modal-header"><h2 id="fgHirschDetailTitel">Hirschfreigabe</h2><button id="fgHirschDetailClose" class="close-btn" type="button" aria-label="Schließen">&times;</button></div>
+    <dl id="fgHirschDetailInhalt" class="freigabe-details"></dl>
+    <div class="modal-footer"><button id="fgHirschDetailOk" class="btn btn-primary" type="button">Schließen</button></div>
+  </div>
+</div>

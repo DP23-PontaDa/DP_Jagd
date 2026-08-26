@@ -30,6 +30,31 @@ const AbschussplanService = (() => {
     return result.data;
   }
 
+  function getAngezeigteJahresSollwerte({
+    planperiode,
+    sollKj,
+    sollStartjahr,
+    sollEndjahr,
+    istStartjahr,
+    referenzjahr = new Date().getFullYear(),
+  }) {
+    const startjahr = Number(planperiode?.startjahr);
+    const endjahr = Number(planperiode?.endjahr);
+    const jahr = Number(referenzjahr);
+    const kj = Number(sollKj) || 0;
+    const startSoll = Number(sollStartjahr) || 0;
+    const gespeichertesEndSoll = Number(sollEndjahr) || 0;
+    const startIst = Number(istStartjahr) || 0;
+    const endSoll = jahr === startjahr || jahr === endjahr
+      ? Math.max(0, kj - (jahr === endjahr ? startIst : startSoll))
+      : gespeichertesEndSoll;
+
+    return {
+      [String(startjahr)]: startSoll,
+      [String(endjahr)]: endSoll,
+    };
+  }
+
   // Gemeinsamer Schreibpunkt für fachliche Änderungen am Planmodell.
   // Hier kann später ein Änderungsprotokoll ergänzt werden, ohne die
   // einzelnen Servicefunktionen oder die UI erneut umzubauen.
@@ -815,6 +840,7 @@ const AbschussplanService = (() => {
 
     getPositionen,
     getPlanperiodeJahresuebersicht,
+    getAngezeigteJahresSollwerte,
     createPosition,
     updatePosition,
     deletePosition,

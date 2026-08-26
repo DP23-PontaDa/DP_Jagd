@@ -1,15 +1,22 @@
 <section>
   <div class="action-bar"><h1>Abschussregeln</h1><button id="arNeu" class="btn btn-primary">+ Neue Regel</button></div>
-  <div class="table-wrap"><table class="ap-table"><thead><tr><th>Nr.</th><th>Jäger</th><th>Wildklasse</th><th>Regel</th><th>Frei ab</th><th>Originaljahr</th><th>Freigabejahr</th><th>Bemerkung</th><th>Aktiv</th><th>Aktionen</th></tr></thead><tbody id="arBody"></tbody></table></div>
+  <div class="abschuss-filter-bar">
+    <div class="form-group">
+      <label for="arJaegerFilter">Jäger</label>
+      <select id="arJaegerFilter" class="search-select">
+        <option value="">Alle Jäger</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrap"><table class="ap-table"><thead><tr><th>Nr.</th><th>Jäger</th><th>Wildklasse</th><th>Regel</th><th>Frei ab</th><th>Freigabejahr</th><th>Bemerkung</th><th>Aktiv</th><th>Aktionen</th></tr></thead><tbody id="arBody"></tbody></table></div>
 </section>
 <div id="arModal" class="modal" aria-hidden="true"><div class="modal-content"><div class="modal-header"><h2 id="arTitel">Abschussregel</h2><span id="arClose" class="close-btn">&times;</span></div><div class="form-grid">
   <div class="form-group"><label>Nr.</label><input id="arNr" class="form-control" type="number" min="1"></div>
   <div class="form-group"><label>Jäger</label><select id="arJaeger" class="form-control"></select></div>
   <div class="form-group"><label>Wildklasse</label><select id="arWildklasse" class="form-control"></select></div>
   <div class="form-group"><label>Regel</label><select id="arTyp" class="form-control"></select></div>
-  <div class="form-group"><label>Frei ab</label><input id="arFreiAb" class="form-control" type="date"></div>
-  <div class="form-group"><label>Originaljahr</label><input id="arOriginaljahr" class="form-control" type="number" min="1900" max="2999"></div>
-  <div class="form-group"><label>Freigabejahr</label><input id="arFreigabejahr" class="form-control" type="number" min="1900" max="2999"></div>
+  <div class="form-group"><label>Freigabejahr</label><input id="arFreigabejahr" class="form-control" type="number" min="1900" max="2999" required></div>
+  <div class="form-group"><label>Frei ab (optional)</label><input id="arFreiAb" class="form-control" type="date"></div>
   <div class="form-group"><label>Aktiv</label><input id="arAktiv" type="checkbox"></div>
   <div class="form-group full-width"><label>Bemerkung</label><textarea id="arBemerkung" class="form-control"></textarea></div>
 </div><div class="modal-footer"><button id="arSpeichern" class="btn btn-primary">Speichern</button><button id="arAbbrechen" class="btn btn-outline">Abbrechen</button></div></div></div>

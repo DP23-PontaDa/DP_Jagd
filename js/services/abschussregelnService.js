@@ -5,6 +5,7 @@ const AbschussregelnService = (() => {
     ["SONDERFREIGABE", "Sonderfreigabe"],
     ["INDIVIDUELLES_FREI_DATUM", "Individuelles Frei-Datum"],
     ["INDIVIDUELLE_AUSNAHME", "Individuelle Ausnahme"],
+    ["INITIAL", "Initial"],
     ["SPERRE", "Sperre"],
   ];
   function check(result) { if (result.error) throw result.error; return result.data; }
@@ -16,7 +17,7 @@ const AbschussregelnService = (() => {
       WildklassenService.vergleicheNachWildgruppeUndWildklasse(a.wildklasse, b.wildklasse) ||
       String(a.jaeger?.nachname || "").localeCompare(String(b.jaeger?.nachname || ""), "de") ||
       String(a.jaeger?.vorname || "").localeCompare(String(b.jaeger?.vorname || ""), "de") ||
-      String(a.frei_ab || "").localeCompare(String(b.frei_ab || "")) ||
+      Number(a.freigabejahr || 0) - Number(b.freigabejahr || 0) ||
       Number(a.nr || 0) - Number(b.nr || 0));
   }
   async function jaegerLaden() {
@@ -31,6 +32,12 @@ const AbschussregelnService = (() => {
     return Number(rows[0]?.nr || 0) + 1;
   }
   async function speichern(daten, id) {
+    if (!Number.isInteger(Number(daten.freigabejahr))) {
+      throw new Error("Freigabejahr ist erforderlich.");
+    }
+    if (daten.frei_ab && Number(String(daten.frei_ab).slice(0, 4)) !== Number(daten.freigabejahr)) {
+      throw new Error(`Das Datum Frei ab muss innerhalb des Freigabejahres ${daten.freigabejahr} liegen.`);
+    }
     const query = id ? db.from("abschussregeln").update(daten).eq("id", id)
       : db.from("abschussregeln").insert(daten);
     return check(await query.select().single());

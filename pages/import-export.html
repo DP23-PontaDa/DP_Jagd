@@ -85,6 +85,39 @@
     </section>
   </div>
 
+  <h2 id="ieAbschussregelnTitel">Abschussregeln</h2>
+  <div id="ieAbschussregelnBereich" class="ie-card-grid">
+    <section id="ieAbschussregelnImportKarte" class="ap-overview-group">
+      <h3>Import Abschussregeln</h3>
+      <p>Excel-Datei prüfen und erst nach der Vorschau verbindlich importieren.</p>
+      <div class="btn-group">
+        <button id="ieAbschussregelnDateiAuswaehlen" class="btn btn-primary" type="button">Importieren</button>
+        <button id="ieAbschussregelnVorlage" class="btn btn-outline" type="button">Excel-Vorlage herunterladen</button>
+      </div>
+      <input id="ieAbschussregelnDatei" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    </section>
+    <section id="ieAbschussregelnExportKarte" class="ap-overview-group">
+      <h3>Export Abschussregeln</h3>
+      <p>Exportiert die bestehenden Abschussregeln in der fachlichen Sortierung.</p>
+      <button id="ieAbschussregelnExport" class="btn btn-primary" type="button">Exportieren</button>
+      <p id="ieAbschussregelnExportStatus" class="form-message" aria-live="polite"></p>
+    </section>
+  </div>
+  <section id="ieAbschussregelnVorschau" class="ap-overview-group ie-wizard" hidden>
+    <h3>Importvorschau Abschussregeln</h3>
+    <p id="ieAbschussregelnImportStatus" class="form-message" aria-live="polite"></p>
+    <div class="table-wrap">
+      <table class="ap-table">
+        <thead><tr><th>Excel-Zeile</th><th>Nr.</th><th>Jäger</th><th>Wildklasse</th><th>Regel</th><th>Freigabejahr</th><th>Frei ab</th><th>Bemerkung</th><th>Aktiv</th><th>Ergebnis</th><th>Fehler</th></tr></thead>
+        <tbody id="ieAbschussregelnVorschauBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-group">
+      <button id="ieAbschussregelnImportAbbrechen" class="btn btn-outline" type="button">Abbrechen</button>
+      <button id="ieAbschussregelnImportBestaetigen" class="btn btn-primary" type="button">Import verbindlich bestätigen</button>
+    </div>
+  </section>
+
   <h2>Orte</h2>
   <div class="ie-card-grid">
     <section id="ieOrteImportKarte" class="ap-overview-group">

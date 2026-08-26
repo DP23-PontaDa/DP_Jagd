@@ -808,6 +808,158 @@ const ImportExportService = (() => {
     return bericht;
   }
 
+  function regelDatum(value) {
+    const text = String(value ?? "").trim();
+    if (!text) return null;
+    let treffer = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (treffer && istGueltigesDatum(text)) return text;
+    treffer = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (!treffer) return null;
+    const iso = `${treffer[3]}-${String(treffer[2]).padStart(2, "0")}-${String(treffer[1]).padStart(2, "0")}`;
+    return istGueltigesDatum(iso) ? iso : null;
+  }
+
+  function regelJahr(value) {
+    const text = String(value ?? "").trim();
+    if (!text) return null;
+    const jahr = Number(text);
+    return Number.isInteger(jahr) && jahr >= 1900 && jahr <= 2999 ? jahr : NaN;
+  }
+
+  function regelAktiv(value) {
+    if (String(value ?? "").trim() === "") return true;
+    const text = normalisieren(value);
+    if (["ja", "true", "1"].includes(text)) return true;
+    if (["nein", "false", "0"].includes(text)) return false;
+    return null;
+  }
+
+  async function getAbschussregelnImportReferenzen() {
+    const [personenResult, klassenResult, regelnResult] = await Promise.all([
+      db.from("personen").select("id,personen_nr,vorname,nachname,name_kat,aktiv")
+        .eq("name_kat", "Mitglied").eq("aktiv", true),
+      db.from("wildklassen").select("id,bezeichnung,reihenfolge,wildgruppe_id,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge)"),
+      db.from("abschussregeln").select("id,nr"),
+    ]);
+    if (personenResult.error) throw personenResult.error;
+    if (klassenResult.error) throw klassenResult.error;
+    if (regelnResult.error) throw regelnResult.error;
+    return {
+      mitglieder: personenResult.data || [],
+      wildklassen: klassenResult.data || [],
+      regeln: regelnResult.data || [],
+    };
+  }
+
+  function validiereAbschussregelnImportZeilen(zeilen, referenzen) {
+    const typen = AbschussregelnService.REGELTYPEN;
+    const vorhandeneNummern = new Set((referenzen.regeln || []).map((regel) => Number(regel.nr)));
+    const dateiNummern = new Set();
+    let naechsteNummer = Math.max(0, ...(referenzen.regeln || []).map((regel) => Number(regel.nr) || 0)) + 1;
+    return (zeilen || []).map((daten, index) => {
+      const excelZeile = index + 2; const fehler = [];
+      const nummerText = String(daten["Nr."] ?? "").trim();
+      let nr = nummerText ? Number(nummerText) : null;
+      if (nr !== null && (!Number.isInteger(nr) || nr <= 0)) fehler.push(`Zeile ${excelZeile}: Nr. muss eine positive ganze Zahl sein.`);
+      if (nr !== null && vorhandeneNummern.has(nr)) fehler.push(`Zeile ${excelZeile}: Nr. ${nr} ist bereits vergeben.`);
+      if (nr !== null && dateiNummern.has(nr)) fehler.push(`Zeile ${excelZeile}: Nr. ${nr} kommt in der Datei mehrfach vor.`);
+      if (nr === null) {
+        while (vorhandeneNummern.has(naechsteNummer) || dateiNummern.has(naechsteNummer)) naechsteNummer += 1;
+        nr = naechsteNummer; naechsteNummer += 1;
+      }
+      if (Number.isInteger(nr)) dateiNummern.add(nr);
+
+      const personenNr = String(daten["Personen-Nr."] ?? "").trim();
+      const jaegerName = String(daten["Jäger"] ?? "").trim();
+      const kandidaten = personenNr
+        ? (referenzen.mitglieder || []).filter((person) => String(person.personen_nr) === personenNr)
+        : (referenzen.mitglieder || []).filter((person) => normalisieren(vollname(person)) === normalisieren(jaegerName));
+      const jaeger = kandidaten.length === 1 ? kandidaten[0] : null;
+      if (!jaeger) fehler.push(personenNr
+        ? `Zeile ${excelZeile}: Mitglied mit Personen-Nr. ${personenNr} nicht gefunden.`
+        : kandidaten.length > 1
+          ? `Zeile ${excelZeile}: Mitglied '${jaegerName}' ist nicht eindeutig.`
+          : `Zeile ${excelZeile}: Mitglied '${jaegerName || "–"}' nicht gefunden.`);
+
+      const gruppenName = String(daten.Wildgruppe ?? "").trim();
+      const klassenName = String(daten.Wildklasse ?? "").trim();
+      const klassenTreffer = (referenzen.wildklassen || []).filter((klasse) =>
+        normalisieren(klasse.bezeichnung) === normalisieren(klassenName) &&
+        (!gruppenName || normalisieren(klasse.wildgruppe?.bezeichnung) === normalisieren(gruppenName)));
+      const wildklasse = klassenTreffer.length === 1 ? klassenTreffer[0] : null;
+      if (!wildklasse) fehler.push(`Zeile ${excelZeile}: Wildklasse '${klassenName || "–"}'${gruppenName ? ` in Wildgruppe '${gruppenName}'` : ""} nicht gefunden${klassenTreffer.length > 1 ? " oder nicht eindeutig" : ""}.`);
+
+      const regelText = String(daten.Regel ?? "").trim();
+      const regel = typen.find(([code, name]) => [code, name].some((wert) => normalisieren(wert) === normalisieren(regelText)));
+      if (!regel) fehler.push(`Zeile ${excelZeile}: Ungültiger Regeltyp '${regelText || "–"}'.`);
+      const freiAbText = String(daten["Frei ab"] ?? "").trim();
+      const freiAb = freiAbText ? regelDatum(freiAbText) : null;
+      if (freiAbText && !freiAb) fehler.push(`Zeile ${excelZeile}: Frei ab '${freiAbText}' ist kein gültiges Datum.`);
+      const freigabejahr = regelJahr(daten.Freigabejahr);
+      if (freigabejahr === null || Number.isNaN(freigabejahr)) fehler.push(`Zeile ${excelZeile}: Freigabejahr ist erforderlich und muss vierstellig sein.`);
+      if (freiAb && !Number.isNaN(freigabejahr) && freigabejahr !== null && Number(freiAb.slice(0, 4)) !== freigabejahr) {
+        fehler.push(`Zeile ${excelZeile}: Das Datum Frei ab muss innerhalb des Freigabejahres ${freigabejahr} liegen.`);
+      }
+      const aktiv = regelAktiv(daten.Aktiv);
+      if (aktiv === null) fehler.push(`Zeile ${excelZeile}: Aktiv muss Ja, Nein, true, false, 1 oder 0 sein.`);
+      const payload = fehler.length ? null : {
+        nr, jaeger_id: jaeger.id, wildklasse_id: wildklasse.id,
+        regel_typ: regel[0], frei_ab: freiAb,
+        freigabejahr,
+        bemerkung: String(daten.Bemerkung ?? "").trim() || null,
+        aktiv, gueltig_ab: null, regel_wert: null,
+        geaendert_am: new Date().toISOString(),
+      };
+      return {
+        zeile: excelZeile, nr, jaeger: jaeger ? vollname(jaeger) : jaegerName,
+        wildklasse: wildklasse?.bezeichnung || klassenName,
+        regel: regel?.[1] || regelText, frei_ab: freiAb || freiAbText,
+        freigabejahr: Number.isNaN(freigabejahr) ? String(daten.Freigabejahr ?? "") : freigabejahr,
+        bemerkung: String(daten.Bemerkung ?? ""), aktiv,
+        ergebnis: fehler.length ? "Fehler" : "OK", fehler, payload,
+      };
+    });
+  }
+
+  async function importAbschussregeln(vorschau) {
+    const gueltige = (vorschau || []).filter((eintrag) => eintrag.payload);
+    if (!gueltige.length) return { importiert: 0, fehler: [] };
+    const result = await db.from("abschussregeln").insert(gueltige.map((eintrag) => eintrag.payload));
+    if (result.error?.code === "23505") {
+      throw new Error("Import abgebrochen: Eine Regel-Nr. wurde zwischen Vorschau und Speichern bereits vergeben. Bitte die Datei erneut prüfen.");
+    }
+    if (result.error) throw new Error(`Abschussregeln konnten nicht importiert werden: ${result.error.message}`);
+    return { importiert: gueltige.length, fehler: [] };
+  }
+
+  async function getExportAbschussregeln() {
+    const result = await db.from("abschussregeln").select(
+      "*,jaeger:personen(id,personen_nr,vorname,nachname),wildklasse:wildklassen(id,bezeichnung,reihenfolge,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge))"
+    );
+    if (result.error) throw result.error;
+    return (result.data || []).sort((a, b) =>
+      Number(a.wildklasse?.wildgruppe?.reihenfolge || 0) - Number(b.wildklasse?.wildgruppe?.reihenfolge || 0) ||
+      Number(a.wildklasse?.reihenfolge || 0) - Number(b.wildklasse?.reihenfolge || 0) ||
+      String(a.jaeger?.nachname || "").localeCompare(String(b.jaeger?.nachname || ""), "de") ||
+      String(a.jaeger?.vorname || "").localeCompare(String(b.jaeger?.vorname || ""), "de") ||
+      Number(a.nr || 0) - Number(b.nr || 0));
+  }
+
+  function exportAbschussregelnZeilen(regeln) {
+    return (regeln || []).map((regel) => ({
+      "Nr.": regel.nr,
+      "Personen-Nr.": regel.jaeger?.personen_nr ?? "",
+      "Jäger": vollname(regel.jaeger || {}),
+      Wildgruppe: regel.wildklasse?.wildgruppe?.bezeichnung || "",
+      Wildklasse: regel.wildklasse?.bezeichnung || "",
+      Regel: AbschussregelnService.REGELTYPEN.find(([code]) => code === regel.regel_typ)?.[1] || regel.regel_typ,
+      Freigabejahr: regel.freigabejahr ?? "",
+      "Frei ab": regel.frei_ab || "",
+      Bemerkung: regel.bemerkung || "",
+      Aktiv: regel.aktiv === false ? "Nein" : "Ja",
+    }));
+  }
+
   return {
     getExportAbschuesse,
     exportZeilen,
@@ -820,5 +972,10 @@ const ImportExportService = (() => {
     getMitgliederImportReferenzen,
     validiereMitgliederImportZeilen,
     importMitglieder,
+    getAbschussregelnImportReferenzen,
+    validiereAbschussregelnImportZeilen,
+    importAbschussregeln,
+    getExportAbschussregeln,
+    exportAbschussregelnZeilen,
   };
 })();

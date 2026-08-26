@@ -13,11 +13,16 @@ window.ImportExport = (() => {
     "Mitgliedsnummer", "Vorname", "Nachname", "KJ-Nr", "Adresse", "PLZ",
     "Ort", "Aktiv", "Kategorie",
   ];
+  const ABSCHUSSREGEL_SPALTEN = [
+    "Nr.", "Personen-Nr.", "Jäger", "Wildgruppe", "Wildklasse", "Regel",
+    "Freigabejahr", "Frei ab", "Bemerkung", "Aktiv",
+  ];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
   let validierung = null;
   let orteImportVorschau = [];
+  let abschussregelnImportVorschau = [];
 
   const element = (id) => document.getElementById(id);
   const aktiveSpalten = () =>
@@ -91,8 +96,137 @@ window.ImportExport = (() => {
     element("ieOrteImportAbbrechen").addEventListener("click", orteImportZuruecksetzen);
     element("ieOrteImportBestaetigen").addEventListener("click", orteImportBestaetigen);
     orteRechteAnwenden();
+    element("ieAbschussregelnDateiAuswaehlen").addEventListener("click", () =>
+      element("ieAbschussregelnDatei").click());
+    element("ieAbschussregelnDatei").addEventListener("change", abschussregelnDateiAusgewaehlt);
+    element("ieAbschussregelnVorlage").addEventListener("click", abschussregelnVorlageHerunterladen);
+    element("ieAbschussregelnExport").addEventListener("click", abschussregelnExportieren);
+    element("ieAbschussregelnImportAbbrechen").addEventListener("click", abschussregelnImportZuruecksetzen);
+    element("ieAbschussregelnImportBestaetigen").addEventListener("click", abschussregelnImportBestaetigen);
+    abschussregelnRechteAnwenden();
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
+  }
+
+  function abschussregelnRechteAnwenden() {
+    const lesen = BerechtigungService.darf("abschussregeln", "Lesen");
+    const bearbeiten = BerechtigungService.darf("abschussregeln", "Bearbeiten");
+    element("ieAbschussregelnTitel").hidden = !lesen && !bearbeiten;
+    element("ieAbschussregelnBereich").hidden = !lesen && !bearbeiten;
+    element("ieAbschussregelnImportKarte").hidden = !lesen && !bearbeiten;
+    element("ieAbschussregelnDateiAuswaehlen").hidden = !bearbeiten;
+    element("ieAbschussregelnVorlage").hidden = !lesen;
+    element("ieAbschussregelnExportKarte").hidden = !lesen;
+    if (!bearbeiten) element("ieAbschussregelnVorschau").hidden = true;
+  }
+
+  function abschussregelnVorlageHerunterladen() {
+    if (!BerechtigungService.darf("abschussregeln", "Lesen")) return;
+    try {
+      xlsxPruefen();
+      const beispiel = {
+        "Nr.": "", "Personen-Nr.": 17, "Jäger": "Max Mustermann",
+        Wildgruppe: "Rotwild", Wildklasse: "Hirsch A", Regel: "Initial",
+        Freigabejahr: 2020, "Frei ab": "",
+        Bemerkung: "Beispielzeile vor dem Import anpassen", Aktiv: "Ja",
+      };
+      const hinweise = AbschussregelnService.REGELTYPEN.map(([, name]) => ({
+        Feld: "Regel", Zulässiger_Wert: name,
+      }));
+      const mappe = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(mappe,
+        XLSX.utils.json_to_sheet([beispiel], { header: ABSCHUSSREGEL_SPALTEN }),
+        "Abschussregeln");
+      XLSX.utils.book_append_sheet(mappe, XLSX.utils.json_to_sheet(hinweise), "Hinweise");
+      XLSX.writeFile(mappe, "vorlage-abschussregeln.xlsx");
+    } catch (error) { AppFeedback.error(error.message); }
+  }
+
+  async function abschussregelnDateiAusgewaehlt(event) {
+    const ausgewaehlteDatei = event.target.files?.[0]; event.target.value = "";
+    if (!ausgewaehlteDatei || !BerechtigungService.darf("abschussregeln", "Bearbeiten")) return;
+    const status = element("ieAbschussregelnImportStatus");
+    try {
+      xlsxPruefen();
+      element("ieAbschussregelnVorschau").hidden = false;
+      status.textContent = `${ausgewaehlteDatei.name} wird geprüft …`;
+      const mappe = XLSX.read(await ausgewaehlteDatei.arrayBuffer(), { type: "array", cellDates: true });
+      const blatt = mappe.Sheets[mappe.SheetNames[0]];
+      const rohdaten = XLSX.utils.sheet_to_json(blatt, { defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+      const spalten = new Set(rohdaten.length ? Object.keys(rohdaten[0]) : []);
+      const fehlende = ABSCHUSSREGEL_SPALTEN.filter((spalte) => !spalten.has(spalte));
+      if (fehlende.length) throw new Error(`Erforderliche Spalten fehlen: ${fehlende.join(", ")}.`);
+      const referenzen = await ImportExportService.getAbschussregelnImportReferenzen();
+      abschussregelnImportVorschau = ImportExportService.validiereAbschussregelnImportZeilen(rohdaten, referenzen);
+      abschussregelnVorschauAnzeigen();
+    } catch (error) {
+      console.error("Abschussregeln-Import:", error);
+      abschussregelnImportVorschau = [];
+      element("ieAbschussregelnVorschauBody").innerHTML = "";
+      status.textContent = error.message || "Datei konnte nicht geprüft werden.";
+      element("ieAbschussregelnImportBestaetigen").disabled = true;
+    }
+  }
+
+  function abschussregelnVorschauAnzeigen() {
+    const body = element("ieAbschussregelnVorschauBody");
+    body.innerHTML = abschussregelnImportVorschau.map((eintrag) => `
+      <tr class="${eintrag.fehler.length ? "ie-preview-error" : ""}">
+        <td>${eintrag.zeile}</td><td>${htmlSicher(eintrag.nr)}</td>
+        <td>${htmlSicher(eintrag.jaeger)}</td><td>${htmlSicher(eintrag.wildklasse)}</td>
+        <td>${htmlSicher(eintrag.regel)}</td><td>${htmlSicher(eintrag.freigabejahr ?? "")}</td>
+        <td>${htmlSicher(eintrag.frei_ab)}</td>
+        <td>${htmlSicher(eintrag.bemerkung)}</td><td>${eintrag.aktiv === false ? "Nein" : eintrag.aktiv === true ? "Ja" : "–"}</td>
+        <td>${htmlSicher(eintrag.ergebnis)}</td><td>${htmlSicher(eintrag.fehler.join(" "))}</td>
+      </tr>`).join("");
+    const fehler = abschussregelnImportVorschau.reduce((summe, eintrag) => summe + eintrag.fehler.length, 0);
+    element("ieAbschussregelnImportStatus").textContent =
+      `${abschussregelnImportVorschau.length} Zeilen geprüft: ` +
+      `${abschussregelnImportVorschau.length - abschussregelnImportVorschau.filter((eintrag) => eintrag.fehler.length).length} gültig, ` +
+      `${abschussregelnImportVorschau.filter((eintrag) => eintrag.fehler.length).length} fehlerhaft.`;
+    element("ieAbschussregelnImportBestaetigen").disabled =
+      !abschussregelnImportVorschau.length || fehler > 0;
+  }
+
+  function abschussregelnImportZuruecksetzen() {
+    abschussregelnImportVorschau = [];
+    element("ieAbschussregelnVorschauBody").innerHTML = "";
+    element("ieAbschussregelnVorschau").hidden = true;
+  }
+
+  async function abschussregelnImportBestaetigen() {
+    if (!BerechtigungService.darf("abschussregeln", "Bearbeiten") ||
+        abschussregelnImportVorschau.some((eintrag) => eintrag.fehler.length)) return;
+    const button = element("ieAbschussregelnImportBestaetigen"); button.disabled = true;
+    try {
+      const bericht = await ImportExportService.importAbschussregeln(abschussregelnImportVorschau);
+      element("ieAbschussregelnImportStatus").textContent = `${bericht.importiert} Abschussregeln erfolgreich importiert.`;
+      abschussregelnImportVorschau = [];
+      element("ieAbschussregelnVorschauBody").innerHTML = "";
+      AppFeedback.success("Abschussregeln importiert.");
+    } catch (error) {
+      console.error("Abschussregeln speichern:", error);
+      element("ieAbschussregelnImportStatus").textContent = error.message;
+    } finally { button.disabled = false; }
+  }
+
+  async function abschussregelnExportieren() {
+    if (!BerechtigungService.darf("abschussregeln", "Lesen")) return;
+    const status = element("ieAbschussregelnExportStatus");
+    try {
+      xlsxPruefen(); status.textContent = "Export wird vorbereitet …";
+      const regeln = await ImportExportService.getExportAbschussregeln();
+      const daten = ImportExportService.exportAbschussregelnZeilen(regeln);
+      const mappe = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(mappe,
+        XLSX.utils.json_to_sheet(daten, { header: ABSCHUSSREGEL_SPALTEN }),
+        "Abschussregeln");
+      XLSX.writeFile(mappe, `abschussregeln-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      status.textContent = `${daten.length} Abschussregeln exportiert.`;
+    } catch (error) {
+      console.error("Abschussregeln-Export:", error);
+      status.textContent = error.message || "Export fehlgeschlagen.";
+    }
   }
 
   function orteRechteAnwenden() {

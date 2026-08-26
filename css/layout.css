@@ -1708,6 +1708,78 @@ textarea.form-control {
 .freigabe-einzeltabelle .action-cell { width: 54px; }
 .freigabe-empty { padding: 1rem; background: #f4f7f8; border-radius: 8px; }
 
+.freigaben-tabs { margin-bottom: 0.75rem; }
+.freigabe-hirsche-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.freigabe-hirsche-kopf > h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+#fgSortJahre.active,
+#fgSortJahre[aria-pressed="true"] { background: #405f70; border-color: #405f70; color: #fff; }
+.freigabe-matrix-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #d9e1e5;
+  border-radius: 8px;
+  background: #f7f9fa;
+}
+.freigabe-matrix-legende span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.hirsch-legende { width: 1rem; height: 1rem; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); }
+.hirsch-legende.frei, .hirsch-jahreszelle.frei { background: #c9ead4; color: #155d30; }
+.hirsch-legende.kahlwild, .hirsch-jahreszelle.kahlwild { background: #f4c7c7; color: #8b1e1e; }
+.hirsch-legende.sonder, .hirsch-jahreszelle.sonder { background: #ffd7a1; color: #824600; }
+.hirsch-legende.nicht-frei, .hirsch-jahreszelle.nicht-frei { background: #e8ecef; color: #59666e; }
+.hirsch-jahreszelle.historisch { background: #e8ecef; color: #59666e; font-weight: 600; }
+.hirsch-matrix-section { margin: 0 0 1.5rem; }
+.hirsch-matrix-section h3 {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px 8px 0 0;
+  background: #405f70;
+  color: #fff;
+}
+.hirsch-matrix-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #cfd9de;
+  border-top: 0;
+  -webkit-overflow-scrolling: touch;
+}
+.hirsch-matrix { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; }
+.hirsch-matrix th, .hirsch-matrix td {
+  min-width: 88px;
+  height: 48px;
+  padding: 0.45rem 0.55rem;
+  border-right: 1px solid #dce3e7;
+  border-bottom: 1px solid #dce3e7;
+  text-align: center;
+  white-space: nowrap;
+}
+.hirsch-matrix th { position: sticky; top: 0; z-index: 4; background: #e9eff2; }
+.hirsch-jahreskopf small,
+.hirsch-jahreskopf strong { display: block; }
+.hirsch-jahreskopf small { margin-bottom: 0.1rem; color: #61727b; font-size: 0.68rem; font-weight: 600; }
+.hirsch-jahreskopf strong { color: #263d49; font-size: 0.9rem; }
+.hirsch-matrix .hirsch-sticky { position: sticky; z-index: 3; background: #fff; text-align: left; }
+.hirsch-matrix th.hirsch-sticky { z-index: 6; background: #e9eff2; }
+.hirsch-sticky-1 { left: 0; width: 70px; min-width: 70px !important; }
+.hirsch-sticky-2 { left: 70px; width: 160px; min-width: 160px !important; }
+.hirsch-sticky-3 { left: 230px; width: 140px; min-width: 140px !important; box-shadow: 3px 0 4px rgba(34,51,60,.08); }
+.hirsch-jahreszelle { font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; }
+.hirsch-jahreszelle:focus-visible { outline: 3px solid #287a9f; outline-offset: -3px; }
+.freigabe-hirsch-detail { max-width: 560px; }
+.import-export-page .ie-preview-error td { background: #fff0f0; color: #842323; }
+
 @media (max-width: 700px) {
   .freigaben-page .abschuss-filter-bar { grid-template-columns: 1fr; }
   .freigabe-details { grid-template-columns: 1fr; }
@@ -1716,6 +1788,14 @@ textarea.form-control {
   #app-content .freigabe-einzeltabelle tbody tr { margin-bottom: 0.75rem; }
   #app-content .freigabe-einzeltabelle tbody td { grid-template-columns: minmax(105px, 38%) minmax(0, 62%); }
   #app-content .freigabe-einzeltabelle .freigabe-grund { align-items: start; }
+  .freigabe-matrix-legende { gap: 0.5rem 0.75rem; font-size: 0.84rem; }
+  .freigabe-hirsche-kopf { align-items: stretch; }
+  #fgSortJahre { min-height: 44px; }
+  .hirsch-matrix th, .hirsch-matrix td { min-width: 76px; height: 44px; padding: 0.35rem 0.4rem; font-size: 0.82rem; }
+  .hirsch-jahreskopf small { font-size: 0.62rem; }
+  .hirsch-sticky-1 { left: 0; width: 54px; min-width: 54px !important; }
+  .hirsch-sticky-2 { left: 54px; width: 112px; min-width: 112px !important; }
+  .hirsch-sticky-3 { left: 166px; width: 104px; min-width: 104px !important; }
 }
 
 .ap-table tbody tr.abschuss-missing-data,

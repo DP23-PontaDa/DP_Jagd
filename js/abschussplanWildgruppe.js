@@ -562,15 +562,17 @@ const AbschussplanWildgruppe = (() => {
       const kjPosition = matrixPosition(positionsListen[0], klasse.id);
       const startjahrPosition = matrixPosition(positionsListen[1], klasse.id);
       const endjahrPosition = matrixPosition(positionsListen[2], klasse.id);
-      const automatischerEndjahrSoll = Math.max(
-        0,
-        Number(kjPosition?.soll ?? 0) -
-          Number(
-            planwertMode === "endjahr"
-              ? startjahrPosition?.ist ?? 0
-              : startjahrPosition?.soll ?? 0,
-          ),
-      );
+      const angezeigteJahresSollwerte =
+        AbschussplanService.getAngezeigteJahresSollwerte({
+          planperiode,
+          sollKj: kjPosition?.soll,
+          sollStartjahr: startjahrPosition?.soll,
+          sollEndjahr: endjahrPosition?.soll,
+          istStartjahr: startjahrPosition?.ist,
+          referenzjahr: aktuellesJahr,
+        });
+      const automatischerEndjahrSoll =
+        angezeigteJahresSollwerte[String(planperiode.endjahr)];
       const planwertState = {
         inputs: {},
         manualOrder: [],

@@ -1,0 +1,360 @@
+/* Zentrale Mobile-Schutzschicht. Modul-CSS bleibt fachlich unverändert. */
+@media (max-width: 768px) {
+  html,
+  body,
+  #app,
+  main {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body,
+  #app,
+  main {
+    min-width: 0;
+  }
+
+  #app {
+    overflow-x: clip;
+  }
+
+  main,
+  #app-content,
+  #app-content > *,
+  #app-content section,
+  #app-content article,
+  #app-content .dashboard-content,
+  #app-content .dashboard-card,
+  #app-content .summary-card,
+  #app-content .form-grid,
+  #app-content .form-group {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #app-content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  #app-content img,
+  #app-content svg,
+  #app-content canvas {
+    max-width: 100%;
+  }
+
+  /* Nur fachlich breite Tabellen und Diagramme dürfen lokal scrollen. */
+  #app-content .table-wrap,
+  #app-content .pers-table-container,
+  #app-content .dashboard-table-wrap,
+  #app-content .ap-matrix-scroll,
+  #app-content .haar-federwild-chart-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #app-content table {
+    max-width: 100%;
+  }
+
+  /* Karten-/Zeilentabellen: lange Inhalte dürfen sich vollständig umbrechen. */
+  #app-content table.person-table tbody tr,
+  #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody tr,
+  #app-content table.jagd-table tbody tr {
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  #app-content table.person-table tbody td,
+  #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td,
+  #app-content table.jagd-table tbody td {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  #app-content table tbody td.number-cell,
+  #app-content table tbody td[data-label="Gesamtbetrag"],
+  #app-content table tbody td[data-label="Gesamtpreis"],
+  #app-content table tbody td[data-label="Gewicht"] {
+    white-space: nowrap;
+  }
+
+  #app-content table tbody td.action-cell {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Rechnungs- und Zahlungsübersicht bleibt als kompakte Kachel vollständig sichtbar. */
+  #app-content .rechnungen-page,
+  #app-content .invoice-overview-filters {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #app-content .invoice-overview-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #app-content .rechnungen-page .invoice-payment-button {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #app-content .rechnungen-page td[data-label="Rechnungsnummer"],
+  #app-content .rechnungen-page td[data-label="Empfänger / Abnehmer"],
+  #app-content .rechnungen-page td[data-label="Wild"] {
+    overflow-wrap: anywhere;
+  }
+
+  /* Tagebuch: Filter, Texte und Tags dürfen den Viewport nicht verbreitern. */
+  #app-content .tagebuch-filter,
+  #app-content .journal-filter {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #app-content .tagebuch-description-cell,
+  #app-content .journal-description {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #app-content .tagebuch-description-short,
+  #app-content .journal-description span {
+    display: block;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+  }
+
+  #app-content .tagebuch-tag,
+  #app-content .journal-tag,
+  #app-content .hashtag-chip {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Tagebuch-Zusammenfassung: echte responsive Diagramm- und Kartenbreiten. */
+  #app-content .tagebuch-summary-page,
+  #app-content .summary-heading,
+  #app-content .summary-kpis,
+  #app-content .summary-card-heading,
+  #app-content .summary-chart,
+  #app-content .summary-map {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #app-content .summary-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #app-content .summary-card {
+    overflow: visible;
+  }
+
+  #app-content .summary-chart,
+  #app-content .summary-chart-places,
+  #app-content .summary-chart-wide {
+    min-width: 0;
+    height: clamp(280px, 72vw, 360px);
+    overflow: hidden;
+  }
+
+  #app-content .summary-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  #app-content .summary-map {
+    height: clamp(320px, 68vh, 520px);
+  }
+
+  /* Dashboard-Karten, Filter und Diagramme nutzen nur die verfügbare Breite. */
+  #app-content .dashboard-page,
+  #app-content .dashboard-heading,
+  #app-content .dashboard-grid,
+  #app-content .dashboard-hunter-grid,
+  #app-content .dashboard-dealer-grid,
+  #app-content .dashboard-heatmap-card,
+  #app-content .dashboard-heatmap-controls,
+  #app-content .dashboard-plan-chart,
+  #app-content .dashboard-plan-chart-stage,
+  #app-content .dashboard-hunter-chart,
+  #app-content .dashboard-dealer-chart,
+  #app-content .dashboard-heatmap-map {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #app-content .dashboard-heatmap-controls,
+  #app-content .dashboard-hunter-grid,
+  #app-content .dashboard-dealer-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #app-content .dashboard-plan-chart canvas,
+  #app-content .dashboard-hunter-chart canvas,
+  #app-content .dashboard-dealer-chart canvas {
+    max-width: 100% !important;
+  }
+
+  /* Freigaben bleiben fachlich tabellarisch und scrollen nur im Tabellenrahmen. */
+  #app-content .freigaben-page,
+  #app-content .freigabe-einzelansicht,
+  #app-content .freigabe-wildgruppe {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #app-content .freigaben-page .abschuss-filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #app-content .freigaben-page .table-wrap,
+  #app-content .freigabe-wildgruppe .table-wrap {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+
+  #app-content .freigaben-page td.freigabe-grund {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Leaflet-Karten und Bedienelemente bleiben innerhalb ihres Containers. */
+  #app-content .orte-page,
+  #app-content .orte-map-overview,
+  #app-content .orte-map,
+  #app-content .orte-overview-map,
+  #app-content .dashboard-heatmap-map {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #app-content .orte-map,
+  #app-content .orte-overview-map {
+    height: clamp(320px, 62vh, 560px);
+  }
+
+  #app-content .leaflet-container {
+    max-width: 100%;
+  }
+
+  #app-content .leaflet-control-layers-expanded,
+  #app-content .leaflet-popup-content-wrapper {
+    max-width: calc(100vw - 48px);
+    max-height: 55vh;
+    overflow: auto;
+  }
+
+  #app-content .leaflet-popup-content {
+    max-width: calc(100vw - 88px);
+    margin: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  /* Alle Dialoge besitzen einen eigenen vertikalen Scrollbereich. */
+  #app-content .modal {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  #app-content .modal-content {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    max-height: calc(100dvh - 20px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #app-content .modal-header,
+  #app-content .modal-footer {
+    flex: 0 0 auto;
+  }
+
+  #app-content .modal-header {
+    top: 0;
+  }
+
+  #app-content .modal-footer {
+    bottom: 0;
+  }
+
+  /* Die mobile Sidebar bleibt Overlay und besitzt ihren eigenen Scrollbereich. */
+  #sidebar {
+    max-width: min(86vw, 320px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 430px) {
+  #app-content {
+    padding-inline: 8px;
+  }
+
+  #app-content .dashboard-card,
+  #app-content .summary-card {
+    padding: 10px;
+  }
+
+  #app-content table.person-table tbody td,
+  #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td,
+  #app-content table.jagd-table tbody td {
+    grid-template-columns: minmax(82px, 34%) minmax(0, 66%);
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  #app-content .modal {
+    padding: 6px;
+  }
+
+  #app-content .modal-content {
+    max-height: calc(100dvh - 12px);
+    padding: 12px;
+  }
+}
+
+@media (max-width: 359px) {
+  #app-content .summary-kpi {
+    padding: 8px;
+  }
+
+  #app-content .summary-kpi strong {
+    font-size: 1.2rem;
+  }
+
+  #app-content table.person-table tbody td,
+  #app-content table.ap-table:not(.dashboard-plan-table):not(.freigabe-einzeltabelle) tbody td,
+  #app-content table.jagd-table tbody td {
+    grid-template-columns: minmax(74px, 32%) minmax(0, 68%);
+  }
+}

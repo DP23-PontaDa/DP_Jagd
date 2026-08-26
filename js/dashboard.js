@@ -51,19 +51,35 @@ const Dashboard = (() => {
     return element;
   }
 
-  const verticalValueLabels = {
-    id: "verticalValueLabels",
+  const planValueLabels = {
+    id: "planValueLabels",
     afterDatasetsDraw(chart) {
-      const { ctx } = chart;
+      const { ctx, data } = chart;
       ctx.save();
       ctx.fillStyle = "#243342";
       ctx.font = "600 11px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
+      data.datasets.forEach((dataset, datasetIndex) => {
+        if (!dataset.valueLabel) return;
         chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
           const value = dataset.data[index];
           if (value === null || value === undefined) return;
+          if (dataset.valueLabel === "stack-total") {
+            const stackDatasets = data.datasets.filter((item) =>
+              item.stack === dataset.stack && item.metricKey === dataset.metricKey);
+            const total = stackDatasets.reduce((sum, item) =>
+              sum + numberValue(item.data[index]), 0);
+            const top = data.datasets.map((item, itemIndex) => ({ item, itemIndex }))
+              .filter(({ item }) => item.stack === dataset.stack &&
+                item.metricKey === dataset.metricKey &&
+                item.data[index] !== null && item.data[index] !== undefined)
+              .map(({ itemIndex }) => chart.getDatasetMeta(itemIndex).data[index])
+              .filter(Boolean)
+              .reduce((minimum, element) => Math.min(minimum, element.y), bar.y);
+            ctx.fillText(String(total), bar.x, top - 6);
+            return;
+          }
           ctx.fillText(String(numberValue(value)), bar.x, bar.y - 6);
         });
       });
@@ -75,25 +91,24 @@ const Dashboard = (() => {
     id: "planAxisLabels",
     afterDraw(chart) {
       const { ctx, chartArea, data } = chart;
-      const metricNames = data.datasets.map((dataset) => dataset.axisLabel);
       ctx.save();
       ctx.fillStyle = "#596775";
       ctx.font = "10px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       data.labels.forEach((label, index) => {
-        const bars = data.datasets.map((dataset, datasetIndex) => ({
-          bar: chart.getDatasetMeta(datasetIndex).data[index],
-          name: metricNames[datasetIndex],
-          value: dataset.data[index],
-        })).filter((entry) => entry.bar && entry.value !== null && entry.value !== undefined);
-        bars.forEach((entry) => {
-          const zeilen = entry.name === "Soll/Periode"
-            ? ["Soll/", "Periode"]
-            : entry.name === "Soll (Jahr)"
-              ? ["Soll", "(Jahr)"]
-              : [entry.name];
-          zeilen.forEach((zeile, zeilenIndex) =>
+        const metriken = new Map();
+        data.datasets.forEach((dataset, datasetIndex) => {
+          const value = dataset.data[index];
+          const bar = chart.getDatasetMeta(datasetIndex).data[index];
+          if (!bar || value === null || value === undefined || metriken.has(dataset.metricKey)) return;
+          metriken.set(dataset.metricKey, {
+            bar,
+            zeilen: dataset.axisLines || [dataset.axisLabel || dataset.label],
+          });
+        });
+        metriken.forEach((entry) => {
+          entry.zeilen.forEach((zeile, zeilenIndex) =>
             ctx.fillText(
               zeile,
               entry.bar.x,
@@ -109,62 +124,127 @@ const Dashboard = (() => {
     },
   };
 
+  function relevantesPlanjahr(rows, planperiode) {
+    const startjahr = Number(planperiode.startjahr);
+    const endjahr = Number(planperiode.endjahr);
+    const datenjahr = Number(rows[0]?.aktuelles_jahr);
+    const kalenderjahr = Number.isFinite(datenjahr) ? datenjahr : new Date().getFullYear();
+    if (kalenderjahr < startjahr) return startjahr;
+    if (kalenderjahr > endjahr) return endjahr;
+    return kalenderjahr;
+  }
+
+  function planperiodenJahre(planperiode) {
+    const startjahr = Number(planperiode.startjahr);
+    const endjahr = Number(planperiode.endjahr);
+    return [...new Set([startjahr, endjahr].filter(Number.isFinite))];
+  }
+
+  function istJahreswert(row, jahr, planperiode) {
+    if (Number(jahr) === Number(planperiode.startjahr)) return numberValue(row.ist_startjahr);
+    if (Number(jahr) === Number(planperiode.endjahr)) return numberValue(row.ist_endjahr);
+    return 0;
+  }
+
+  function sollJahreswert(row, jahr, planperiode) {
+    const gespeicherterWert = row.soll_jahreswerte?.[String(jahr)];
+    if (gespeicherterWert !== undefined && gespeicherterWert !== null) {
+      return numberValue(gespeicherterWert);
+    }
+    if (Number(jahr) === Number(planperiode.startjahr)) return numberValue(row.soll_startjahr);
+    if (Number(jahr) === Number(planperiode.endjahr)) return numberValue(row.soll_endjahr);
+    return numberValue(row.soll_aktuelles_jahr);
+  }
+
+  function istInterneJahresauswertung(row) {
+    return row.nur_jahre === true || row.ohne_soll === true;
+  }
+
   function createPlanChart(canvas, rows, planperiode) {
     const labels = rows.map((row) => row.planposition);
     const classColors = rows.map((row) =>
       WildklasseColors.get(row.wildgruppe, row.planposition));
-    const aktuellesJahr =
-      rows[0]?.aktuelles_jahr || new Date().getFullYear();
+    const jahre = planperiodenJahre(planperiode);
+    const aktuellesJahr = relevantesPlanjahr(rows, planperiode);
+    const sollFarben = classColors.map((color) => withAlpha(color, 0.34));
+    const istJahresFarben = jahre.map((jahr, index) => classColors.map((color) =>
+      withAlpha(color, index === 0 ? 0.92 : 0.68)));
+    const datasets = [
+      {
+        label: "Soll",
+        legendLabel: "Soll",
+        legendKey: "soll",
+        showInLegend: true,
+        axisLabel: "Soll/Periode",
+        axisLines: ["Soll", "Periode"],
+        metricKey: "soll-periode",
+        data: rows.map((row) => istInterneJahresauswertung(row)
+          ? null : numberValue(row.soll_kj)),
+        backgroundColor: sollFarben,
+        stack: "soll-periode",
+        skipNull: true,
+        valueLabel: "single",
+      },
+      ...jahre.map((jahr, index) => ({
+        label: `Ist ${jahr}`,
+        legendLabel: `Ist ${jahr}`,
+        legendKey: `ist-${jahr}`,
+        showInLegend: true,
+        axisLabel: "Ist/Periode",
+        axisLines: ["Ist", "Periode"],
+        metricKey: "ist-periode",
+        jahr,
+        data: rows.map((row) => istInterneJahresauswertung(row)
+          ? null : istJahreswert(row, jahr, planperiode)),
+        backgroundColor: istJahresFarben[index],
+        stack: "ist-periode",
+        skipNull: true,
+        valueLabel: index === jahre.length - 1 ? "stack-total" : null,
+      })),
+      {
+        label: `Soll ${aktuellesJahr}`,
+        axisLabel: `Soll/${aktuellesJahr}`,
+        axisLines: ["Soll", String(aktuellesJahr)],
+        metricKey: "soll-jahr",
+        data: rows.map((row) => istInterneJahresauswertung(row)
+          ? null : sollJahreswert(row, aktuellesJahr, planperiode)),
+        backgroundColor: sollFarben,
+        stack: "soll-jahr",
+        skipNull: true,
+        valueLabel: "single",
+      },
+      {
+        label: `Ist ${aktuellesJahr}`,
+        axisLabel: `Ist/${aktuellesJahr}`,
+        axisLines: ["Ist", String(aktuellesJahr)],
+        metricKey: "ist-jahr",
+        data: rows.map((row) => istInterneJahresauswertung(row)
+          ? null : istJahreswert(row, aktuellesJahr, planperiode)),
+        backgroundColor: classColors.map((color) => withAlpha(color, 0.92)),
+        stack: "ist-jahr",
+        skipNull: true,
+        valueLabel: "single",
+      },
+      ...jahre.map((jahr, index) => ({
+        label: `Ist ${jahr}`,
+        axisLabel: `Ist/${jahr}`,
+        axisLines: ["Ist", String(jahr)],
+        metricKey: `intern-ist-${jahr}`,
+        data: rows.map((row) => istInterneJahresauswertung(row)
+          ? istJahreswert(row, jahr, planperiode) : null),
+        backgroundColor: istJahresFarben[index],
+        stack: `intern-ist-${jahr}`,
+        skipNull: true,
+        valueLabel: "single",
+      })),
+    ];
     const chart = new Chart(canvas, {
       type: "bar",
       data: {
         labels,
-        datasets: [
-          {
-            label: "Soll/Periode",
-            axisLabel: "Soll/Periode",
-            data: rows.map((row) => row.ohne_soll || row.nur_jahre
-              ? null : numberValue(row.soll_kj)),
-            backgroundColor: classColors,
-            stack: "soll-periode",
-          },
-          {
-            label: "Ist KJ",
-            axisLabel: "Gesamt",
-            data: rows.map((row) => row.ohne_gesamt || row.nur_jahre
-              ? null : numberValue(row.ist_kj)),
-            backgroundColor: classColors.map((color) =>
-              withAlpha(color, 0.78)),
-            stack: "ist-kj",
-          },
-          {
-            label: `Ist ${planperiode.startjahr}`,
-            axisLabel: String(planperiode.startjahr),
-            data: rows.map((row) => numberValue(row.ist_startjahr)),
-            backgroundColor: classColors.map((color) =>
-              withAlpha(color, 0.56)),
-            stack: "ist-startjahr",
-          },
-          {
-            label: `Soll ${aktuellesJahr}`,
-            axisLabel: "Soll (Jahr)",
-            data: rows.map((row) => row.ohne_soll || row.nur_jahre
-              ? null : numberValue(row.soll_aktuelles_jahr)),
-            backgroundColor: classColors.map((color) =>
-              withAlpha(color, 0.46)),
-            stack: "soll-jahr",
-          },
-          {
-            label: `Ist ${planperiode.endjahr}`,
-            axisLabel: String(planperiode.endjahr),
-            data: rows.map((row) => numberValue(row.ist_endjahr)),
-            backgroundColor: classColors.map((color) =>
-              withAlpha(color, 0.36)),
-            stack: "ist-endjahr",
-          },
-        ],
+        datasets,
       },
-      plugins: [verticalValueLabels, planAxisLabels],
+      plugins: [planValueLabels, planAxisLabels],
       options: DashboardChartOptions.withTooltip({
         responsive: true,
         maintainAspectRatio: false,
@@ -172,6 +252,28 @@ const Dashboard = (() => {
         layout: { padding: { top: 24, bottom: 50 } },
         plugins: {
           legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const context = items[0];
+                if (!context) return "";
+                const dataset = context.dataset;
+                const index = context.dataIndex;
+                const wert = dataset.metricKey === "ist-periode"
+                  ? datasets.filter((item) => item.metricKey === "ist-periode")
+                    .reduce((sum, item) => sum + numberValue(item.data[index]), 0)
+                  : numberValue(context.raw);
+                return [String(context.label || ""), `${dataset.axisLabel}: ${wert}`];
+              },
+              label: (context) => context.dataset.metricKey === "ist-periode"
+                ? jahre.map((jahr) => {
+                  const dataset = datasets.find((item) =>
+                    item.metricKey === "ist-periode" && Number(item.jahr) === Number(jahr));
+                  return `${jahr}: ${numberValue(dataset?.data[context.dataIndex])}`;
+                })
+                : null,
+            },
+          },
         },
         scales: {
           x: { stacked: true, grid: { display: false }, ticks: { display: false } },
@@ -186,20 +288,23 @@ const Dashboard = (() => {
   function createPlanLegend(chart) {
     const legend = createElement("div", "dashboard-plan-legend");
     legend.setAttribute("role", "list");
+    const verwendet = new Set();
     chart.data.datasets.forEach((dataset) => {
+      if (!dataset.showInLegend || verwendet.has(dataset.legendKey)) return;
+      verwendet.add(dataset.legendKey);
       const item = createElement("span", "dashboard-plan-legend-item");
       item.setAttribute("role", "listitem");
       const color = Array.isArray(dataset.backgroundColor)
         ? dataset.backgroundColor[0] : dataset.backgroundColor;
       const swatch = createElement("span", "dashboard-plan-legend-swatch");
       swatch.style.backgroundColor = color || "#596775";
-      item.append(swatch, document.createTextNode(dataset.label));
+      item.append(swatch, document.createTextNode(dataset.legendLabel || dataset.label));
       legend.appendChild(item);
     });
     return legend;
   }
 
-  function createPlanTable(rows) {
+  function createPlanTable(rows, planperiode) {
     const wrapper = createElement("div", "dashboard-table-wrap");
     const table = createElement("table", "ap-table dashboard-plan-table");
     const colgroup = document.createElement("colgroup");
@@ -210,8 +315,7 @@ const Dashboard = (() => {
     });
     const head = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const aktuellesJahr =
-      rows[0]?.aktuelles_jahr || new Date().getFullYear();
+    const aktuellesJahr = relevantesPlanjahr(rows, planperiode);
     const columns = [
       "Planpositionen",
       `Soll ${aktuellesJahr}`,
@@ -238,7 +342,7 @@ const Dashboard = (() => {
       const tr = document.createElement("tr");
       const values = [
         row.planposition,
-        row.soll_aktuelles_jahr,
+        sollJahreswert(row, aktuellesJahr, planperiode),
         row.ist_kj,
         row.rest,
         `${numberValue(row.erfuellung_prozent).toLocaleString("de-AT", {
@@ -335,12 +439,33 @@ const Dashboard = (() => {
     const dashboardRows = createRotwildBreakdown(
       rows, jaegerRows, planperiode, b1Statistik,
     );
+    const aktuellesJahr = relevantesPlanjahr(dashboardRows, planperiode);
+    console.groupCollapsed(`[Dashboard Soll Debug] ${groupName}`);
+    dashboardRows.forEach((row) => console.debug({
+      Planposition: row.planposition,
+      Wildgruppe: row.wildgruppe || groupName,
+      Planperiode: `${planperiode.startjahr}/${planperiode.endjahr}`,
+      "Soll KJ": numberValue(row.soll_kj),
+      "Soll Periode": numberValue(row.soll_kj),
+      [`Soll ${planperiode.startjahr}`]: sollJahreswert(
+        row, planperiode.startjahr, planperiode,
+      ),
+      [`Soll ${planperiode.endjahr}`]: sollJahreswert(
+        row, planperiode.endjahr, planperiode,
+      ),
+      "aktuelles Jahr": aktuellesJahr,
+      "Soll aktuelles Jahr": sollJahreswert(row, aktuellesJahr, planperiode),
+      "Abschussplan Soll aktuelles Jahr":
+        sollJahreswert(row, aktuellesJahr, planperiode),
+      Quelle: "gemeinsame AbschussplanService-Jahressollwertfunktion",
+    }));
+    console.groupEnd();
     const chartWrap = createElement("div", "dashboard-plan-chart");
     const chartStage = createElement("div", "dashboard-plan-chart-stage");
-    if (key === "rotwild") {
-      chartStage.style.minWidth =
-        `${Math.max(1100, dashboardRows.length * 185)}px`;
-    }
+    chartStage.style.minWidth = `${Math.max(
+      key === "rotwild" ? 1100 : 620,
+      dashboardRows.length * 165,
+    )}px`;
     const canvas = document.createElement("canvas");
     canvas.setAttribute("role", "img");
     canvas.setAttribute(
@@ -353,7 +478,10 @@ const Dashboard = (() => {
     card.append(
       chartWrap,
       createPlanLegend(chart),
-      createPlanTable(dashboardRows.filter((row) => !row.nur_diagramm)),
+      createPlanTable(
+        dashboardRows.filter((row) => !row.nur_diagramm),
+        planperiode,
+      ),
     );
     return card;
   }

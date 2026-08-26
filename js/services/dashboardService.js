@@ -59,8 +59,81 @@ const DashboardService = (() => {
       .eq("planperiode_id", planperiodeId)
       .order("wildgruppe_reihenfolge", { ascending: true })
       .order("reihenfolge", { ascending: true });
+    const dashboardPositionen = handle(
+      result,
+      "Fehler in Dashboard.getPlanpositionen",
+    ) || [];
 
-    return handle(result, "Fehler in Dashboard.getPlanpositionen") || [];
+    const planResult = await db.from("abschussplaene")
+      .select("id,jahr,wildgruppe_id")
+      .eq("planperiode_id", planperiodeId)
+      .eq("plan_typ", "INTERN");
+    const jahresPlaene = handle(
+      planResult,
+      "Fehler in Dashboard.getPlanpositionen.Jahresplaene",
+    ) || [];
+    if (!jahresPlaene.length) return dashboardPositionen;
+
+    const positionResult = await db.from("abschussplan_positionen")
+      .select("plan_id,planperiode_planposition_id,soll")
+      .in("plan_id", jahresPlaene.map((plan) => plan.id));
+    const jahresPositionen = handle(
+      positionResult,
+      "Fehler in Dashboard.getPlanpositionen.Jahreswerte",
+    ) || [];
+    const planNachId = new Map(jahresPlaene.map((plan) => [String(plan.id), plan]));
+    const sollNachPositionUndJahr = new Map();
+    jahresPositionen.forEach((position) => {
+      const plan = planNachId.get(String(position.plan_id));
+      if (!plan || !Number.isFinite(Number(plan.jahr))) return;
+      const schluessel = `${position.planperiode_planposition_id}|${Number(plan.jahr)}`;
+      if (sollNachPositionUndJahr.has(schluessel)) {
+        console.warn("[Dashboard Soll] Mehrfacher Jahres-Sollwert", {
+          planperiode_id: planperiodeId,
+          planperiode_planposition_id: position.planperiode_planposition_id,
+          jahr: Number(plan.jahr),
+        });
+      }
+      sollNachPositionUndJahr.set(schluessel, Number(position.soll) || 0);
+    });
+
+    return dashboardPositionen.map((position) => {
+      const jahreswerte = {};
+      [position.startjahr, position.endjahr].forEach((jahr) => {
+        const schluessel = `${position.planperiode_planposition_id}|${Number(jahr)}`;
+        if (sollNachPositionUndJahr.has(schluessel)) {
+          jahreswerte[String(jahr)] = sollNachPositionUndJahr.get(schluessel);
+        }
+      });
+      const angezeigteJahresSollwerte =
+        AbschussplanService.getAngezeigteJahresSollwerte({
+          planperiode: {
+            startjahr: position.startjahr,
+            endjahr: position.endjahr,
+          },
+          sollKj: position.soll_kj,
+          sollStartjahr: jahreswerte[String(position.startjahr)] ??
+            position.soll_startjahr,
+          sollEndjahr: jahreswerte[String(position.endjahr)] ??
+            position.soll_endjahr,
+          istStartjahr: position.ist_startjahr,
+        });
+      return {
+        ...position,
+        soll_jahreswerte: angezeigteJahresSollwerte,
+        soll_jahreswerte_gespeichert: jahreswerte,
+        soll_startjahr: Object.prototype.hasOwnProperty.call(
+          angezeigteJahresSollwerte, String(position.startjahr),
+        )
+          ? angezeigteJahresSollwerte[String(position.startjahr)] :
+            position.soll_startjahr,
+        soll_endjahr: Object.prototype.hasOwnProperty.call(
+          angezeigteJahresSollwerte, String(position.endjahr),
+        )
+          ? angezeigteJahresSollwerte[String(position.endjahr)] :
+            position.soll_endjahr,
+      };
+    });
   }
 
   async function getJaeger(planperiode) {
