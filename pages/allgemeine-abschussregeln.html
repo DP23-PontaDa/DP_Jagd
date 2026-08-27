@@ -1,0 +1,22 @@
+<section class="allgemeine-regeln-page">
+  <div class="action-bar"><h1>Allgemeine Abschussregeln</h1><button id="aarNeu" class="btn btn-primary" type="button">+ Neue Regel</button></div>
+  <div class="table-wrap"><table class="ap-table"><thead><tr><th>Nr.</th><th>Wildklasse</th><th>Gültig von</th><th>Gültig bis</th><th>Bedingung</th><th>Operator</th><th>Grenzwert</th><th>Ergebnis / Stehzeit</th><th>Aktiv</th><th>Aktionen</th></tr></thead><tbody id="aarBody"></tbody></table></div>
+</section>
+<div id="aarModal" class="modal" aria-hidden="true"><div class="modal-content"><div class="modal-header"><h2 id="aarTitel">Allgemeine Abschussregel</h2><button id="aarClose" class="close-btn" type="button" aria-label="Schließen">&times;</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label for="aarNr">Nr.</label><input id="aarNr" class="form-control" type="number" min="1" required></div>
+    <div class="form-group"><label for="aarWildklasse">Wildklasse</label><select id="aarWildklasse" class="form-control" required></select></div>
+    <div class="form-group"><label for="aarVon">Gültig von</label><input id="aarVon" class="form-control" type="number" min="1900" max="2999" required></div>
+    <div class="form-group"><label for="aarBis">Gültig bis</label><input id="aarBis" class="form-control" type="number" min="1900" max="2999" required></div>
+    <div class="form-group"><label for="aarBedingung">Bedingung</label><select id="aarBedingung" class="form-control" required></select></div>
+    <div class="form-group"><label for="aarOperator">Operator</label><select id="aarOperator" class="form-control" required></select></div>
+    <div class="form-group"><label for="aarGrenzwert">Grenzwert</label><input id="aarGrenzwert" class="form-control" type="number" step="0.01" required></div>
+    <div class="form-group"><label for="aarEinheit">Einheit</label><input id="aarEinheit" class="form-control" type="text" maxlength="20"></div>
+    <div class="form-group"><label for="aarStehzeit">Stehzeit Jahre</label><input id="aarStehzeit" class="form-control" type="number" min="0" step="1" required></div>
+    <div class="form-group"><label for="aarPrioritaet">Priorität</label><input id="aarPrioritaet" class="form-control" type="number" step="1" value="0"></div>
+    <div class="form-group"><label for="aarAktiv">Aktiv</label><input id="aarAktiv" type="checkbox"></div>
+    <div class="form-group full-width"><label for="aarBezeichnung">Bezeichnung</label><input id="aarBezeichnung" class="form-control" type="text" required></div>
+    <div class="form-group full-width"><label for="aarBemerkung">Bemerkung</label><textarea id="aarBemerkung" class="form-control"></textarea></div>
+  </div>
+  <div class="modal-footer"><button id="aarSpeichern" class="btn btn-primary" type="button">Speichern</button><button id="aarAbbrechen" class="btn btn-outline" type="button">Abbrechen</button></div>
+</div></div>

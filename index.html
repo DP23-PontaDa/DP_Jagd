@@ -11,7 +11,7 @@
     <title>DP Jagd</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.svg">
-    <link rel="stylesheet" href="css/layout.css?v=173">
+    <link rel="stylesheet" href="css/layout.css?v=174">
     <link rel="stylesheet" href="css/sidebar.css?v=168">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -190,6 +190,10 @@
                         Abschussregeln
                     </button>
 
+                    <button type="button" data-page="allgemeine-abschussregeln" data-recht-code="allgemeine-abschussregeln">
+                        Allgemeine Abschussregeln
+                    </button>
+
                     <button
                         type="button"
                         data-page="wildhaendler">
@@ -251,7 +255,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/services/berechtigungService.js?v=168"></script>
+    <script src="js/services/berechtigungService.js?v=169"></script>
     <script src="js/auth.js?v=94"></script>
     <script src="js/router.js?v=164"></script>
     <script src="js/api.js?v=122"></script>
@@ -280,12 +284,14 @@
     <script src="js/mobile.js"></script>
     <script src="js/services/wildhaendlerService.js?v=154"></script>
     <script src="js/wildhaendler.js?v=154"></script>
-    <script src="js/services/abschussService.js?v=162"></script>
-    <script src="js/services/abschussregelnService.js?v=153"></script>
-    <script src="js/services/freigabenService.js?v=156"></script>
-    <script src="js/abschuss.js?v=162"></script>
-    <script src="js/abschussregeln.js?v=153"></script>
-    <script src="js/freigaben.js?v=158"></script>
+    <script src="js/services/abschussService.js?v=164"></script>
+    <script src="js/services/abschussregelnService.js?v=154"></script>
+    <script src="js/services/allgemeineAbschussregelnService.js?v=1"></script>
+    <script src="js/services/freigabenService.js?v=164"></script>
+    <script src="js/abschuss.js?v=165"></script>
+    <script src="js/abschussregeln.js?v=154"></script>
+    <script src="js/allgemeine-abschussregeln.js?v=1"></script>
+    <script src="js/freigaben.js?v=177"></script>
     <script src="js/services/rechnungPrintService.js?v=88"></script>
     <script src="js/services/rechnungService.js?v=157"></script>
     <script src="js/rechnungen.js?v=159"></script>
@@ -311,8 +317,8 @@
     <script src="js/st-peter-mitterberg.js?v=115"></script>
     <script src="js/services/nachsuchenService.js?v=99"></script>
     <script src="js/nachsuchen.js?v=99"></script>
-    <script src="js/services/importExportService.js?v=128"></script>
-    <script src="js/import-export.js?v=130"></script>
+    <script src="js/services/importExportService.js?v=129"></script>
+    <script src="js/import-export.js?v=131"></script>
     <script src="js/app.js?v=90"></script>
 </body>
 </html>

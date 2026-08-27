@@ -960,6 +960,48 @@ const ImportExportService = (() => {
     }));
   }
 
+  async function getAllgemeineRegelnImportReferenzen() {
+    const [klassenResult, regelnResult] = await Promise.all([
+      db.from("wildklassen").select("id,bezeichnung,reihenfolge,wildgruppe_id,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge)"),
+      db.from("allgemeine_abschussregeln").select("id,nr"),
+    ]);
+    if (klassenResult.error) throw klassenResult.error;
+    if (regelnResult.error) throw regelnResult.error;
+    return { wildklassen: klassenResult.data || [], regeln: regelnResult.data || [] };
+  }
+
+  function validiereAllgemeineRegelnImportZeilen(zeilen, referenzen) {
+    const vorhandene = new Set(referenzen.regeln.map((regel) => Number(regel.nr)));
+    const dateiNummern = new Set();
+    return (zeilen || []).map((daten, index) => {
+      const zeile = index + 2; const fehler = []; const nr = Number(daten["Nr."]);
+      if (!Number.isInteger(nr) || nr <= 0) fehler.push("Nr. muss eine positive ganze Zahl sein.");
+      if (vorhandene.has(nr) || dateiNummern.has(nr)) fehler.push(`Nr. ${nr} ist bereits vergeben.`); else dateiNummern.add(nr);
+      const gruppenname = String(daten.Wildgruppe || "").trim(); const klassenname = String(daten.Wildklasse || "").trim();
+      const treffer = referenzen.wildklassen.filter((klasse) => normalisieren(klasse.bezeichnung) === normalisieren(klassenname) && (!gruppenname || normalisieren(klasse.wildgruppe?.bezeichnung) === normalisieren(gruppenname)));
+      const wildklasse = treffer.length === 1 ? treffer[0] : null; if (!wildklasse) fehler.push("Wildklasse wurde nicht eindeutig gefunden.");
+      const von = Number(daten["Gültig von"]); const bis = Number(daten["Gültig bis"]);
+      if (!Number.isInteger(von) || !Number.isInteger(bis) || bis < von) fehler.push("Gültigkeitszeitraum ist ungültig.");
+      const bedingungText = normalisieren(daten.Bedingung); const bedingung = AllgemeineAbschussregelnService.BEDINGUNGEN.find(([code,name]) => [code,name].some((wert) => normalisieren(wert) === bedingungText))?.[0];
+      if (!bedingung) fehler.push("Bedingung ist ungültig.");
+      const operator = String(daten.Operator || "").trim(); if (!AllgemeineAbschussregelnService.OPERATOREN.includes(operator)) fehler.push("Operator ist ungültig.");
+      const grenzwert = Number(String(daten.Grenzwert).replace(",", ".")); const stehzeit = Number(daten["Stehzeit Jahre"]); if (!Number.isFinite(grenzwert)) fehler.push("Grenzwert ist ungültig."); if (!Number.isInteger(stehzeit) || stehzeit < 0) fehler.push("Stehzeit ist ungültig.");
+      const aktiv = regelAktiv(daten.Aktiv); if (aktiv === null) fehler.push("Aktiv ist ungültig.");
+      const payload = fehler.length ? null : { nr, wildklasse_id:wildklasse.id, jahr_von:von, jahr_bis:bis, bedingung_feld:bedingung, vergleichsoperator:operator, grenzwert, einheit:String(daten.Einheit||"").trim()||null, ergebnis_typ:"STEHZEIT_JAHRE", stehzeit_jahre:stehzeit, bezeichnung:String(daten.Bezeichnung||"").trim()||`Allgemeine Regel ${von}-${bis}`, bemerkung:String(daten.Bemerkung||"").trim()||null, prioritaet:0, aktiv };
+      return { zeile,nr,wildklasse:klassenname,zeitraum:`${von}–${bis}`,bedingung:`${daten.Bedingung||""} ${operator} ${daten.Grenzwert||""}`,fehler,payload };
+    });
+  }
+
+  async function importAllgemeineRegeln(vorschau) {
+    const payloads = vorschau.filter((eintrag) => eintrag.payload).map((eintrag) => eintrag.payload);
+    if (!payloads.length) return { importiert: 0 };
+    const result = await db.from("allgemeine_abschussregeln").insert(payloads); if (result.error) throw result.error;
+    return { importiert: payloads.length };
+  }
+
+  async function getExportAllgemeineRegeln() { return AllgemeineAbschussregelnService.laden(); }
+  function exportAllgemeineRegelnZeilen(regeln) { return regeln.map((regel) => ({ "Nr.":regel.nr, Wildgruppe:regel.wildklasse?.wildgruppe?.bezeichnung||"", Wildklasse:regel.wildklasse?.bezeichnung||"", "Gültig von":regel.jahr_von, "Gültig bis":regel.jahr_bis, Bedingung:AllgemeineAbschussregelnService.BEDINGUNGEN.find(([code])=>code===regel.bedingung_feld)?.[1]||regel.bedingung_feld, Operator:regel.vergleichsoperator, Grenzwert:regel.grenzwert, Einheit:regel.einheit||"", "Stehzeit Jahre":regel.stehzeit_jahre, Bezeichnung:regel.bezeichnung, Bemerkung:regel.bemerkung||"", Aktiv:regel.aktiv?"Ja":"Nein" })); }
+
   return {
     getExportAbschuesse,
     exportZeilen,
@@ -977,5 +1019,10 @@ const ImportExportService = (() => {
     importAbschussregeln,
     getExportAbschussregeln,
     exportAbschussregelnZeilen,
+    getAllgemeineRegelnImportReferenzen,
+    validiereAllgemeineRegelnImportZeilen,
+    importAllgemeineRegeln,
+    getExportAllgemeineRegeln,
+    exportAllgemeineRegelnZeilen,
   };
 })();

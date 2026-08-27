@@ -7,6 +7,7 @@
     </label>
     <select id="asFilterJahr" class="search-select" aria-label="Jahr"></select>
     <select id="asFilterWildgruppe" class="search-select" aria-label="Wildgruppe"></select>
+    <select id="asFilterWildklasse" class="search-select" aria-label="Wildklasse"></select>
     <select id="asFilterJaeger" class="search-select" aria-label="Jäger"></select>
     <select id="asFilterWildhaendler" class="search-select" aria-label="Wildhändler"></select>
     <select id="asFilterFallwild" class="search-select" aria-label="Fallwild">
@@ -81,6 +82,10 @@
       <div id="asGewichtGruppe" class="form-group" data-read-suffix=" kg">
         <label for="asGewicht">Gewicht (kg)</label>
         <input id="asGewicht" class="form-control" type="number" min="0.01" step="0.01">
+      </div>
+      <div id="asGeweihgewichtGruppe" class="form-group" data-read-suffix=" kg" hidden>
+        <label for="asGeweihgewicht">Geweihgewicht (kg)</label>
+        <input id="asGeweihgewicht" class="form-control" type="number" min="0.001" step="0.01">
       </div>
       <div id="asPreisGruppe" class="form-group" data-read-currency="EUR">
         <label for="asPreis">Preis/kg</label>

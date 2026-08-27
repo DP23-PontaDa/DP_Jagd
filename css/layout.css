@@ -1776,6 +1776,14 @@ textarea.form-control {
 .hirsch-sticky-2 { left: 70px; width: 160px; min-width: 160px !important; }
 .hirsch-sticky-3 { left: 230px; width: 140px; min-width: 140px !important; box-shadow: 3px 0 4px rgba(34,51,60,.08); }
 .hirsch-jahreszelle { font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; }
+.hirsch-regulaeres-jahr {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.15;
+  opacity: 0.82;
+}
 .hirsch-jahreszelle:focus-visible { outline: 3px solid #287a9f; outline-offset: -3px; }
 .freigabe-hirsch-detail { max-width: 560px; }
 .import-export-page .ie-preview-error td { background: #fff0f0; color: #842323; }

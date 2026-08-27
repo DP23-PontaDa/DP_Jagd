@@ -38,6 +38,7 @@ const Router = {
     planpositionen: "pages/planpositionen.html",
     rechnungsvorlage: "pages/rechnungsvorlage.html",
     abschussregeln: "pages/abschussregeln.html",
+    "allgemeine-abschussregeln": "pages/allgemeine-abschussregeln.html",
     benutzerverwaltung: "pages/benutzerverwaltung.html",
   },
 
@@ -228,6 +229,11 @@ const Router = {
     if (page === "abschussregeln" && window.Abschussregeln &&
         typeof window.Abschussregeln.init === "function") {
       window.Abschussregeln.init();
+    }
+
+    if (page === "allgemeine-abschussregeln" && window.AllgemeineAbschussregeln &&
+        typeof window.AllgemeineAbschussregeln.init === "function") {
+      window.AllgemeineAbschussregeln.init();
     }
 
     if (

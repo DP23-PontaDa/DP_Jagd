@@ -15,6 +15,7 @@ const BerechtigungService = (() => {
     "st-peter-mitterberg": "st-peter-mitterberg", "journal-kategorien": "journal-kategorien",
     planpositionen: "planpositionen", wildhaendler: "wildhaendler",
     rechnungsvorlage: "rechnungsvorlage", abschussregeln: "abschussregeln",
+    "allgemeine-abschussregeln": "allgemeine-abschussregeln",
     "import-export": "import-export",
     benutzerverwaltung: "benutzerverwaltung",
   };

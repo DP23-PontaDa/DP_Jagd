@@ -17,12 +17,14 @@ window.ImportExport = (() => {
     "Nr.", "Personen-Nr.", "Jäger", "Wildgruppe", "Wildklasse", "Regel",
     "Freigabejahr", "Frei ab", "Bemerkung", "Aktiv",
   ];
+  const ALLGEMEINE_REGEL_SPALTEN = ["Nr.", "Wildgruppe", "Wildklasse", "Gültig von", "Gültig bis", "Bedingung", "Operator", "Grenzwert", "Einheit", "Stehzeit Jahre", "Bezeichnung", "Bemerkung", "Aktiv"];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
   let validierung = null;
   let orteImportVorschau = [];
   let abschussregelnImportVorschau = [];
+  let allgemeineRegelnImportVorschau = [];
 
   const element = (id) => document.getElementById(id);
   const aktiveSpalten = () =>
@@ -104,9 +106,28 @@ window.ImportExport = (() => {
     element("ieAbschussregelnImportAbbrechen").addEventListener("click", abschussregelnImportZuruecksetzen);
     element("ieAbschussregelnImportBestaetigen").addEventListener("click", abschussregelnImportBestaetigen);
     abschussregelnRechteAnwenden();
+    element("ieAllgemeineRegelnDateiAuswaehlen").addEventListener("click", () => element("ieAllgemeineRegelnDatei").click());
+    element("ieAllgemeineRegelnDatei").addEventListener("change", allgemeineRegelnDateiAusgewaehlt);
+    element("ieAllgemeineRegelnVorlage").addEventListener("click", allgemeineRegelnVorlage);
+    element("ieAllgemeineRegelnExport").addEventListener("click", allgemeineRegelnExportieren);
+    element("ieAllgemeineRegelnAbbrechen").addEventListener("click", allgemeineRegelnZuruecksetzen);
+    element("ieAllgemeineRegelnBestaetigen").addEventListener("click", allgemeineRegelnImportieren);
+    allgemeineRegelnRechteAnwenden();
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
   }
+
+  function allgemeineRegelnRechteAnwenden() {
+    const lesen = BerechtigungService.darf("allgemeine-abschussregeln", "Lesen"); const bearbeiten = BerechtigungService.darf("allgemeine-abschussregeln", "Bearbeiten");
+    element("ieAllgemeineRegelnTitel").hidden = !lesen && !bearbeiten; element("ieAllgemeineRegelnBereich").hidden = !lesen && !bearbeiten;
+    element("ieAllgemeineRegelnDateiAuswaehlen").hidden = !bearbeiten; element("ieAllgemeineRegelnVorlage").hidden = !lesen; element("ieAllgemeineRegelnExport").hidden = !lesen;
+  }
+  function allgemeineRegelnVorlage() { xlsxPruefen(); const beispiel = { "Nr.":1, Wildgruppe:"Rotwild", Wildklasse:"Hirsch A", "Gültig von":2023, "Gültig bis":2023, Bedingung:"Geweihgewicht", Operator:"<", Grenzwert:3.6, Einheit:"kg", "Stehzeit Jahre":2, Bezeichnung:"Allgemeine Sonderregel 2023", Bemerkung:"", Aktiv:"Ja" }; const mappe=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([beispiel],{header:ALLGEMEINE_REGEL_SPALTEN}),"Allgemeine Regeln"); XLSX.writeFile(mappe,"vorlage-allgemeine-abschussregeln.xlsx"); }
+  async function allgemeineRegelnDateiAusgewaehlt(event) { const datei=event.target.files?.[0]; event.target.value=""; if(!datei)return; try { xlsxPruefen(); const mappe=XLSX.read(await datei.arrayBuffer(),{type:"array"}); const daten=XLSX.utils.sheet_to_json(mappe.Sheets[mappe.SheetNames[0]],{defval:"",raw:false}); const refs=await ImportExportService.getAllgemeineRegelnImportReferenzen(); allgemeineRegelnImportVorschau=ImportExportService.validiereAllgemeineRegelnImportZeilen(daten,refs); allgemeineRegelnVorschau(); } catch(error){ AppFeedback.error(error.message); } }
+  function allgemeineRegelnVorschau(){ const body=element("ieAllgemeineRegelnVorschauBody"); body.innerHTML=allgemeineRegelnImportVorschau.map((e)=>`<tr class="${e.fehler.length?"ie-preview-error":""}"><td>${e.zeile}</td><td>${htmlSicher(e.nr)}</td><td>${htmlSicher(e.wildklasse)}</td><td>${htmlSicher(e.zeitraum)}</td><td>${htmlSicher(e.bedingung)}</td><td>${e.fehler.length?"Fehler":"OK"}</td><td>${htmlSicher(e.fehler.join(" "))}</td></tr>`).join(""); element("ieAllgemeineRegelnVorschau").hidden=false; const fehler=allgemeineRegelnImportVorschau.some((e)=>e.fehler.length); element("ieAllgemeineRegelnBestaetigen").disabled=fehler||!allgemeineRegelnImportVorschau.length; element("ieAllgemeineRegelnImportStatus").textContent=`${allgemeineRegelnImportVorschau.length} Regeln geprüft.`; }
+  function allgemeineRegelnZuruecksetzen(){ allgemeineRegelnImportVorschau=[]; element("ieAllgemeineRegelnVorschau").hidden=true; element("ieAllgemeineRegelnVorschauBody").innerHTML=""; }
+  async function allgemeineRegelnImportieren(){ try { const bericht=await ImportExportService.importAllgemeineRegeln(allgemeineRegelnImportVorschau); allgemeineRegelnZuruecksetzen(); AppFeedback.success(`${bericht.importiert} allgemeine Abschussregeln importiert.`); } catch(error){ AppFeedback.error(error.message); } }
+  async function allgemeineRegelnExportieren(){ const status=element("ieAllgemeineRegelnStatus"); try { xlsxPruefen(); const daten=ImportExportService.exportAllgemeineRegelnZeilen(await ImportExportService.getExportAllgemeineRegeln()); const mappe=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet(daten,{header:ALLGEMEINE_REGEL_SPALTEN}),"Allgemeine Regeln"); XLSX.writeFile(mappe,`allgemeine-abschussregeln-${new Date().toISOString().slice(0,10)}.xlsx`); status.textContent=`${daten.length} Regeln exportiert.`; } catch(error){ status.textContent=error.message; } }
 
   function abschussregelnRechteAnwenden() {
     const lesen = BerechtigungService.darf("abschussregeln", "Lesen");

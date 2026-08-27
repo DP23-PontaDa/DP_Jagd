@@ -32,14 +32,16 @@ const AbschussregelnService = (() => {
     return Number(rows[0]?.nr || 0) + 1;
   }
   async function speichern(daten, id) {
-    if (!Number.isInteger(Number(daten.freigabejahr))) {
+    const freiAbEingabe = String(daten.frei_ab ?? "").trim();
+    const speicherdaten = { ...daten, frei_ab: freiAbEingabe || null };
+    if (!Number.isInteger(Number(speicherdaten.freigabejahr))) {
       throw new Error("Freigabejahr ist erforderlich.");
     }
-    if (daten.frei_ab && Number(String(daten.frei_ab).slice(0, 4)) !== Number(daten.freigabejahr)) {
-      throw new Error(`Das Datum Frei ab muss innerhalb des Freigabejahres ${daten.freigabejahr} liegen.`);
+    if (speicherdaten.frei_ab && Number(speicherdaten.frei_ab.slice(0, 4)) !== Number(speicherdaten.freigabejahr)) {
+      throw new Error(`Das Datum Frei ab muss innerhalb des Freigabejahres ${speicherdaten.freigabejahr} liegen.`);
     }
-    const query = id ? db.from("abschussregeln").update(daten).eq("id", id)
-      : db.from("abschussregeln").insert(daten);
+    const query = id ? db.from("abschussregeln").update(speicherdaten).eq("id", id)
+      : db.from("abschussregeln").insert(speicherdaten);
     return check(await query.select().single());
   }
   async function loeschen(id) { check(await db.from("abschussregeln").delete().eq("id", id)); }

@@ -11,6 +11,8 @@ window.Abschuss = (() => {
   let wildgruppen = [];
   let wildhaendler = [];
   let planWildklassen = [];
+  let filterWildklassen = [];
+  let allgemeineRegeln = [];
   let erfassungsmodus = "plan";
   let filterInitialisiert = false;
   let aktuelleFilter = null;
@@ -78,7 +80,11 @@ window.Abschuss = (() => {
     el("asFallwild").addEventListener("change", fallwildGeaendert);
     el("asDatum").addEventListener("change", datumGeaendert);
     el("asSuche").addEventListener("input", rendern);
-    ["asFilterJahr", "asFilterWildgruppe", "asFilterJaeger",
+    el("asFilterWildgruppe").addEventListener("change", () => {
+      filterWildklassenOptionenAufbauen();
+      rendern();
+    });
+    ["asFilterJahr", "asFilterWildklasse", "asFilterJaeger",
       "asFilterWildhaendler", "asFilterFallwild"]
       .forEach((id) => el(id).addEventListener("change", rendern));
     document.querySelector(".abschuss-quick-filters")
@@ -89,6 +95,7 @@ window.Abschuss = (() => {
     try {
       await ladePlanfreigaben();
       await Promise.all([ladeStammdaten(), laden()]);
+      await ladeFilterWildklassen();
       filterOptionenAufbauen();
       rendern();
       initialisierungErfolgreich = true;
@@ -130,6 +137,7 @@ window.Abschuss = (() => {
       ladeJaeger(),
       ladeWildgruppen(),
       ladeWildhaendler(),
+      ladeAllgemeineRegeln(),
       ortDropdown.laden(),
     ]);
 
@@ -164,6 +172,32 @@ window.Abschuss = (() => {
     wildhaendlerDropdown.setOptions(wildhaendler);
   }
 
+  async function ladeAllgemeineRegeln() {
+    allgemeineRegeln = await AllgemeineAbschussregelnService.laden(true);
+  }
+
+  async function ladeFilterWildklassen() {
+    if (erfassungsmodus === "plan") {
+      filterWildklassen = WildklassenService
+        .sortiereNachWildgruppeUndWildklasse(planWildklassen);
+      return;
+    }
+    const aktiveWildklassen = await WildklassenService.getAktiveWildklassen();
+    const gruppenReihenfolge = new Map(
+      wildgruppen.map((wildgruppe) => [String(wildgruppe.id), wildgruppe.reihenfolge]),
+    );
+    const erlaubteGruppen = new Set(wildgruppen.map((wildgruppe) => String(wildgruppe.id)));
+    filterWildklassen = WildklassenService.sortiereNachWildgruppeUndWildklasse(
+      aktiveWildklassen
+        .filter((wildklasse) => erlaubteGruppen.has(String(wildklasse.wildgruppe_id)))
+        .map((wildklasse) => ({
+          ...wildklasse,
+          wildgruppe_reihenfolge: gruppenReihenfolge.get(String(wildklasse.wildgruppe_id)),
+          wildklasse_reihenfolge: wildklasse.reihenfolge,
+        })),
+    );
+  }
+
   async function laden() {
     try {
       abschuesse = await AbschussService.getAbschuesse();
@@ -184,6 +218,7 @@ window.Abschuss = (() => {
       search: el("asSuche").value,
       jahr: el("asFilterJahr").value,
       wildgruppeId: el("asFilterWildgruppe").value,
+      wildklasseId: el("asFilterWildklasse").value,
       jaegerId: el("asFilterJaeger").value,
       wildhaendlerId: el("asFilterWildhaendler").value,
       fallwild: el("asFilterFallwild").value,
@@ -210,6 +245,8 @@ window.Abschuss = (() => {
           String(item.datum || "").slice(0, 4) === aktuelleFilter.jahr,
         (item) => !aktuelleFilter.wildgruppeId ||
           String(item.wildgruppe_id) === aktuelleFilter.wildgruppeId,
+        (item) => !aktuelleFilter.wildklasseId ||
+          String(item.wildklasse_id) === aktuelleFilter.wildklasseId,
         (item) => !aktuelleFilter.jaegerId ||
           String(item.jaeger_id) === aktuelleFilter.jaegerId,
         (item) => !aktuelleFilter.wildhaendlerId ||
@@ -331,12 +368,12 @@ window.Abschuss = (() => {
     kopf.appendChild(aktionen);
   }
 
-  function selectFuellen(select, label, options) {
+  function selectFuellen(select, label, options, alleText = `${label}: Alle`) {
     const value = select.value;
     select.innerHTML = "";
     const alle = document.createElement("option");
     alle.value = "";
-    alle.textContent = `${label}: Alle`;
+    alle.textContent = alleText;
     select.appendChild(alle);
     options.forEach((option) => {
       const element = document.createElement("option");
@@ -347,6 +384,21 @@ window.Abschuss = (() => {
     select.value = Array.from(select.options).some((option) => option.value === value)
       ? value
       : "";
+  }
+
+  function filterWildklassenOptionenAufbauen() {
+    const wildgruppeId = el("asFilterWildgruppe").value;
+    const passendeWildklassen = filterWildklassen.filter((wildklasse) =>
+      !wildgruppeId || String(wildklasse.wildgruppe_id) === String(wildgruppeId));
+    selectFuellen(
+      el("asFilterWildklasse"),
+      "Wildklasse",
+      passendeWildklassen.map((wildklasse) => ({
+        value: String(wildklasse.id),
+        label: wildklasse.bezeichnung || wildklasse.label || "",
+      })),
+      "Alle Wildklassen",
+    );
   }
 
   function filterOptionenAufbauen() {
@@ -365,6 +417,7 @@ window.Abschuss = (() => {
     selectFuellen(el("asFilterWildgruppe"), "Wildgruppe",
       ClientFilter.uniqueOptions(wildgruppen, (item) => item.id,
         (item) => item.label || item.bezeichnung));
+    filterWildklassenOptionenAufbauen();
     selectFuellen(el("asFilterJaeger"), "Jäger",
       ClientFilter.uniqueOptions(jaeger, (item) => item.id,
         (item) => [item.vorname, item.nachname].filter(Boolean).join(" "),
@@ -388,6 +441,7 @@ window.Abschuss = (() => {
     el("asSuche").value = "";
     el("asFilterJahr").value = aktuellesJahr;
     el("asFilterWildgruppe").value = "";
+    el("asFilterWildklasse").value = "";
     el("asFilterJaeger").value = "";
     el("asFilterWildhaendler").value = "";
     el("asFilterFallwild").value = "false";
@@ -466,13 +520,29 @@ window.Abschuss = (() => {
   }
 
   function wildklasseGeaendert(option) {
+    const bezeichnung = String(option?.label || option?.data?.bezeichnung || "")
+      .trim().toLocaleLowerCase("de");
     const istHirschB1 =
       erfassungsmodus === "plan" &&
-      String(option?.label || option?.data?.bezeichnung || "")
-        .trim().toLocaleLowerCase("de") === "hirsch b1";
+      bezeichnung === "hirsch b1";
     el("asInternerB1Gruppe").hidden = !istHirschB1;
     if (!istHirschB1) el("asInternerB1").checked = false;
+    regelabhaengigeFelderAktualisieren();
     freigabeZusatzinfoVorschlagen();
+  }
+
+  function regelabhaengigeFelderAktualisieren() {
+    const datum = el("asDatum").value;
+    const jahr = datum ? Number(datum.slice(0, 4)) : null;
+    const wildklasseId = wildklasseDropdown?.getValue();
+    const regelBenoetigtGeweihgewicht = Boolean(jahr && wildklasseId &&
+      allgemeineRegeln.some((regel) =>
+        AllgemeineAbschussregelnService.giltFuer(
+          regel, wildklasseId, jahr, "geweihgewicht")));
+    const historischerWertVorhanden = Boolean(
+      aktuell && aktuell.geweihgewicht !== null && aktuell.geweihgewicht !== undefined);
+    el("asGeweihgewichtGruppe").hidden =
+      !regelBenoetigtGeweihgewicht && !historischerWertVorhanden;
   }
 
   async function freigabeZusatzinfoVorschlagen() {
@@ -561,11 +631,11 @@ window.Abschuss = (() => {
   }
 
   async function datumGeaendert() {
-    if (aktuell) return;
-
     const datum = el("asDatum").value;
     const jahr = datum ? Number(datum.slice(0, 4)) : null;
+    regelabhaengigeFelderAktualisieren();
     freigabeZusatzinfoVorschlagen();
+    if (aktuell) return;
     if (!jahr || jahr === nummerJahr) return;
 
     nummerJahr = jahr;
@@ -610,6 +680,7 @@ window.Abschuss = (() => {
       el("asDatum").value = abschuss.datum || "";
       jaegerDropdown.setValue(abschuss.jaeger_id, false);
       el("asGewicht").value = abschuss.gewicht ?? "";
+      el("asGeweihgewicht").value = abschuss.geweihgewicht ?? "";
       el("asPreis").value = abschuss.preis_pro_kg ?? "";
       el("asGesamtpreis").value = abschuss.gesamtpreis ?? "0.00";
       el("asZahlungseingang").value = abschuss.zahlungseingang || "";
@@ -643,12 +714,13 @@ window.Abschuss = (() => {
 
   function formularLeeren() {
     el("asRechnung").hidden = true;
-    ["asNr", "asDatum", "asGewicht", "asPreis", "asGesamtpreis",
+    ["asNr", "asDatum", "asGewicht", "asGeweihgewicht", "asPreis", "asGesamtpreis",
       "asZahlungseingang", "asZusatzinfo", "asBemerkung", "asProtokoll"]
       .forEach((id) => { el(id).value = ""; });
     el("asFallwild").checked = false;
     el("asInternerB1").checked = false;
     el("asInternerB1Gruppe").hidden = true;
+    el("asGeweihgewichtGruppe").hidden = true;
     jaegerDropdown.clear(false);
     wildgruppeDropdown.clear(false);
     wildklasseDropdown.clear(false);
@@ -713,6 +785,9 @@ window.Abschuss = (() => {
     if (daten.gewicht !== null &&
         (!Number.isFinite(daten.gewicht) || daten.gewicht <= 0))
       return meldung("Bitte ein gültiges Gewicht größer als 0 eingeben.", el("asGewicht"));
+    if (daten.geweihgewicht !== null &&
+        (!Number.isFinite(daten.geweihgewicht) || daten.geweihgewicht <= 0))
+      return meldung("Bitte ein gültiges Geweihgewicht größer als 0 eingeben.", el("asGeweihgewicht"));
     if (!el("asProtokollGruppe").hidden &&
         !daten.untersuchungsprotokoll_nr)
       return meldung("Bitte die Untersuchungsprotokoll Nr eingeben.", el("asProtokoll"));
@@ -732,6 +807,9 @@ window.Abschuss = (() => {
       gewicht: el("asGewicht").value === ""
         ? null
         : Number(el("asGewicht").value),
+      geweihgewicht: el("asGeweihgewichtGruppe").hidden
+        ? (aktuell?.geweihgewicht ?? null)
+        : el("asGeweihgewicht").value === "" ? null : Number(el("asGeweihgewicht").value),
       preis_pro_kg: preisText === "" ? null : Number(preisText),
       gesamtpreis: Number(el("asGesamtpreis").value || 0),
       wildhaendler_id: wildhaendlerDropdown.getValue() || null,

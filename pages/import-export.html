@@ -118,6 +118,13 @@
     </div>
   </section>
 
+  <h2 id="ieAllgemeineRegelnTitel">Allgemeine Abschussregeln</h2>
+  <div id="ieAllgemeineRegelnBereich" class="ie-card-grid">
+    <section class="ap-overview-group"><h3>Import Allgemeine Abschussregeln</h3><p>Excel-Datei prüfen und importieren.</p><div class="btn-group"><button id="ieAllgemeineRegelnDateiAuswaehlen" class="btn btn-primary" type="button">Importieren</button><button id="ieAllgemeineRegelnVorlage" class="btn btn-outline" type="button">Excel-Vorlage</button></div><input id="ieAllgemeineRegelnDatei" type="file" accept=".xlsx" hidden></section>
+    <section class="ap-overview-group"><h3>Export Allgemeine Abschussregeln</h3><button id="ieAllgemeineRegelnExport" class="btn btn-primary" type="button">Exportieren</button><p id="ieAllgemeineRegelnStatus" class="form-message"></p></section>
+  </div>
+  <section id="ieAllgemeineRegelnVorschau" class="ap-overview-group ie-wizard" hidden><h3>Importvorschau</h3><p id="ieAllgemeineRegelnImportStatus" class="form-message"></p><div class="table-wrap"><table class="ap-table"><thead><tr><th>Zeile</th><th>Nr.</th><th>Wildklasse</th><th>Zeitraum</th><th>Bedingung</th><th>Ergebnis</th><th>Fehler</th></tr></thead><tbody id="ieAllgemeineRegelnVorschauBody"></tbody></table></div><div class="btn-group"><button id="ieAllgemeineRegelnAbbrechen" class="btn btn-outline" type="button">Abbrechen</button><button id="ieAllgemeineRegelnBestaetigen" class="btn btn-primary" type="button">Import bestätigen</button></div></section>
+
   <h2>Orte</h2>
   <div class="ie-card-grid">
     <section id="ieOrteImportKarte" class="ap-overview-group">

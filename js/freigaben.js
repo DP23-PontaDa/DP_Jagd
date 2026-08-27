@@ -102,10 +102,19 @@ window.Freigaben = (() => {
   }
 
   function datumsJahr(datum) { return datum ? Number(String(datum).slice(0, 4)) : null; }
+  function heutigesDatumIso() {
+    const datum = new Date();
+    return `${datum.getFullYear()}-${String(datum.getMonth() + 1).padStart(2, "0")}-${String(datum.getDate()).padStart(2, "0")}`;
+  }
   function datumKurz(datum) {
     if (!datum) return "–";
     const teile = String(datum).split("-");
     return teile.length === 3 ? `${teile[2]}.${teile[1]}.` : datum;
+  }
+  function datumVoll(datum) {
+    if (!datum) return "–";
+    const teile = String(datum).slice(0, 10).split("-");
+    return teile.length === 3 ? `${teile[2]}.${teile[1]}.${teile[0]}` : datum;
   }
   function matrixZustand(wert, jahr) {
     const jahresende = `${jahr}-12-31`;
@@ -116,7 +125,7 @@ window.Freigaben = (() => {
     const kahlwildOffen = Number(wert.kahlwild?.erforderlich || 0) >
       Number(wert.kahlwild?.erlegt || 0) &&
       String(wert.normale_freigabe_ab || "9999-12-31") <= jahresende;
-    const sonderImJahr = ausnahme && !sperre &&
+    const sonderImJahr = istSonderregel(wert) &&
       datumsJahr(wert.individuelle_freigabe_ab) === Number(jahr);
     if (sperreAmJahresendeAktiv) return "nicht-frei";
     if (kahlwildOffen) return "kahlwild";
@@ -134,24 +143,38 @@ window.Freigaben = (() => {
     return wert.grund || (zustand === "frei" ? "Frei" : "Nicht frei");
   }
   function istSonderregel(wert) {
-    return Boolean(wert?.ausnahme && wert.ausnahme.regel_typ !== "SPERRE");
+    const regel = wert?.ausnahme;
+    return Boolean(regel && regel.regel_typ !== "SPERRE" && originalesFreiAb(wert));
+  }
+  function originalesFreiAb(wert) {
+    return String(wert?.individuelles_frei_ab_original ?? wert?.ausnahme?.frei_ab ?? "").trim() || null;
   }
   function istFixesFreigabedatum(regel) {
-    const datum = regel?.frei_ab;
-    return Boolean(datum && String(datum).slice(5) !== "01-01");
+    return Boolean(String(regel?.frei_ab || "").trim());
+  }
+  function individuelleAbweichung(wert) {
+    const typ = wert?.ausnahme?.regel_typ;
+    return Boolean(typ && !["INITIAL", "SPERRE"].includes(typ) &&
+      Number(wert.regulaeres_freigabejahr) !== Number(wert.endgueltiges_freigabejahr));
   }
   function matrixPlan(jaegerId, wildklasseId, jahre, zentralesJahr) {
     const werte = new Map(jahre.map((jahr) =>
       [jahr, freigabeFinden(jahr, jaegerId, wildklasseId)]));
     const aktuell = werte.get(zentralesJahr) || null;
     const zukunft = jahre.filter((jahr) => jahr >= zentralesJahr);
-    const sonderJahr = zukunft.find((jahr) => istSonderregel(werte.get(jahr)));
-    if (sonderJahr != null) {
-      const zielWert = werte.get(sonderJahr);
+    const abweichungsJahr = zukunft.find((jahr) => Number(werte.get(jahr)?.freigabegruppe || 0) > 0);
+    if (abweichungsJahr != null) {
+      const zielWert = werte.get(abweichungsJahr);
+      const freiAb = originalesFreiAb(zielWert);
+      const fixesDatum = Boolean(freiAb);
       return {
-        werte, zielJahr: sonderJahr, zielZustand: "sonder", zielWert,
-        tatsaechlichesFreigabeJahr: datumsJahr(zielWert?.individuelle_freigabe_ab) || sonderJahr,
-        fixesFreigabedatum: istFixesFreigabedatum(zielWert?.ausnahme),
+        werte, zielJahr: abweichungsJahr,
+        zielZustand: zielWert.matrix_zustand,
+        darstellungsart: zielWert.darstellungsart, zielWert,
+        tatsaechlichesFreigabeJahr: zielWert?.endgueltiges_freigabejahr || abweichungsJahr,
+        regulaeresFreigabeJahr: zielWert?.regulaeres_freigabejahr || datumsJahr(zielWert?.normale_freigabe_ab),
+        individuelleAbweichung: individuelleAbweichung(zielWert),
+        fixesFreigabedatum: fixesDatum,
         bereitsVorherFrei: false,
       };
     }
@@ -169,14 +192,17 @@ window.Freigaben = (() => {
       ? zentralesJahr - 1
       : freigabeJahr || null;
     const imZieljahr = werte.get(zielJahr) || aktuell;
-    const kahlwildOffen = Number(aktuell.kahlwild?.erforderlich || 0) > Number(aktuell.kahlwild?.erlegt || 0) &&
-      normaleFreigabe <= `${zentralesJahr}-12-31`;
+    const kahlwildOffen = Number(imZieljahr.kahlwild?.offen || 0) > 0 &&
+      relevanteFreigabe <= `${zielJahr}-12-31`;
     return {
       werte,
       zielJahr,
-      zielZustand: kahlwildOffen ? "kahlwild" : "frei",
+      zielZustand: imZieljahr.matrix_zustand || (kahlwildOffen ? "kahlwild" : "frei"),
+      darstellungsart: imZieljahr.darstellungsart || (kahlwildOffen ? "KAHLWILD_OFFEN" : "REGULAER"),
       zielWert: imZieljahr,
       tatsaechlichesFreigabeJahr: freigabeJahr,
+      regulaeresFreigabeJahr: aktuell.regulaeres_freigabejahr || datumsJahr(aktuell.normale_freigabe_ab),
+      individuelleAbweichung: individuelleAbweichung(aktuell),
       fixesFreigabedatum: istFixesFreigabedatum(aktuell.ausnahme) ||
         istFixesFreigabedatum(aktuell.initial_regel),
       bereitsVorherFrei,
@@ -185,7 +211,10 @@ window.Freigaben = (() => {
   function vorjahrAnzeige(wert, jahr) {
     if (!wert) return "";
     const individuell = wert.individuelle_freigabe_ab;
-    if (datumsJahr(individuell) === Number(jahr)) return `ab ${datumKurz(individuell)}`;
+    if (datumsJahr(individuell) === Number(jahr)) {
+      const freiAbOriginal = originalesFreiAb(wert);
+      return freiAbOriginal ? datumKurz(freiAbOriginal) : String(jahr);
+    }
     if ((wert.letzte_erlegung || wert.initial_regel || wert.ausnahme) &&
         datumsJahr(wert.endgueltige_freigabe_ab) === Number(jahr)) return String(jahr);
     if (datumsJahr(wert.letzte_erlegung) === Number(jahr)) return datumKurz(wert.letzte_erlegung);
@@ -201,15 +230,64 @@ window.Freigaben = (() => {
   }
   function ausgewaehlteJaeger() {
     return (basis?.jaeger || []).filter((jaeger) =>
-      !el("fgJaeger").value || String(jaeger.id) === el("fgJaeger").value)
-      .sort((a, b) => String(a.nachname || "").localeCompare(String(b.nachname || ""), "de") ||
-        String(a.vorname || "").localeCompare(String(b.vorname || ""), "de") ||
-        Number(a.personen_nr || a.nr || 0) - Number(b.personen_nr || b.nr || 0));
+      !el("fgJaeger").value || String(jaeger.id) === el("fgJaeger").value);
   }
   function jaegerAlphabetisch(a, b) {
     return String(a.nachname || "").localeCompare(String(b.nachname || ""), "de") ||
       String(a.vorname || "").localeCompare(String(b.vorname || ""), "de") ||
       Number(a.personen_nr || a.nr || 0) - Number(b.personen_nr || b.nr || 0);
+  }
+  function freigabeSortierdaten(plan) {
+    const regulaer = Number(plan?.regulaeresFreigabeJahr) || null;
+    const endgueltig = Number(plan?.tatsaechlichesFreigabeJahr) || null;
+    const individuelleRegel = plan?.zielWert?.ausnahme || null;
+    const freiAb = originalesFreiAb(plan?.zielWert);
+    const hatRegulaeresAbweichendesJahr=Boolean(plan?.individuelleAbweichung||
+      (individuelleRegel&&regulaer&&endgueltig&&regulaer!==endgueltig));
+    return {
+      regulaer,
+      endgueltig,
+      individuelleRegel,
+      freiAb,
+      gruppe: freiAb ? 2 : hatRegulaeresAbweichendesJahr ? 1 : 0,
+    };
+  }
+  function sortiereHirschGruppe(zeilen) {
+    return [...zeilen].sort((a,b)=>
+      String(a.nachname||"").localeCompare(String(b.nachname||""),"de")||
+      String(a.vorname||"").localeCompare(String(b.vorname||""),"de")||
+      Number(a.personenNr||0)-Number(b.personenNr||0));
+  }
+  function baueFinaleHirschZeilen(zeilen) {
+    const jahresgruppen=new Map();
+    zeilen.forEach((zeile)=>{
+      const jahr=Number(zeile.endgueltigesFreigabejahr);
+      if(!jahresgruppen.has(jahr))jahresgruppen.set(jahr,[[],[],[]]);
+      const gruppe=Math.min(2,Math.max(0,Number(zeile.gruppe)||0));
+      jahresgruppen.get(jahr)[gruppe].push(zeile);
+    });
+    return [...jahresgruppen.keys()].sort((a,b)=>a-b).flatMap((jahr)=>{
+      const gruppen=jahresgruppen.get(jahr);
+      return [0,1,2].flatMap((gruppe)=>sortiereHirschGruppe(gruppen[gruppe]));
+    });
+  }
+  function erstelleHirschZeile(jaeger, klasse, jahre, zentralesJahr) {
+    const plan = matrixPlan(jaeger.id, klasse.id, jahre, zentralesJahr);
+    const sortierung = freigabeSortierdaten(plan);
+    return {
+      jaegerId:jaeger.id,
+      personenNr:jaeger.personen_nr??jaeger.nr??0,
+      nachname:jaeger.nachname||"",
+      vorname:jaeger.vorname||"",
+      regulaeresFreigabejahr:sortierung.regulaer,
+      endgueltigesFreigabejahr:sortierung.endgueltig,
+      freiAb:sortierung.freiAb,
+      individuelleRegel:sortierung.individuelleRegel,
+      sortJahr:sortierung.endgueltig,
+      sortGruppe:sortierung.gruppe,
+      gruppe:sortierung.gruppe,
+      jaeger,plan,sortierung,
+    };
   }
   function hirscheRendern() {
     const jahre = matrixJahre();
@@ -240,18 +318,72 @@ window.Freigaben = (() => {
         kopf.append(th);
       });
       thead.append(kopf); const tbody = document.createElement("tbody");
-      const jaegerPlaene = ausgewaehlteJaeger().map((jaeger) => ({
-        jaeger,
-        plan: matrixPlan(jaeger.id, klasse.id, jahre, zentralesJahr),
-      }));
+      const jaegerPlaene = ausgewaehlteJaeger().map((jaeger) => {
+        const zeile = erstelleHirschZeile(jaeger, klasse, jahre, zentralesJahr);
+        const { plan, sortierung } = zeile;
+        console.debug("[HIRSCHE SORT DEBUG]", {
+          Jaeger: `${jaeger.vorname || ""} ${jaeger.nachname || ""}`.trim(),
+          regulaeresFreigabejahr: sortierung.regulaer,
+          endgueltigesFreigabejahr: sortierung.endgueltig,
+          "individuelle Regel": sortierung.individuelleRegel?.regel_typ || null,
+          frei_ab: sortierung.freiAb,
+          freigabegruppe: sortierung.gruppe,
+          darstellungsart: plan.darstellungsart,
+        });
+        console.debug("[HIRSCH DEBUG 4 - MATRIX ROW]", {
+          jaeger:`${jaeger.vorname||""} ${jaeger.nachname||""}`.trim(),
+          regulaeresFreigabejahr:sortierung.regulaer,endgueltigesFreigabejahr:sortierung.endgueltig,
+          individuelleRegel:sortierung.individuelleRegel?.regel_typ||null,
+          individuellesFreiAbOriginal:sortierung.freiAb,
+          effektivesFreigabedatum:plan.zielWert?.individuelle_freigabe_ab||null,
+          kahlwildOffen:Number(plan.zielWert?.kahlwild?.offen||0),
+        });
+        console.debug("[HIRSCHE FINAL DEBUG]", {
+          Jaeger:`${jaeger.vorname||""} ${jaeger.nachname||""}`.trim(),
+          regulaer:sortierung.regulaer,endgueltig:sortierung.endgueltig,frei_ab:sortierung.freiAb,
+          Regel:sortierung.individuelleRegel?.regel_typ||null,Freigabegruppe:sortierung.gruppe,
+          Status:plan.zielWert?.status||null,Darstellungsart:plan.darstellungsart,
+        });
+        return zeile;
+      });
+      let finalRows;
       if (nachJahrenSortieren) {
-        jaegerPlaene.sort((a, b) =>
-          Number(a.plan.tatsaechlichesFreigabeJahr ?? Number.POSITIVE_INFINITY) -
-            Number(b.plan.tatsaechlichesFreigabeJahr ?? Number.POSITIVE_INFINITY) ||
-          Number(Boolean(a.plan.fixesFreigabedatum)) - Number(Boolean(b.plan.fixesFreigabedatum)) ||
-          jaegerAlphabetisch(a.jaeger, b.jaeger));
+        const debugZeilen = (zeilen, mitRang=false) => zeilen.map((zeile,index) => ({
+          ...(mitRang?{Rang:index+1}:{}),Name:`${zeile.nachname} ${zeile.vorname}`.trim(),
+          regulaeresJahr:zeile.regulaeresFreigabejahr,endgueltigesJahr:zeile.endgueltigesFreigabejahr,
+          freiAb:zeile.freiAb,Regel:zeile.individuelleRegel?.regel_typ||null,
+          sortJahr:zeile.sortJahr,sortGruppe:zeile.sortGruppe,
+        }));
+        console.debug("[HIRSCH SORT INPUT]");
+        console.table(debugZeilen(jaegerPlaene));
+        finalRows=baueFinaleHirschZeilen(jaegerPlaene);
+        console.debug("[HIRSCH SORT RESULT]");
+        console.table(finalRows.slice(0,20).map((r,index)=>({
+          position:index+1,name:`${r.nachname} ${r.vorname}`.trim(),jahr:r.endgueltigesFreigabejahr,
+          gruppe:r.gruppe,regulaer:r.regulaeresFreigabejahr,freiAb:r.freiAb,
+          regel:r.individuelleRegel?.regel_typ||null,
+        })));
+        console.debug("[HIRSCHE VISIBLE SORT]");
+        console.table(finalRows.map((r)=>({
+          Name:`${r.nachname} ${r.vorname}`.trim(),sortYear:r.sortJahr,sortGroup:r.sortGruppe,
+          freiAb:r.freiAb,regulaer:r.regulaeresFreigabejahr,
+        })));
+        finalRows.forEach(({ jaeger, sortierung, sortJahr, sortGruppe }) =>
+          console.debug("[HIRSCH SORT FINAL]", {
+            Jaeger:`${jaeger.vorname||""} ${jaeger.nachname||""}`.trim(),
+            "regulaeres Jahr":sortierung.regulaer,
+            "endgueltiges Jahr":sortierung.endgueltig,
+            sortJahr,
+            frei_ab:sortierung.freiAb,
+            Regel:sortierung.individuelleRegel?.regel_typ||null,
+            sortGruppe,
+          }));
+        console.debug("[HIRSCHE SORT RESULT]", finalRows.map(({ jaeger, sortierung }, index) =>
+          `${index + 1}. ${jaeger.nachname || ""} ${jaeger.vorname || ""} | Jahr ${sortierung.endgueltig ?? "â€“"} | Gruppe ${sortierung.gruppe} | regulÃ¤r ${sortierung.regulaer ?? "â€“"} | endgÃ¼ltig ${sortierung.endgueltig ?? "â€“"} | frei_ab ${sortierung.freiAb ?? "null"}`));
+      } else {
+        finalRows=[...jaegerPlaene].sort((a,b)=>jaegerAlphabetisch(a.jaeger,b.jaeger));
       }
-      jaegerPlaene.forEach(({ jaeger, plan }) => {
+      finalRows.forEach(({ jaeger, plan }) => {
         const imFilterjahr = plan.werte.get(zentralesJahr);
         if (el("fgStatus").value && imFilterjahr) {
           const status = plan.zielJahr <= zentralesJahr && ["frei", "sonder"].includes(plan.zielZustand)
@@ -276,14 +408,51 @@ window.Freigaben = (() => {
               : istVorjahr
               ? (vorjahrAnzeige(wert, jahr) ? matrixGrund(wert, matrixZustand(wert, jahr)) : "Keine relevante Freigabe im Vorjahr")
               : istZieljahr ? matrixGrund(plan.zielWert || wert, zustand) : "Nicht das nächste Freigabejahr";
+            const zeigtRegulaeresJahr = istZieljahr && plan.individuelleAbweichung &&
+              Number.isInteger(Number(plan.regulaeresFreigabeJahr)) && Number(plan.regulaeresFreigabeJahr) > 0;
+            const zielWert = plan.zielWert || wert;
+            const zielRegel = zielWert.ausnahme;
+            const freiAbOriginal = istZieljahr ? originalesFreiAb(zielWert) : null;
+            const regelBezeichnung = zielRegel
+              ? (AbschussregelnService.REGELTYPEN.find(([typ]) => typ === zielRegel.regel_typ)?.[1] || zielRegel.regel_typ)
+              : null;
+            const tooltipGrund = zeigtRegulaeresJahr
+              ? [grund,
+                  `Tatsächliche Freigabe: ${plan.tatsaechlichesFreigabeJahr}`,
+                  `Reguläre Freigabe: ${plan.regulaeresFreigabeJahr}`,
+                  regelBezeichnung ? `Regel: ${regelBezeichnung}` : null,
+                  `Frei ab: ${datumVoll(freiAbOriginal || zielWert.individuelle_freigabe_ab)}`,
+                  zielRegel?.bemerkung ? `Bemerkung: ${zielRegel.bemerkung}` : null]
+                .filter(Boolean).join("\n")
+              : grund;
             td.className = `hirsch-jahreszelle ${zustand}`;
-            td.textContent = istZieljahr && plan.bereitsVorherFrei ? `seit ${plan.tatsaechlichesFreigabeJahr}`
+            const zellentext = istZieljahr && plan.bereitsVorherFrei ? `seit ${plan.tatsaechlichesFreigabeJahr}`
               : istVorjahr ? vorjahrAnzeige(wert, jahr)
-              : zustand === "sonder" ? `ab ${datumKurz((plan.zielWert || wert).individuelle_freigabe_ab)}`
+              : freiAbOriginal ? `ab ${datumKurz(freiAbOriginal)}`
               : zustand === "nicht-frei" ? "" : String(jahr);
-            td.title = grund; td.tabIndex = 0; td.setAttribute("role", "button");
-            td.setAttribute("aria-label", `${jaeger.vorname} ${jaeger.nachname}, ${name}, ${jahr}: ${grund}`);
-            td.addEventListener("click", () => hirschDetailOeffnen(istZieljahr ? (plan.zielWert || wert) : wert, jahr, name, zustand, grund));
+            td.textContent = zellentext;
+            if (zeigtRegulaeresJahr) {
+              const regulaer = document.createElement("small");
+              regulaer.className = "hirsch-regulaeres-jahr";
+              regulaer.textContent = `reg. ${plan.regulaeresFreigabeJahr}`;
+              td.append(regulaer);
+            }
+            if (istZieljahr) console.debug("[HIRSCH DEBUG 5 - CELL]", {
+              Jaeger:`${jaeger.vorname||""} ${jaeger.nachname||""}`.trim(),Matrixjahr:jahr,
+              regulaer:plan.regulaeresFreigabeJahr,endgueltig:plan.tatsaechlichesFreigabeJahr,
+              Regel:zielRegel?.regel_typ||null,frei_ab_original:freiAbOriginal,
+              kahlwildOffen:Number(zielWert.kahlwild?.offen||0),Darstellungsart:plan.darstellungsart,
+              Text:zellentext,Farbe:zustand,
+            });
+            if (istZieljahr) console.debug("[HIRSCHE CELL DEBUG]", {
+              Jaeger:`${jaeger.vorname||""} ${jaeger.nachname||""}`.trim(),Jahr:jahr,
+              frei_ab:freiAbOriginal,heute:heutigesDatumIso(),Darstellung:plan.darstellungsart,
+              Farbe:zustand==="sonder"?"ORANGE":zustand==="kahlwild"?"ROT":zustand==="frei"?"GRUEN":"GRAU",
+              Text:`${zellentext}${zeigtRegulaeresJahr?` / reg. ${plan.regulaeresFreigabeJahr}`:""}`,
+            });
+            td.title = tooltipGrund; td.tabIndex = 0; td.setAttribute("role", "button");
+            td.setAttribute("aria-label", `${jaeger.vorname} ${jaeger.nachname}, ${name}, ${jahr}: ${tooltipGrund}`);
+            td.addEventListener("click", () => hirschDetailOeffnen(istZieljahr ? (plan.zielWert || wert) : wert, jahr, name, zustand, tooltipGrund));
             td.addEventListener("keydown", (event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); td.click(); } });
           }
           tr.append(td);
@@ -299,11 +468,24 @@ window.Freigaben = (() => {
     const ausnahme = wert.ausnahme;
     const details = [
       ["Status", zustand === "historisch" ? "Historische Information" : zustand === "sonder" ? "Sonderfreigabe" : zustand === "kahlwild" ? "Kahlwildpflicht offen" : zustand === "frei" ? "Frei" : "Nicht frei"],
-      ["Frei ab", wert.endgueltige_freigabe_ab || "–"],
+      ["Freigabejahr", ausnahme?.freigabejahr || wert.freigabejahr || "–"],
+      ["Tatsächliche Freigabe", wert.endgueltiges_freigabejahr || wert.freigabejahr || "–"],
+      ["Reguläre Freigabe", wert.regulaeres_freigabejahr || datumsJahr(wert.normale_freigabe_ab) || "–"],
+      ["Frei ab", datumVoll(ausnahme?.frei_ab)],
+      ["Zeitliche Freigabe", wert.zeitliche_freigabe_ab || wert.endgueltige_freigabe_ab || "–"],
       ["Normale Freigabe", wert.normale_freigabe_ab || "–"],
+      ["Kahlwildpflicht", `${Number(wert.kahlwild?.erforderlich || 0)} erforderlich`],
+      ["Kahlwildpflicht Jahr", wert.kahlwild?.jahr || jahr],
+      ["Neue Pflicht im Jahr", Number(wert.kahlwild?.pflicht || 0)],
+      ["Übertrag aus Vorjahren", Number(wert.kahlwild?.uebertrag || 0)],
+      ["Kahlwildabschüsse im Jahr", Number(wert.kahlwild?.kahlwild_abschuesse || 0)],
+      ["Kahlwild erfüllt", Number(wert.kahlwild?.erlegt || 0)],
+      ["Kahlwild offen", Number(wert.kahlwild?.offen || 0)],
       ["Regel", ausnahme ? (AbschussregelnService.REGELTYPEN.find(([typ]) => typ === ausnahme.regel_typ)?.[1] || ausnahme.regel_typ) : wert.initial_regel ? "Initial" : "–"],
+      ["Allgemeine Regel", wert.allgemeine_regel?.bezeichnung || "–"],
       ["Bemerkung", ausnahme?.bemerkung || wert.initial_regel?.bemerkung || "–"],
       ["Grund", grundText || matrixGrund(wert, zustand)],
+      ["Hinweis", wert.regel_hinweis || "–"],
     ];
     const dl = el("fgHirschDetailInhalt"); dl.innerHTML = "";
     details.forEach(([label, inhalt]) => { const dt = document.createElement("dt"); const dd = document.createElement("dd"); dt.textContent = label; dd.textContent = inhalt; dl.append(dt, dd); });
@@ -341,6 +523,7 @@ window.Freigaben = (() => {
       if (eintraege.length === 1) return { ...eintraege[0], anzeige_name: name };
       const erlegungen = eintraege.map((wert) => wert.letzte_erlegung).filter(Boolean).sort();
       const freiDaten = eintraege.map((wert) => wert.frei_ab).filter(Boolean).sort();
+      const freigabejahre = eintraege.map((wert) => Number(wert.freigabejahr)).filter(Number.isInteger).sort((a, b) => a - b);
       const normaleDaten = eintraege.map((wert) => wert.normale_freigabe_ab).filter(Boolean).sort();
       const individuelleDaten = eintraege.map((wert) => wert.individuelle_freigabe_ab).filter(Boolean).sort();
       const letzteErlegung = erlegungen[erlegungen.length - 1] || null;
@@ -349,6 +532,7 @@ window.Freigaben = (() => {
       const gruende = [...new Set(eintraege.map((wert) => wert.grund).filter(Boolean))];
       return {
         ...eintraege[0], anzeige_name: name, letzte_erlegung: letzteErlegung, frei_ab: freiAb,
+        freigabejahr: freigabejahre[freigabejahre.length - 1] || null,
         normale_freigabe_ab: normaleDaten[normaleDaten.length - 1] || null,
         individuelle_freigabe_ab: individuelleDaten[0] || null,
         endgueltige_freigabe_ab: freiAb,
@@ -386,8 +570,17 @@ window.Freigaben = (() => {
     if (!gefiltert.length) container.innerHTML = '<p class="freigabe-empty">Keine Freigaben für diese Filter.</p>';
   }
   function statusZellen(wert) {
+    const anzeigewert = wert.freigabejahr ?? "–";
+    if (wert.ausnahme?.freigabejahr && !wert.ausnahme?.frei_ab) {
+      console.debug("[FREIGABEN DISPLAY DEBUG]", {
+        freigabejahr: wert.freigabejahr,
+        frei_ab: wert.ausnahme.frei_ab ?? null,
+        effective_free_date: wert.endgueltige_freigabe_ab || wert.frei_ab || null,
+        anzeigewert,
+      });
+    }
     return `<td data-label="Letzte Erlegung">${esc(jahrAnzeigen(wert.letzte_erlegung))}</td>` +
-      `<td data-label="Frei ab">${esc(jahrAnzeigen(wert.endgueltige_freigabe_ab || wert.frei_ab))}</td>` +
+      `<td data-label="Frei ab">${esc(anzeigewert)}</td>` +
       `<td data-label="Status"><strong class="freigabe-status ${wert.status === "FREI" ? "frei" : "nicht-frei"}">${esc(wert.status)}</strong></td>` +
       `<td data-label="Grund" class="freigabe-grund">${esc(wert.grund)}</td>`;
   }
