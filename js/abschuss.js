@@ -272,6 +272,10 @@ window.Abschuss = (() => {
         const cell = document.createElement("td");
         cell.textContent = spalte.wert(abschuss) ?? "";
         cell.dataset.label = spalte.label;
+        if (spalte.zellenKlasse) cell.classList.add(spalte.zellenKlasse);
+        if (spalte.label === "Datum" && abschuss.tageszeit) {
+          cell.dataset.tageszeit = abschuss.tageszeit === "frueh" ? "Früh" : "Abend";
+        }
         const statusKlasse = spalte.klasse?.(abschuss);
         if (statusKlasse) cell.classList.add(statusKlasse);
         row.appendChild(cell);
@@ -297,21 +301,36 @@ window.Abschuss = (() => {
       {
         label: erfassungsmodus === "ausserhalb-plan" ? "Nr" : "Nr.",
         wert: (abschuss) => abschuss.nr,
+        zellenKlasse: "col-number",
       },
-      { label: "Datum", wert: (abschuss) => formatDatum(abschuss.datum) },
+      {
+        label: "Datum",
+        wert: (abschuss) => formatDatum(abschuss.datum),
+        zellenKlasse: "col-date",
+      },
+      {
+        label: "Früh/Abend",
+        wert: (abschuss) => abschuss.tageszeit === "frueh"
+          ? "Früh"
+          : abschuss.tageszeit === "abend" ? "Abend" : "-",
+        zellenKlasse: "col-tageszeit",
+      },
       {
         label: "Jäger",
         wert: (abschuss) =>
           [abschuss.jaeger?.vorname, abschuss.jaeger?.nachname]
             .filter(Boolean).join(" "),
+        zellenKlasse: "col-jaeger",
       },
       {
         label: "Wildgruppe",
         wert: (abschuss) => abschuss.wildgruppen?.bezeichnung,
+        zellenKlasse: "col-wildgruppe",
       },
       {
         label: "Wildklasse",
         wert: (abschuss) => abschuss.wildklassen?.bezeichnung,
+        zellenKlasse: "col-wildklasse",
       },
     ];
     if (erfassungsmodus === "ausserhalb-plan") {
@@ -319,6 +338,7 @@ window.Abschuss = (() => {
         {
           label: "Erlegungsort",
           wert: (abschuss) => OrteAuswahl.bezeichnung(abschuss.erlegungsort),
+          zellenKlasse: "col-erlegungsort",
         },
         { label: "Zusatzinfo", wert: (abschuss) => abschuss.zusatzinfo },
         { label: "Bemerkung", wert: (abschuss) => abschuss.bemerkung },
@@ -329,20 +349,24 @@ window.Abschuss = (() => {
       {
         label: "Erlegungsort",
         wert: (abschuss) => OrteAuswahl.bezeichnung(abschuss.erlegungsort),
+        zellenKlasse: "col-erlegungsort",
       },
       {
         label: "Gewicht",
         wert: (abschuss) =>
           abschuss.gewicht == null ? "—" : `${formatZahl(abschuss.gewicht)} kg`,
+        zellenKlasse: "col-gewicht",
       },
       {
         label: "Gesamtpreis",
         wert: (abschuss) => formatGeld(abschuss.gesamtpreis),
         klasse: rechnungsStatusKlasse,
+        zellenKlasse: "col-gesamtpreis",
       },
       {
         label: "Wildhändler",
         wert: (abschuss) => abschuss.wildhaendler?.bezeichnung,
+        zellenKlasse: "col-wildhaendler",
       },
     ]);
   }
@@ -357,9 +381,9 @@ window.Abschuss = (() => {
     tabellenSpalten().forEach((spalte, index) => {
       const th = document.createElement("th");
       th.textContent = spalte.label;
-      if (index === 0) th.className = "col-number";
-      if (spalte.label === "Datum") th.className = "col-date";
-      if (spalte.label === "Fallwild") th.className = "col-boolean";
+      if (spalte.zellenKlasse) th.classList.add(spalte.zellenKlasse);
+      if (index === 0) th.classList.add("col-number");
+      if (spalte.label === "Fallwild") th.classList.add("col-boolean");
       kopf.appendChild(th);
     });
     const aktionen = document.createElement("th");
@@ -678,6 +702,7 @@ window.Abschuss = (() => {
       formularLeeren();
       el("asNr").value = abschuss.nr || "";
       el("asDatum").value = abschuss.datum || "";
+      el("asTageszeit").value = abschuss.tageszeit || "";
       jaegerDropdown.setValue(abschuss.jaeger_id, false);
       el("asGewicht").value = abschuss.gewicht ?? "";
       el("asGeweihgewicht").value = abschuss.geweihgewicht ?? "";
@@ -714,7 +739,7 @@ window.Abschuss = (() => {
 
   function formularLeeren() {
     el("asRechnung").hidden = true;
-    ["asNr", "asDatum", "asGewicht", "asGeweihgewicht", "asPreis", "asGesamtpreis",
+    ["asNr", "asDatum", "asTageszeit", "asGewicht", "asGeweihgewicht", "asPreis", "asGesamtpreis",
       "asZahlungseingang", "asZusatzinfo", "asBemerkung", "asProtokoll"]
       .forEach((id) => { el(id).value = ""; });
     el("asFallwild").checked = false;
@@ -800,6 +825,7 @@ window.Abschuss = (() => {
     const daten = {
       nr: Number(el("asNr").value),
       datum: el("asDatum").value,
+      tageszeit: el("asTageszeit").value || null,
       jaeger_id: jaegerDropdown.getValue(),
       wildgruppe_id: wildgruppeDropdown.getValue(),
       wildklasse_id: wildklasseDropdown.getValue(),

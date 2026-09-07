@@ -54,13 +54,23 @@
     <div class="modal-body">
       <p id="asFehler" class="form-message" hidden></p>
       <div class="form-grid">
-      <div class="form-group">
-        <label for="asNr" class="required">Nr</label>
-        <input id="asNr" class="form-control" type="number" min="1" step="1">
-      </div>
-      <div class="form-group">
-        <label for="asDatum" class="required">Datum</label>
-        <input id="asDatum" class="form-control" type="date">
+      <div class="abschuss-datum-tageszeit">
+        <div class="form-group">
+          <label for="asNr" class="required">Nr.</label>
+          <input id="asNr" class="form-control" type="number" min="1" step="1">
+        </div>
+        <div class="form-group">
+          <label for="asDatum" class="required">Datum</label>
+          <input id="asDatum" class="form-control" type="date">
+        </div>
+        <div class="form-group">
+          <label for="asTageszeit">Früh / Abend</label>
+          <select id="asTageszeit" class="form-control">
+            <option value="">Bitte wählen</option>
+            <option value="frueh">Früh</option>
+            <option value="abend">Abend</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label id="asJaegerLabel" class="required">Jäger</label>

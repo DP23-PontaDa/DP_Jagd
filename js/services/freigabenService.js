@@ -56,7 +56,7 @@ const FreigabenService = (() => {
     }
     return { regel: null, fehlendesFeld };
   }
-  function calculateKahlwildPflichtProJahr(abschuesse, klasseMap, kahlwildIds, bisJahr) {
+  function calculateKahlwildPflichtProJahr(abschuesse, klasseMap, kahlwildIds, regelMap, bisJahr, jaeger) {
     const relevante = (abschuesse || [])
       .filter((abschuss) => {
         const jahr = Number(String(abschuss.datum || "").slice(0, 4));
@@ -69,55 +69,99 @@ const FreigabenService = (() => {
       : Number(bisJahr);
 
     let offenePflichten = [];
+    const allePflichten = [];
     const ergebnis = [];
 
     for (let jahr = startjahr; jahr <= Number(bisJahr); jahr += 1) {
       const jahresabschuesse = relevante.filter((abschuss) => Number(String(abschuss.datum).slice(0, 4)) === jahr);
       const uebertrag = offenePflichten.reduce((summe, pflicht) => summe + Number(pflicht.offen || 0), 0);
-      const pflichtNeu = jahresabschuesse.reduce((summe, abschuss) =>
-        summe + Number(klasseMap.get(String(abschuss.wildklasse_id))?.kahlwildpflicht || 0), 0);
+      const hirschAbschuesse = jahresabschuesse.filter((abschuss) => regelMap.has(String(abschuss.wildklasse_id)));
+      const neuePflichten = hirschAbschuesse.map((abschuss) => {
+        const klasse = klasseMap.get(String(abschuss.wildklasse_id));
+        const regeln = regelMap.get(String(klasse?.id || abschuss.wildklasse_id)) || [];
+        const regel = regeln.filter((wert) => Number(wert.gueltig_ab_jahr) <= jahr)
+          .sort((a,b) => Number(b.gueltig_ab_jahr) - Number(a.gueltig_ab_jahr))[0];
+        const pflicht = Number(regel?.anzahl || 0);
+        return pflicht > 0 ? {
+          abschuss_id:abschuss.id,jahr,datum:abschuss.datum,pflicht,offen:pflicht,
+          im_entstehungsjahr_erfuellt:0,spaeter_erfuellt:0,erfuellungsjahr:null,erfuellungen:[],
+        } : null;
+      }).filter(Boolean);
+      const pflichtNeu = neuePflichten.reduce((summe, pflicht) => summe + pflicht.pflicht, 0);
 
       const offeneVerpflichtungen = [...offenePflichten];
-      if (pflichtNeu > 0) {
-        offeneVerpflichtungen.push({ jahr, pflicht: pflichtNeu, offen: pflichtNeu });
-      }
+      offeneVerpflichtungen.push(...neuePflichten);
+      allePflichten.push(...neuePflichten);
 
       const kahlwildAbschuesse = jahresabschuesse.filter((abschuss) => kahlwildIds.has(String(abschuss.wildklasse_id))).length;
       let verbleibend = kahlwildAbschuesse;
       let angerechnet = 0;
+      let aufAltjahreAngerechnet = 0;
+      let aufAktuellesJahrAngerechnet = 0;
 
       offeneVerpflichtungen
-        .sort((a, b) => Number(a.jahr) - Number(b.jahr))
+        .sort((a, b) => Number(a.jahr) - Number(b.jahr) ||
+          String(a.datum || "").localeCompare(String(b.datum || ""), "de"))
         .forEach((pflicht) => {
           if (verbleibend <= 0 || Number(pflicht.offen || 0) <= 0) return;
           const verwendung = Math.min(verbleibend, Number(pflicht.offen || 0));
           pflicht.offen = Number(pflicht.offen || 0) - verwendung;
           verbleibend -= verwendung;
           angerechnet += verwendung;
+          if (Number(pflicht.jahr) < jahr) {
+            aufAltjahreAngerechnet += verwendung; pflicht.spaeter_erfuellt += verwendung;
+          } else {
+            aufAktuellesJahrAngerechnet += verwendung; pflicht.im_entstehungsjahr_erfuellt += verwendung;
+          }
+          pflicht.erfuellungen.push({jahr, anzahl:verwendung});
+          if (pflicht.offen === 0) pflicht.erfuellungsjahr = jahr;
         });
 
       offenePflichten = offeneVerpflichtungen.filter((pflicht) => Number(pflicht.offen || 0) > 0);
       const offen = offenePflichten.reduce((summe, pflicht) => summe + Number(pflicht.offen || 0), 0);
       const zeile = {
         jahr,
+        hirsche:hirschAbschuesse.length,
         pflicht: pflichtNeu,
         uebertrag,
         kahlwild_abschuesse: kahlwildAbschuesse,
         angerechnet,
-        erfuellt: angerechnet,
+        auf_altjahre_angerechnet: aufAltjahreAngerechnet,
+        erfuellt: aufAktuellesJahrAngerechnet,
+        pflicht_offen: Math.max(0, pflichtNeu - aufAktuellesJahrAngerechnet),
         offen,
       };
 
       console.debug("[KAHILWILD JAHR DEBUG]", {
+        Jaeger: `${jaeger?.vorname || ""} ${jaeger?.nachname || ""}`.trim(),
+        JaegerId: jaeger?.id || null,
         Jahr: jahr,
-        "Hirschpflicht neu": pflichtNeu,
-        "Übertrag Vorjahr": uebertrag,
-        "Kahlwildabschüsse": kahlwildAbschuesse,
-        "Auf älteste Pflicht angerechnet": angerechnet,
+        HirschpflichtNeu: pflichtNeu,
+        UebertragVorjahr: uebertrag,
+        Kahlwildabschuesse: kahlwildAbschuesse,
+        AufAeltestePflichtAngerechnet: angerechnet,
+        DavonAufAltjahre: aufAltjahreAngerechnet,
+        DavonAufAktuellesJahr: aufAktuellesJahrAngerechnet,
         Offen: offen,
       });
       ergebnis.push(zeile);
     }
+
+    ergebnis.forEach((zeile) => {
+      const jahrespflichten = allePflichten.filter((pflicht) => Number(pflicht.jahr) === Number(zeile.jahr));
+      zeile.pflicht_offen = jahrespflichten.reduce((summe,pflicht)=>summe+Number(pflicht.offen||0),0);
+      zeile.nachtraeglich_erfuellt = jahrespflichten.reduce((summe,pflicht)=>summe+Number(pflicht.spaeter_erfuellt||0),0);
+      zeile.erfuellungsjahre = [...new Set(jahrespflichten.flatMap((pflicht)=>(pflicht.erfuellungen||[])
+        .filter((erfuellung)=>Number(erfuellung.jahr)>Number(pflicht.jahr)).map((erfuellung)=>erfuellung.jahr)))];
+      zeile.status = zeile.pflicht_offen > 0 ? "OFFEN"
+        : zeile.nachtraeglich_erfuellt > 0 ? "NACHTRAEGLICH_ERFUELLT" : "ERFUELLT";
+      zeile.verpflichtungen = jahrespflichten.map((pflicht)=>({
+        abschuss_id:pflicht.abschuss_id,pflicht:pflicht.pflicht,offen:pflicht.offen,
+        im_entstehungsjahr_erfuellt:pflicht.im_entstehungsjahr_erfuellt,
+        spaeter_erfuellt:pflicht.spaeter_erfuellt,erfuellungsjahr:pflicht.erfuellungsjahr,
+        erfuellungen:pflicht.erfuellungen,
+      }));
+    });
 
     return ergebnis;
   }
@@ -139,13 +183,14 @@ const FreigabenService = (() => {
   }
 
   async function basisdaten(jahr) {
-    const [alleJaeger,klassen,regelnResult,allgemeineRegelnResult,abschuesseResult,plan]=await Promise.all([
-      AbschussService.getAuswaehlbareAbschussJaeger(), WildklassenService.getAktivePlanWildklassen(),
+    const [mitgliederResult,klassen,regelnResult,allgemeineRegelnResult,abschuesseResult,plan,kahlwildpflichtRegeln]=await Promise.all([
+      db.from("personen").select("id,personen_nr,vorname,nachname,name_kat,aktiv")
+        .eq("name_kat","Mitglied").eq("aktiv",true), WildklassenService.getAktivePlanWildklassen(),
       db.from("abschussregeln").select("*").eq("aktiv",true).not("jaeger_id","is",null),
       db.from("allgemeine_abschussregeln").select("*").eq("aktiv",true)
         .order("prioritaet",{ascending:false}),
       db.from("abschuesse").select("id,datum,jaeger_id,wildklasse_id,fallwild,zusatzinfo,interner_hirsch_b1,geweihgewicht").eq("fallwild",false).lte("datum",`${jahr}-12-31`).order("datum",{ascending:false}),
-      planKontext(),
+      planKontext(), WildklassenService.getKahlwildpflichtRegeln(),
     ]);
     const geladeneRegeln=check(regelnResult);
     geladeneRegeln.forEach((regel)=>console.debug("[HIRSCH DEBUG 1 - DB REGEL]", {
@@ -153,13 +198,18 @@ const FreigabenService = (() => {
       regel_typ:regel.regel_typ,freigabejahr:regel.freigabejahr,
       frei_ab:regel.frei_ab??null,bemerkung:regel.bemerkung,aktiv:regel.aktiv,
     }));
-    const aktiveMitglieder=alleJaeger.filter((p)=>norm(p.name_kat)==="mitglied"&&p.aktiv===true)
+    const aktiveMitglieder=check(mitgliederResult)
       .sort((a,b)=>String(a.nachname||"").localeCompare(String(b.nachname||""),"de")||String(a.vorname||"").localeCompare(String(b.vorname||""),"de"));
-    return { jaeger:aktiveMitglieder, klassen:WildklassenService.sortiereNachWildgruppeUndWildklasse(klassen), regeln:geladeneRegeln, allgemeineRegeln:check(allgemeineRegelnResult), abschuesse:check(abschuesseResult), plan };
+    return { jaeger:aktiveMitglieder, klassen:WildklassenService.sortiereNachWildgruppeUndWildklasse(klassen), regeln:geladeneRegeln, allgemeineRegeln:check(allgemeineRegelnResult), abschuesse:check(abschuesseResult), plan, kahlwildpflichtRegeln };
   }
 
   function berechnen(basis,jahr) {
     const heuteIso=heute(); const klasseMap=new Map(basis.klassen.map((k)=>[String(k.id),k])); const ergebnis=[];
+    const kahlwildRegelMap=new Map();
+    (basis.kahlwildpflichtRegeln||[]).forEach((regel)=>{
+      const schluessel=String(regel.wildklasse_id); const liste=kahlwildRegelMap.get(schluessel)||[];
+      liste.push(regel); kahlwildRegelMap.set(schluessel,liste);
+    });
     const kahlwildVerlaufJeJaeger=new Map();
     basis.jaeger.forEach((jaeger)=>basis.klassen.forEach((klasse)=>{
       const personAbschuesse=basis.abschuesse.filter((a)=>String(a.jaeger_id)===String(jaeger.id)&&String(a.datum)<=`${jahr}-12-31`);
@@ -189,18 +239,19 @@ const FreigabenService = (() => {
           ? (initialRegel.bemerkung ? `Initial - ${initialRegel.bemerkung}` : "Initial")
           : "Keine frühere Erlegung";
       const relevanteHirschAbschuesse=personAbschuesse.filter((abschuss)=>
-        Number(klasseMap.get(String(abschuss.wildklasse_id))?.kahlwildpflicht||0)>0);
+        kahlwildRegelMap.has(String(abschuss.wildklasse_id)));
       const jaegerSchluessel=String(jaeger.id);
       if(!kahlwildVerlaufJeJaeger.has(jaegerSchluessel)){
         kahlwildVerlaufJeJaeger.set(jaegerSchluessel,
-          calculateKahlwildPflichtProJahr(personAbschuesse,klasseMap,basis.plan.kahlwildIds,jahr));
+          calculateKahlwildPflichtProJahr(personAbschuesse,klasseMap,basis.plan.kahlwildIds,kahlwildRegelMap,jahr,jaeger));
       }
       const kahlwildJahr=kahlwildVerlaufJeJaeger.get(jaegerSchluessel).find((zeile)=>zeile.jahr===Number(jahr))||
-        {jahr:Number(jahr),pflicht:0,uebertrag:0,kahlwild_abschuesse:0,angerechnet:0,erfuellt:0,offen:0};
+        {jahr:Number(jahr),pflicht:0,uebertrag:0,kahlwild_abschuesse:0,angerechnet:0,
+          auf_altjahre_angerechnet:0,erfuellt:0,pflicht_offen:0,offen:0};
       const erforderlich=kahlwildJahr.uebertrag+kahlwildJahr.pflicht;
       const kahlwild=kahlwildJahr.angerechnet;
       const kahlwildOffen=kahlwildJahr.offen;
-      const kahlwildBlockiert=Number(klasse.kahlwildpflicht)>0&&kahlwildOffen>0;
+      const kahlwildBlockiert=kahlwildRegelMap.has(String(klasse.id))&&kahlwildOffen>0;
       const kahlwildGrund=`Kahlwildpflicht nicht erfüllt (${kahlwild} von ${erforderlich} Stück erfüllt)`;
       if (kahlwildBlockiert) grund=kahlwildGrund;
 
@@ -217,6 +268,9 @@ const FreigabenService = (() => {
         "verarbeitetes frei_ab":individuellFreiAbOriginal,
       });
       let finalAb=individuellAb||normalAb;
+      if (individuell?.regel_typ === "SPERRE" && individuellAb) {
+        finalAb = String(normalAb || "") > String(individuellAb) ? normalAb : individuellAb;
+      }
       const freigabejahr=Number(individuell?.freigabejahr)||Number(String(finalAb||"").slice(0,4))||null;
       const regulaeresFreigabejahr=Number(String(normalAb||"").slice(0,4))||null;
       const endgueltigesFreigabejahr=Number(String(finalAb||"").slice(0,4))||null;
@@ -226,6 +280,16 @@ const FreigabenService = (() => {
         individuellesFreiAbOriginal:individuellFreiAbOriginal,effektivesFreigabedatum:individuellAb,
         endgueltigesFreigabejahr,kahlwildOffen,
       });
+      if (norm(`${jaeger.vorname||""} ${jaeger.nachname||""}`)==="wolfgang ploner"&&
+          norm(klasse.bezeichnung)==="hirsch a") {
+        console.debug("[SPERRE DEBUG]", {
+          "Regel gefunden":Boolean(aktiveSperre),Aktiv:aktiveSperre?.aktiv??null,
+          Regeltyp:aktiveSperre?.regel_typ||null,Freigabejahr:aktiveSperre?.freigabejahr||null,
+          "frei_ab original":aktiveSperre?.frei_ab??null,
+          normalesFreigabejahr:regulaeresFreigabejahr,
+          endgueltigesFreigabejahr,
+        });
+      }
       let b1Blockiert=false;
       if (individuell) {
         const name = regelName(individuell.regel_typ);
@@ -259,7 +323,7 @@ const FreigabenService = (() => {
       if (norm(`${jaeger.vorname||""} ${jaeger.nachname||""}`)==="benedikt kohlmayer"&&norm(klasse.bezeichnung)==="hirsch a") {
         console.debug("[FREIGABE KAHLWILD DEBUG]", {
           Jäger:`${jaeger.vorname||""} ${jaeger.nachname||""}`.trim(), Wildklasse:klasse.bezeichnung,
-          "Letzter Hirsch":letzter?.datum||null, "Kahlwildpflicht pro Hirsch":Number(klasse.kahlwildpflicht||0),
+          "Letzter Hirsch":letzter?.datum||null,
           "Anzahl relevanter Hirsche":relevanteHirschAbschuesse.length,
           "Kahlwild erforderlich":erforderlich, "Kahlwild erfüllt":kahlwild,
           "Kahlwild offen":kahlwildOffen, "Zeitlich frei ab":finalAb,
@@ -308,6 +372,8 @@ const FreigabenService = (() => {
           : null,
         kahlwild:{jahr:kahlwildJahr.jahr,pflicht:kahlwildJahr.pflicht,uebertrag:kahlwildJahr.uebertrag,
           kahlwild_abschuesse:kahlwildJahr.kahlwild_abschuesse,angerechnet:kahlwildJahr.angerechnet,
+          auf_altjahre_angerechnet:kahlwildJahr.auf_altjahre_angerechnet,
+          pflicht_erfuellt:kahlwildJahr.erfuellt,pflicht_offen:kahlwildJahr.pflicht_offen,
           erlegt:kahlwild,erforderlich,offen:kahlwildOffen,blockiert:kahlwildBlockiert,
           grund:kahlwildGrund,relevante_hirsche:relevanteHirschAbschuesse.length}});
     }));
@@ -315,6 +381,36 @@ const FreigabenService = (() => {
       WildklassenService.vergleicheNachWildgruppeUndWildklasse(a.wildklasse,b.wildklasse)||
       String(a.jaeger.nachname||"").localeCompare(String(b.jaeger.nachname||""),"de")||
       String(a.jaeger.vorname||"").localeCompare(String(b.jaeger.vorname||""),"de"));
+  }
+  function kahlwildUebersichtBerechnen(basis, jahr) {
+    const klasseMap = new Map(basis.klassen.map((klasse) => [String(klasse.id), klasse]));
+    const regelMap = new Map();
+    (basis.kahlwildpflichtRegeln || []).forEach((regel) => {
+      const schluessel=String(regel.wildklasse_id); const liste=regelMap.get(schluessel)||[];
+      liste.push(regel); regelMap.set(schluessel,liste);
+    });
+    return basis.jaeger.map((jaeger) => {
+      const abschuesse = basis.abschuesse.filter((abschuss) => String(abschuss.jaeger_id) === String(jaeger.id));
+      const jahresabschuesse = abschuesse.filter((abschuss) => Number(String(abschuss.datum || "").slice(0, 4)) === Number(jahr));
+      const verlauf = calculateKahlwildPflichtProJahr(abschuesse, klasseMap, basis.plan.kahlwildIds, regelMap, jahr, jaeger);
+      const snapshot = verlauf.find((zeile) => Number(zeile.jahr) === Number(jahr)) || {
+        jahr:Number(jahr),pflicht:0,uebertrag:0,kahlwild_abschuesse:0,angerechnet:0,
+        auf_altjahre_angerechnet:0,erfuellt:0,pflicht_offen:0,offen:0,
+      };
+      return {
+        jaeger,
+        jahr:Number(jahr),
+        hirsche:jahresabschuesse.filter((abschuss) =>
+          regelMap.has(String(abschuss.wildklasse_id))).length,
+        kahlwild:Number(snapshot.kahlwild_abschuesse || 0),
+        ...snapshot,
+        jahresverlauf:verlauf,
+        freigegeben:Number(snapshot.offen || 0) === 0,
+      };
+    }).sort((a,b) =>
+      String(a.jaeger.nachname || "").localeCompare(String(b.jaeger.nachname || ""), "de") ||
+      String(a.jaeger.vorname || "").localeCompare(String(b.jaeger.vorname || ""), "de") ||
+      Number(a.jaeger.personen_nr || 0) - Number(b.jaeger.personen_nr || 0));
   }
   async function laden(jahr){const basis=await basisdaten(jahr);return{basis,freigaben:berechnen(basis,jahr)};}
   async function ladenMehrjahre(jahre) {
@@ -325,6 +421,7 @@ const FreigabenService = (() => {
     return {
       basis,
       jahre: new Map(gueltigeJahre.map((jahr) => [jahr, berechnen(basis, jahr)])),
+      kahlwildJahre: new Map(gueltigeJahre.map((jahr) => [jahr, kahlwildUebersichtBerechnen(basis, jahr)])),
     };
   }
   async function freigabeFuer(jaegerId,wildklasseId,jahr){const d=await laden(jahr);return d.freigaben.find((x)=>String(x.jaeger.id)===String(jaegerId)&&String(x.wildklasse.id)===String(wildklasseId))||null;}

@@ -23,7 +23,8 @@ const AbschussregelnService = (() => {
   async function jaegerLaden() {
     const personen = await AbschussService.getAuswaehlbareAbschussJaeger();
     return personen.filter((person) =>
-      String(person.name_kat || "").trim().toLocaleLowerCase("de") === "mitglied")
+      String(person.name_kat || "").trim().toLocaleLowerCase("de") === "mitglied" &&
+      person.aktiv === true)
       .sort((a, b) => String(a.nachname || "").localeCompare(String(b.nachname || ""), "de") ||
         String(a.vorname || "").localeCompare(String(b.vorname || ""), "de"));
   }

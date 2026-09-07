@@ -618,6 +618,11 @@ header {
     cursor: pointer;
 }
 
+.person-table .person-jungjaeger-name {
+    color: #c66a00;
+    font-weight: 800;
+}
+
 .modal {
     display: none;
     position: fixed;
@@ -888,6 +893,30 @@ textarea.form-control {
     color: var(--color-primary);
 }
 
+.abschuss-datum-tageszeit {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(70px, 0.6fr) minmax(150px, 1.4fr) minmax(120px, 1.05fr);
+    gap: 10px 14px;
+}
+
+.abschuss-datum-tageszeit > .form-group {
+    min-width: 0;
+}
+
+.read-mode .abschuss-datum-tageszeit .form-group {
+    display: block !important;
+    min-height: 0;
+    padding: 10px 12px;
+    border: 1px solid #e5e5ea;
+    border-radius: 8px;
+}
+
+.read-mode .abschuss-datum-tageszeit .form-group label {
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+
 .invoice-payment-button {
     min-height: 36px;
     padding: 6px 10px;
@@ -1103,6 +1132,26 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
+    #app-content #asModal .abschuss-datum-tageszeit {
+        grid-template-columns: minmax(52px, 0.55fr) minmax(115px, 1.35fr) minmax(92px, 1fr);
+        gap: 6px;
+    }
+
+    #app-content #asModal .abschuss-datum-tageszeit .form-group label {
+        white-space: nowrap;
+        font-size: 0.82rem;
+    }
+
+    #app-content #asModal.edit-mode .abschuss-datum-tageszeit .form-control {
+        min-height: 40px;
+        padding: 6px;
+    }
+
+    #app-content .abschuss-page #asTabelleBody td[data-label="Datum"][data-tageszeit]::after {
+        content: " · " attr(data-tageszeit);
+        white-space: nowrap;
+    }
+
     .page-title-row {
         flex-direction: column;
     }
@@ -1117,6 +1166,12 @@ textarea.form-control {
 
     .invoice-choice > b {
         grid-column: 2;
+    }
+}
+
+@media (max-width: 300px) {
+    #app-content #asModal .abschuss-datum-tageszeit {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -1709,6 +1764,24 @@ textarea.form-control {
 .freigabe-empty { padding: 1rem; background: #f4f7f8; border-radius: 8px; }
 
 .freigaben-tabs { margin-bottom: 0.75rem; }
+.freigabe-kahlwild > h2 { margin: 1rem 0 0.75rem; }
+.freigabe-kahlwild-tabelle { min-width: 980px; border-collapse: separate; border-spacing: 0; }
+.freigabe-kahlwild-tabelle thead th { text-align: center; vertical-align: middle; }
+.freigabe-kahlwild-tabelle tbody td:nth-child(1),
+.freigabe-kahlwild-tabelle tbody td:nth-child(n+4) { text-align: center; }
+.kahlwild-zahl { font-weight: 700; font-variant-numeric: tabular-nums; }
+.freigabe-kahlwild-tabelle .kahlwild-person { color: #7f1d1d; font-weight: 800; }
+.freigabe-kahlwild-tabelle .kahlwild-hirsch.detail-verfuegbar { cursor: pointer; }
+.freigabe-kahlwild-tabelle .kahlwild-hirsch.detail-verfuegbar:focus-visible { outline: 3px solid #287a9f; outline-offset: -3px; }
+.freigabe-kahlwild-tabelle .kahlwild-hirsch.pflicht-offen { background: #f4c7c7; color: #8b1e1e; cursor: pointer; }
+.freigabe-kahlwild-tabelle .kahlwild-hirsch.pflicht-offen:focus-visible { outline: 3px solid #287a9f; outline-offset: -3px; }
+.freigabe-kahlwild-tabelle .kahlwild-hirsch.nachtraeglich-erfuellt { background: #fff; color: #c66a00; font-weight: 800; cursor: pointer; }
+.freigabe-kahlwild-tabelle .kahlwild-hirsch.nachtraeglich-erfuellt:focus-visible { outline: 3px solid #287a9f; outline-offset: -3px; }
+.freigabe-kahlwild-tabelle .kahlwild-sticky { position: sticky; z-index: 2; background: #fff; }
+.freigabe-kahlwild-tabelle thead .kahlwild-sticky { z-index: 4; background: #e9eff2; }
+.freigabe-kahlwild-tabelle .kahlwild-sticky-1 { left: 0; width: 58px; min-width: 58px; }
+.freigabe-kahlwild-tabelle .kahlwild-sticky-2 { left: 58px; width: 145px; min-width: 145px; }
+.freigabe-kahlwild-tabelle .kahlwild-sticky-3 { left: 203px; width: 135px; min-width: 135px; box-shadow: 3px 0 4px rgba(34,51,60,.08); }
 .freigabe-hirsche-kopf {
   display: flex;
   align-items: center;
@@ -1799,6 +1872,10 @@ textarea.form-control {
   .freigabe-matrix-legende { gap: 0.5rem 0.75rem; font-size: 0.84rem; }
   .freigabe-hirsche-kopf { align-items: stretch; }
   #fgSortJahre { min-height: 44px; }
+  .freigabe-kahlwild-tabelle { min-width: 850px; }
+  .freigabe-kahlwild-tabelle .kahlwild-sticky-1 { width: 48px; min-width: 48px; }
+  .freigabe-kahlwild-tabelle .kahlwild-sticky-2 { left: 48px; width: 108px; min-width: 108px; }
+  .freigabe-kahlwild-tabelle .kahlwild-sticky-3 { left: 156px; width: 100px; min-width: 100px; }
   .hirsch-matrix th, .hirsch-matrix td { min-width: 76px; height: 44px; padding: 0.35rem 0.4rem; font-size: 0.82rem; }
   .hirsch-jahreskopf small { font-size: 0.62rem; }
   .hirsch-sticky-1 { left: 0; width: 54px; min-width: 54px !important; }
@@ -1957,6 +2034,81 @@ textarea.form-control {
 
 #app-content table td.action-cell {
     width: 1%;
+}
+
+/* Abschussübersicht: zusätzliche Tageszeit ohne Verbreiterung der Tabelle. */
+@media (min-width: 769px) {
+    #app-content .abschuss-page .ap-table {
+        width: 100%;
+        max-width: 100%;
+        table-layout: fixed;
+    }
+
+    #app-content .abschuss-page .ap-table th,
+    #app-content .abschuss-page .ap-table td {
+        padding-left: 7px;
+        padding-right: 7px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #app-content .abschuss-page .ap-table .col-number { width: 4%; }
+    #app-content .abschuss-page .ap-table .col-date {
+        width: 8%;
+        white-space: nowrap;
+    }
+    #app-content .abschuss-page .ap-table .col-tageszeit {
+        width: 7%;
+        padding-left: 4px;
+        padding-right: 4px;
+        text-align: center;
+        white-space: nowrap;
+    }
+    #app-content .abschuss-page .ap-table th.col-tageszeit { font-size: .8rem; }
+    #app-content .abschuss-page .ap-table .col-jaeger {
+        width: 15%;
+        white-space: nowrap;
+    }
+    #app-content .abschuss-page .ap-table .col-wildgruppe {
+        width: 7%;
+        white-space: normal;
+    }
+    #app-content .abschuss-page .ap-table .col-wildklasse {
+        width: 10%;
+        white-space: normal;
+    }
+    #app-content .abschuss-page .ap-table .col-erlegungsort {
+        width: 12%;
+        white-space: normal;
+    }
+    #app-content .abschuss-page .ap-table .col-gewicht {
+        width: 7%;
+        white-space: nowrap;
+    }
+    #app-content .abschuss-page .ap-table .col-gesamtpreis {
+        width: 9%;
+        white-space: nowrap;
+    }
+    #app-content .abschuss-page .ap-table .col-wildhaendler {
+        width: 9%;
+        white-space: normal;
+    }
+    #app-content .abschuss-page .ap-table .col-actions,
+    #app-content .abschuss-page .ap-table .action-cell {
+        width: 12%;
+        padding-left: 3px;
+        padding-right: 3px;
+    }
+    #app-content .abschuss-page .ap-table .action-cell {
+        gap: 3px;
+        overflow: visible;
+        justify-content: center;
+    }
+    #app-content .abschuss-page .ap-table .action-cell .action-btn {
+        width: 27px;
+        height: 28px;
+        flex-basis: 27px;
+    }
 }
 
 #app-content .jagd-table th.pers-jagd-year-column,
@@ -3103,6 +3255,10 @@ textarea.form-control {
 
 /* Abschuss: lesbare Mobile-Kacheln und vollständig erreichbarer Detailmodus. */
 @media (max-width: 768px) {
+    #app-content .abschuss-page #asTabelleBody td[data-label="Früh/Abend"] {
+        display: none !important;
+    }
+
     #app-content .abschuss-page #asTabelleBody td {
         display: flex !important;
         min-height: 40px;

@@ -42,7 +42,7 @@ const ImportExportService = (() => {
     const { data, error } = await db
       .from("abschuesse")
       .select(`
-        id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, gewicht,
+        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, gewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung, fallwild, untersuchungsprotokoll_nr,
         jaeger:personen (id, vorname, nachname),
@@ -107,6 +107,8 @@ const ImportExportService = (() => {
     return (abschuesse || []).map((abschuss) => ({
       Nr: abschuss.nr,
       Datum: abschuss.datum,
+      "Früh/Abend": abschuss.tageszeit === "frueh" ? "Früh"
+        : abschuss.tageszeit === "abend" ? "Abend" : "",
       "Jäger": vollname(abschuss.jaeger || {}),
       Wildgruppe: abschuss.wildgruppen?.bezeichnung || "",
       Wildklasse: abschuss.wildklassen?.bezeichnung || "",
@@ -136,7 +138,7 @@ const ImportExportService = (() => {
       AbschussService.getAuswaehlbareAbschussJaeger(),
       db.from("wildhaendler").select("id, code, bezeichnung, aktiv"),
       db.from("abschuesse").select(`
-        id, nr, jahr, datum, jaeger_id, wildgruppe_id, wildklasse_id,
+        id, nr, jahr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id,
         gewicht, preis_pro_kg, wildhaendler_id, zahlungseingang,
         fallwild, zusatzinfo, bemerkung, untersuchungsprotokoll_nr
       `),
@@ -182,6 +184,7 @@ const ImportExportService = (() => {
   const ABSCHUSS_FELDNAMEN = {
     nr: "Nr",
     datum: "Datum",
+    tageszeit: "Früh/Abend",
     jaeger_id: "Jäger",
     wildgruppe_id: "Wildgruppe",
     wildklasse_id: "Wildklasse",
@@ -197,6 +200,7 @@ const ImportExportService = (() => {
 
   function abschussAenderungen(bestehend, payload) {
     return Object.keys(ABSCHUSS_FELDNAMEN)
+      .filter((feld) => Object.prototype.hasOwnProperty.call(payload, feld))
       .filter((feld) => !(feld === "nr" && payload.nr === null))
       .map((feld) => ({
         spalte: ABSCHUSS_FELDNAMEN[feld],
@@ -241,6 +245,11 @@ const ImportExportService = (() => {
           : ["nein", "false", "0"].includes(fallwildText)
             ? false
             : null;
+      const tageszeitText = normalisieren(daten["Früh/Abend"])
+        .replace(/ü/g, "ue");
+      const hatTageszeitSpalte = Object.prototype.hasOwnProperty.call(daten, "Früh/Abend");
+      const tageszeit = tageszeitText === "frueh" ? "frueh"
+        : tageszeitText === "abend" ? "abend" : null;
 
       if (nr !== null && (!Number.isInteger(nr) || nr <= 0))
         fehlerHinzufuegen(
@@ -251,6 +260,11 @@ const ImportExportService = (() => {
         fehlerHinzufuegen(fehler, zeile, "Datum", "Gültiges Datum erforderlich.");
       if (fallwild === null)
         fehlerHinzufuegen(fehler, zeile, "Fallwild", "Erlaubt sind Ja oder Nein.");
+      if (tageszeitText && !tageszeit)
+        fehlerHinzufuegen(
+          fehler, zeile, "Früh/Abend",
+          `Unbekannter Wert „${String(daten["Früh/Abend"] || "").trim()}“. Erlaubt sind Früh oder Abend.`,
+        );
 
       const wildgruppe = eindeutigerTreffer(gruppenIndex, daten.Wildgruppe);
       if (!wildgruppe)
@@ -439,6 +453,7 @@ const ImportExportService = (() => {
         untersuchungsprotokoll_nr:
           String(daten.Untersuchungsprotokoll || "").trim() || null,
       };
+      if (hatTageszeitSpalte) payload.tageszeit = tageszeit;
 
       const trefferNummer = jahr && Number.isInteger(nr)
         ? bestehend.find((abschuss) =>
@@ -834,6 +849,63 @@ const ImportExportService = (() => {
     return null;
   }
 
+  async function getWildklassenImportReferenzen() {
+    const [klassenResult, regelnResult] = await Promise.all([
+      db.from("wildklassen").select("id,bezeichnung,wildgruppe_id,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge)"),
+      db.from("wildklasse_kahlwildpflicht").select("id,wildklasse_id,gueltig_ab_jahr,anzahl"),
+    ]);
+    if (klassenResult.error) throw klassenResult.error;
+    if (regelnResult.error) throw regelnResult.error;
+    return { wildklassen: klassenResult.data || [], regeln: regelnResult.data || [] };
+  }
+
+  function validiereWildklassenImportZeilen(zeilen, referenzen) {
+    const dateiSchluessel = new Set();
+    return (zeilen || []).map((daten, index) => {
+      const zeile = index + 2; const fehler = [];
+      const gruppenname = String(daten.Wildgruppe ?? "").trim();
+      const klassenname = String(daten.Wildklasse ?? "").trim();
+      const treffer = referenzen.wildklassen.filter((klasse) => normalisieren(klasse.bezeichnung) === normalisieren(klassenname) && normalisieren(klasse.wildgruppe?.bezeichnung) === normalisieren(gruppenname));
+      const wildklasse = treffer.length === 1 ? treffer[0] : null;
+      if (!wildklasse) fehler.push(`Wildklasse '${klassenname || "–"}' in '${gruppenname || "–"}' wurde nicht eindeutig gefunden.`);
+      const gueltigAb = Number(String(daten["Gültig ab"] ?? "").trim());
+      const anzahl = Number(String(daten["Stück pro Hirsch"] ?? "").trim());
+      if (!Number.isInteger(gueltigAb) || gueltigAb < 1900 || gueltigAb > 2999) fehler.push("Gültig ab muss eine vierstellige Jahreszahl sein.");
+      if (!Number.isInteger(anzahl) || anzahl < 0) fehler.push("Stück pro Hirsch muss eine nicht negative ganze Zahl sein.");
+      const schluessel = `${wildklasse?.id || `${gruppenname}|${klassenname}`}|${gueltigAb}`;
+      if (dateiSchluessel.has(schluessel)) fehler.push("Diese Wildklasse und dieses Gültig-ab-Jahr kommen in der Datei mehrfach vor.");
+      dateiSchluessel.add(schluessel);
+      const vorhanden = wildklasse ? referenzen.regeln.find((regel) => String(regel.wildklasse_id) === String(wildklasse.id) && Number(regel.gueltig_ab_jahr) === gueltigAb) : null;
+      if (vorhanden) fehler.push(`Für ${klassenname} existiert bereits eine Kahlwildpflicht ab ${gueltigAb}. Historische Regeln werden beim Import nicht überschrieben.`);
+      const payload = fehler.length ? null : { wildklasse_id:wildklasse.id,gueltig_ab_jahr:gueltigAb,anzahl };
+      return { zeile,wildgruppe:gruppenname,bezeichnung:klassenname,pflicht:anzahl,gueltig_ab:gueltigAb,
+        aktion:"Neu",id:null,fehler,payload };
+    });
+  }
+
+  async function importWildklassen(vorschau) {
+    let importiert = 0;
+    for (const eintrag of (vorschau || []).filter((wert) => wert.payload)) {
+      const result = await db.from("wildklasse_kahlwildpflicht").insert(eintrag.payload);
+      if (result.error) throw new Error(`Zeile ${eintrag.zeile}: Kahlwildpflicht-Regel konnte nicht gespeichert werden: ${result.error.message}`);
+      importiert += 1;
+    }
+    return { importiert };
+  }
+
+  async function getExportWildklassen() {
+    const result = await db.from("wildklasse_kahlwildpflicht").select("*,wildklasse:wildklassen(id,bezeichnung,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge))");
+    if (result.error) throw result.error;
+    return (result.data || []).sort((a,b) => Number(a.wildklasse?.wildgruppe?.reihenfolge||0)-Number(b.wildklasse?.wildgruppe?.reihenfolge||0) || String(a.wildklasse?.bezeichnung||"").localeCompare(String(b.wildklasse?.bezeichnung||""),"de") || Number(a.gueltig_ab_jahr)-Number(b.gueltig_ab_jahr));
+  }
+
+  function exportWildklassenZeilen(klassen) {
+    return (klassen || []).map((klasse) => ({
+      Wildgruppe:klasse.wildklasse?.wildgruppe?.bezeichnung||"",Wildklasse:klasse.wildklasse?.bezeichnung||"",
+      "Gültig ab":klasse.gueltig_ab_jahr,"Stück pro Hirsch":klasse.anzahl,
+    }));
+  }
+
   async function getAbschussregelnImportReferenzen() {
     const [personenResult, klassenResult, regelnResult] = await Promise.all([
       db.from("personen").select("id,personen_nr,vorname,nachname,name_kat,aktiv")
@@ -1014,6 +1086,11 @@ const ImportExportService = (() => {
     getMitgliederImportReferenzen,
     validiereMitgliederImportZeilen,
     importMitglieder,
+    getWildklassenImportReferenzen,
+    validiereWildklassenImportZeilen,
+    importWildklassen,
+    getExportWildklassen,
+    exportWildklassenZeilen,
     getAbschussregelnImportReferenzen,
     validiereAbschussregelnImportZeilen,
     importAbschussregeln,

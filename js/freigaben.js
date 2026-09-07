@@ -6,12 +6,21 @@ window.Freigaben = (() => {
     const treffer = String(datum).match(/(?:^|\D)(\d{4})(?:\D|$)/);
     return treffer ? treffer[1] : datum;
   };
-  let daten = []; let basis = null; let jahresdaten = new Map();
+  let daten = []; let kahlwildDaten = []; let kahlwildJahresdaten = new Map(); let basis = null; let jahresdaten = new Map();
   let aktiveAnsicht = "hirsche"; let nachJahrenSortieren = true;
 
   function matrixJahre() {
     const mitte = Number(el("fgJahr").value) || new Date().getFullYear();
-    return Array.from({ length: 7 }, (_, index) => mitte - 1 + index);
+    const standardEnde = mitte + 5;
+    const mitgliederIds = new Set((basis?.jaeger || []).map((jaeger) => String(jaeger.id)));
+    const hirschKlassenIds = new Set((basis?.klassen || [])
+      .filter((klasse) => ["hirsch a", "hirsch b"].includes(norm(klasse.bezeichnung)))
+      .map((klasse) => String(klasse.id)));
+    const hoechstesSperrjahr = Math.max(standardEnde, ...(basis?.regeln || [])
+      .filter((regel) => regel.regel_typ === "SPERRE" && regel.aktiv !== false &&
+        mitgliederIds.has(String(regel.jaeger_id)) && hirschKlassenIds.has(String(regel.wildklasse_id)))
+      .map((regel) => Number(regel.freigabejahr)).filter(Number.isInteger));
+    return Array.from({ length: hoechstesSperrjahr - mitte + 2 }, (_, index) => mitte - 1 + index);
   }
 
   async function init() {
@@ -25,6 +34,7 @@ window.Freigaben = (() => {
     el("fgJahr").addEventListener("change", laden);
     el("fgTabUebersicht").addEventListener("click", () => ansichtSetzen("uebersicht"));
     el("fgTabHirsche").addEventListener("click", () => ansichtSetzen("hirsche"));
+    el("fgTabKahlwild").addEventListener("click", () => ansichtSetzen("kahlwild"));
     el("fgSortJahre").addEventListener("click", () => {
       nachJahrenSortieren = !nachJahrenSortieren;
       el("fgSortJahre").classList.toggle("active", nachJahrenSortieren);
@@ -43,9 +53,17 @@ window.Freigaben = (() => {
   async function laden() {
     try {
       const jahr = Number(el("fgJahr").value);
-      const ergebnis = await FreigabenService.ladenMehrjahre(matrixJahre());
+      const ersteJahre = [...new Set([...matrixJahre(), jahr - 3, jahr - 2, jahr - 1, jahr])];
+      let ergebnis = await FreigabenService.ladenMehrjahre(ersteJahre);
+      basis = ergebnis.basis;
+      const erweiterteJahre = [...new Set([...matrixJahre(), jahr - 3, jahr - 2, jahr - 1, jahr])];
+      if (erweiterteJahre.some((wert) => !ergebnis.jahre.has(wert))) {
+        ergebnis = await FreigabenService.ladenMehrjahre(erweiterteJahre);
+      }
       jahresdaten = ergebnis.jahre; basis = ergebnis.basis;
       daten = jahresdaten.get(jahr) || [];
+      kahlwildJahresdaten = ergebnis.kahlwildJahre || new Map();
+      kahlwildDaten = kahlwildJahresdaten.get(jahr) || [];
       optionen(); rendern();
     } catch (error) {
       console.error("Freigaben konnten nicht geladen werden:", error);
@@ -56,12 +74,18 @@ window.Freigaben = (() => {
   function ansichtSetzen(ansicht) {
     aktiveAnsicht = ansicht;
     const hirsche = ansicht === "hirsche";
-    el("fgTabUebersicht").classList.toggle("active", !hirsche);
+    const kahlwild = ansicht === "kahlwild";
+    const uebersicht = ansicht === "uebersicht";
+    el("fgTabUebersicht").classList.toggle("active", uebersicht);
     el("fgTabHirsche").classList.toggle("active", hirsche);
-    el("fgTabUebersicht").setAttribute("aria-selected", String(!hirsche));
+    el("fgTabKahlwild").classList.toggle("active", kahlwild);
+    el("fgTabUebersicht").setAttribute("aria-selected", String(uebersicht));
     el("fgTabHirsche").setAttribute("aria-selected", String(hirsche));
-    el("fgUebersichtPanel").hidden = hirsche;
+    el("fgTabKahlwild").setAttribute("aria-selected", String(kahlwild));
+    el("fgUebersichtPanel").hidden = !uebersicht;
     el("fgHirschePanel").hidden = !hirsche;
+    el("fgKahlwildPanel").hidden = !kahlwild;
+    ["fgJaeger", "fgWildklasse", "fgStatus"].forEach((id) => { el(id).hidden = kahlwild; });
     rendern();
   }
 
@@ -93,12 +117,78 @@ window.Freigaben = (() => {
 
   function rendern() {
     if (aktiveAnsicht === "hirsche") return hirscheRendern();
+    if (aktiveAnsicht === "kahlwild") return kahlwildRendern();
     const gefiltert = daten.filter((wert) =>
       (!el("fgJaeger").value || String(wert.jaeger.id) === el("fgJaeger").value) &&
       (!el("fgWildklasse").value || String(wert.wildklasse.id) === el("fgWildklasse").value) &&
       (!el("fgStatus").value || wert.status === el("fgStatus").value));
     if (el("fgJaeger").value) return einzelansichtRendern(gefiltert);
     sammelansichtRendern(gefiltert);
+  }
+
+  function kahlwildRendern() {
+    const jahr = Number(el("fgJahr").value) || new Date().getFullYear();
+    const angezeigteJahre = [jahr - 3, jahr - 2, jahr - 1, jahr];
+    el("fgKahlwildTitel").textContent = `Kahlwildpflicht ${jahr}`;
+    el("fgKahlwildJahrMinus3").textContent = String(jahr - 3);
+    el("fgKahlwildJahrMinus2").textContent = String(jahr - 2);
+    el("fgKahlwildVorjahr").textContent = String(jahr - 1);
+    el("fgKahlwildJahr").textContent = String(jahr);
+    const body = el("fgKahlwildBody"); body.innerHTML = "";
+    kahlwildDaten.forEach((wert) => {
+      const tr = document.createElement("tr");
+      const hatOffeneKahlwildpflicht = Number(wert.offen || 0) > 0;
+      const jahreswerte = new Map((wert.jahresverlauf || []).map((zeile) => [Number(zeile.jahr), zeile]));
+      const zahlOderLeer = (zahl) => Number(zahl || 0) === 0 ? "" : String(Number(zahl));
+      const jahreszellen = angezeigteJahre.map((anzeigeJahr) => {
+        const jahreswert = jahreswerte.get(anzeigeJahr);
+        const pflichtOffen = Number(jahreswert?.pflicht_offen || 0) > 0;
+        const nachtraeglichErfuellt = !pflichtOffen && Number(jahreswert?.nachtraeglich_erfuellt || 0) > 0;
+        const hatHirsche = Number(jahreswert?.hirsche || 0) > 0;
+        return `<td class="kahlwild-zahl">${zahlOderLeer(jahreswert?.kahlwild_abschuesse)}</td>` +
+          `<td class="kahlwild-zahl kahlwild-hirsch${hatHirsche ? " detail-verfuegbar" : ""}${pflichtOffen ? " pflicht-offen" : nachtraeglichErfuellt ? " nachtraeglich-erfuellt" : ""}" ` +
+          `data-jaeger-id="${esc(wert.jaeger.id)}" data-jahr="${anzeigeJahr}">${zahlOderLeer(jahreswert?.hirsche)}</td>`;
+      }).join("");
+      tr.innerHTML = `<td class="kahlwild-sticky kahlwild-sticky-1">${esc(wert.jaeger.personen_nr || "–")}</td>` +
+        `<td class="kahlwild-sticky kahlwild-sticky-2${hatOffeneKahlwildpflicht ? " kahlwild-person" : ""}">${esc(wert.jaeger.nachname || "")}</td>` +
+        `<td class="kahlwild-sticky kahlwild-sticky-3${hatOffeneKahlwildpflicht ? " kahlwild-person" : ""}">${esc(wert.jaeger.vorname || "")}</td>` + jahreszellen;
+      tr.querySelectorAll(".kahlwild-hirsch.detail-verfuegbar").forEach((zelle) => {
+        zelle.tabIndex = 0; zelle.setAttribute("role", "button");
+        const istOffen = zelle.classList.contains("pflicht-offen");
+        const istNachtraeglichErfuellt = zelle.classList.contains("nachtraeglich-erfuellt");
+        const zustand = istOffen ? "Offene" : istNachtraeglichErfuellt ? "Nachträglich erfüllte" : "Erfüllte";
+        zelle.setAttribute("aria-label", `${zustand} Kahlwildpflicht ${zelle.dataset.jahr}: Details öffnen`);
+        const oeffnen = () => {
+          const jahreswert = jahreswerte.get(Number(zelle.dataset.jahr));
+          if (jahreswert) kahlwildDetailOeffnen({...jahreswert, jaeger:wert.jaeger});
+        };
+        zelle.addEventListener("click", oeffnen);
+        zelle.addEventListener("keydown", (event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); oeffnen(); } });
+      });
+      body.append(tr);
+    });
+    if (!kahlwildDaten.length) body.innerHTML = '<tr><td colspan="11">Keine aktiven Mitglieder vorhanden.</td></tr>';
+  }
+
+  function kahlwildDetailOeffnen(wert) {
+    el("fgHirschDetailTitel").textContent = `${wert.jaeger.vorname || ""} ${wert.jaeger.nachname || ""} – Kahlwild ${wert.jahr}`.trim();
+    const status = wert.status === "OFFEN" ? "✕ Kahlwildpflicht offen"
+      : wert.status === "NACHTRAEGLICH_ERFUELLT" ? "✓ Kahlwildpflicht nachträglich erfüllt"
+      : "✓ Kahlwildpflicht erfüllt";
+    const details = [
+      ["Jahr", wert.jahr], ["Hirsche", wert.hirsche], ["Kahlwild", wert.kahlwild ?? wert.kahlwild_abschuesse],
+      ["Übertrag aus Vorjahren", wert.uebertrag], ["Kahlwildpflicht im Jahr", wert.pflicht],
+      ["Auf Altjahre angerechnet", wert.auf_altjahre_angerechnet],
+      ["Im Entstehungsjahr erfüllt", wert.erfuellt],
+      ["Nachträglich erfüllt", wert.nachtraeglich_erfuellt || 0],
+      ["Erfüllungsjahr", (wert.erfuellungsjahre || []).join(", ") || "–"],
+      ["Pflicht dieses Jahres noch offen", wert.pflicht_offen || 0],
+      ["Gesamte offene Verpflichtung zum Jahresende", wert.offen],
+      ["Status", status],
+    ];
+    const dl = el("fgHirschDetailInhalt"); dl.innerHTML = "";
+    details.forEach(([label, inhalt]) => { const dt=document.createElement("dt"); const dd=document.createElement("dd"); dt.textContent=label; dd.textContent=inhalt; dl.append(dt,dd); });
+    const modal=el("fgHirschDetail"); modal.style.display="block"; modal.setAttribute("aria-hidden","false"); el("fgHirschDetailOk").focus();
   }
 
   function datumsJahr(datum) { return datum ? Number(String(datum).slice(0, 4)) : null; }
@@ -194,12 +284,19 @@ window.Freigaben = (() => {
     const imZieljahr = werte.get(zielJahr) || aktuell;
     const kahlwildOffen = Number(imZieljahr.kahlwild?.offen || 0) > 0 &&
       relevanteFreigabe <= `${zielJahr}-12-31`;
+    const sperrFreiAbOriginal = sperre ? originalesFreiAb(aktuell) : null;
+    const zielZustand = sperre
+      ? (kahlwildOffen ? "kahlwild" : sperrFreiAbOriginal ? "sonder" : "frei")
+      : imZieljahr.matrix_zustand || (kahlwildOffen ? "kahlwild" : "frei");
+    const darstellungsart = sperre
+      ? (kahlwildOffen ? "KAHLWILD_OFFEN" : sperrFreiAbOriginal ? "SONDERDATUM" : "REGULAER")
+      : imZieljahr.darstellungsart || (kahlwildOffen ? "KAHLWILD_OFFEN" : "REGULAER");
     return {
       werte,
       zielJahr,
-      zielZustand: imZieljahr.matrix_zustand || (kahlwildOffen ? "kahlwild" : "frei"),
-      darstellungsart: imZieljahr.darstellungsart || (kahlwildOffen ? "KAHLWILD_OFFEN" : "REGULAER"),
-      zielWert: imZieljahr,
+      zielZustand,
+      darstellungsart,
+      zielWert: sperre ? aktuell : imZieljahr,
       tatsaechlichesFreigabeJahr: freigabeJahr,
       regulaeresFreigabeJahr: aktuell.regulaeres_freigabejahr || datumsJahr(aktuell.normale_freigabe_ab),
       individuelleAbweichung: individuelleAbweichung(aktuell),
@@ -450,6 +547,16 @@ window.Freigaben = (() => {
               Farbe:zustand==="sonder"?"ORANGE":zustand==="kahlwild"?"ROT":zustand==="frei"?"GRUEN":"GRAU",
               Text:`${zellentext}${zeigtRegulaeresJahr?` / reg. ${plan.regulaeresFreigabeJahr}`:""}`,
             });
+            if (istZieljahr && norm(`${jaeger.vorname||""} ${jaeger.nachname||""}`)==="wolfgang ploner" &&
+                norm(name)==="hirsch a") console.debug("[SPERRE DEBUG]", {
+              "Regel gefunden":zielRegel?.regel_typ==="SPERRE",Aktiv:zielRegel?.aktiv??null,
+              Regeltyp:zielRegel?.regel_typ||null,Freigabejahr:zielRegel?.freigabejahr||null,
+              "frei_ab original":zielRegel?.frei_ab??null,
+              normalesFreigabejahr:plan.regulaeresFreigabeJahr,
+              endgueltigesFreigabejahr:plan.tatsaechlichesFreigabeJahr,
+              MatrixSortierjahr:plan.tatsaechlichesFreigabeJahr,
+              MatrixZelljahr:jahr,MatrixZelltext:zellentext,
+            });
             td.title = tooltipGrund; td.tabIndex = 0; td.setAttribute("role", "button");
             td.setAttribute("aria-label", `${jaeger.vorname} ${jaeger.nachname}, ${name}, ${jahr}: ${tooltipGrund}`);
             td.addEventListener("click", () => hirschDetailOeffnen(istZieljahr ? (plan.zielWert || wert) : wert, jahr, name, zustand, tooltipGrund));
@@ -466,8 +573,10 @@ window.Freigaben = (() => {
   function hirschDetailOeffnen(wert, jahr, name, zustand, grundText = null) {
     el("fgHirschDetailTitel").textContent = `${wert.jaeger.vorname} ${wert.jaeger.nachname} – ${name} – ${jahr}`;
     const ausnahme = wert.ausnahme;
+    const sperreAktiv = ausnahme?.regel_typ === "SPERRE" &&
+      String(wert.endgueltige_freigabe_ab || "") > heutigesDatumIso();
     const details = [
-      ["Status", zustand === "historisch" ? "Historische Information" : zustand === "sonder" ? "Sonderfreigabe" : zustand === "kahlwild" ? "Kahlwildpflicht offen" : zustand === "frei" ? "Frei" : "Nicht frei"],
+      ["Status", sperreAktiv ? "Nicht frei – Sperre aktiv" : zustand === "historisch" ? "Historische Information" : zustand === "sonder" ? "Sonderfreigabe" : zustand === "kahlwild" ? "Kahlwildpflicht offen" : zustand === "frei" ? "Frei" : "Nicht frei"],
       ["Freigabejahr", ausnahme?.freigabejahr || wert.freigabejahr || "–"],
       ["Tatsächliche Freigabe", wert.endgueltiges_freigabejahr || wert.freigabejahr || "–"],
       ["Reguläre Freigabe", wert.regulaeres_freigabejahr || datumsJahr(wert.normale_freigabe_ab) || "–"],
@@ -479,8 +588,11 @@ window.Freigaben = (() => {
       ["Neue Pflicht im Jahr", Number(wert.kahlwild?.pflicht || 0)],
       ["Übertrag aus Vorjahren", Number(wert.kahlwild?.uebertrag || 0)],
       ["Kahlwildabschüsse im Jahr", Number(wert.kahlwild?.kahlwild_abschuesse || 0)],
-      ["Kahlwild erfüllt", Number(wert.kahlwild?.erlegt || 0)],
-      ["Kahlwild offen", Number(wert.kahlwild?.offen || 0)],
+      ["Auf Altjahre angerechnet", Number(wert.kahlwild?.auf_altjahre_angerechnet || 0)],
+      ["Pflicht des Jahres erfüllt", Number(wert.kahlwild?.pflicht_erfuellt || 0)],
+      ["Pflicht des Jahres offen", Number(wert.kahlwild?.pflicht_offen || 0)],
+      ["Gesamt angerechnet", Number(wert.kahlwild?.erlegt || 0)],
+      ["Gesamte offene Verpflichtung", Number(wert.kahlwild?.offen || 0)],
       ["Regel", ausnahme ? (AbschussregelnService.REGELTYPEN.find(([typ]) => typ === ausnahme.regel_typ)?.[1] || ausnahme.regel_typ) : wert.initial_regel ? "Initial" : "–"],
       ["Allgemeine Regel", wert.allgemeine_regel?.bezeichnung || "–"],
       ["Bemerkung", ausnahme?.bemerkung || wert.initial_regel?.bemerkung || "–"],

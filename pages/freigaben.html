@@ -1,6 +1,7 @@
 <section class="freigaben-page"><div class="action-bar"><h1>Freigaben</h1></div>
 <div class="benutzer-tabs freigaben-tabs" role="tablist" aria-label="Freigaben-Ansichten">
   <button id="fgTabHirsche" class="tab-button active" type="button" role="tab" aria-selected="true">Hirsche</button>
+  <button id="fgTabKahlwild" class="tab-button" type="button" role="tab" aria-selected="false">Kahlwild</button>
   <button id="fgTabUebersicht" class="tab-button" type="button" role="tab" aria-selected="false">Übersicht</button>
 </div>
 <div class="abschuss-filter-bar"><select id="fgJahr" class="search-select"></select><select id="fgJaeger" class="search-select"><option value="">Alle Jäger</option></select><select id="fgWildklasse" class="search-select"><option value="">Alle Wildklassen</option></select><select id="fgStatus" class="search-select"><option value="">Alle Status</option><option>FREI</option><option>NICHT FREI</option></select></div>
@@ -23,6 +24,18 @@
     <span><i class="hirsch-legende nicht-frei"></i>Nicht frei</span>
   </div>
   <div id="fgHirschMatrizen"></div>
+</div>
+<div id="fgKahlwildPanel" class="freigabe-kahlwild" role="tabpanel" hidden>
+  <h2 id="fgKahlwildTitel">Kahlwild</h2>
+  <div class="table-wrap freigabe-kahlwild-scroll">
+    <table class="ap-table freigabe-kahlwild-tabelle">
+      <thead>
+        <tr><th class="kahlwild-sticky kahlwild-sticky-1" rowspan="2">Nr.</th><th class="kahlwild-sticky kahlwild-sticky-2" rowspan="2">Nachname</th><th class="kahlwild-sticky kahlwild-sticky-3" rowspan="2">Vorname</th><th id="fgKahlwildJahrMinus3" colspan="2"></th><th id="fgKahlwildJahrMinus2" colspan="2"></th><th id="fgKahlwildVorjahr" colspan="2"></th><th id="fgKahlwildJahr" colspan="2"></th></tr>
+        <tr><th>KW</th><th>Hirsch</th><th>KW</th><th>Hirsch</th><th>KW</th><th>Hirsch</th><th>KW</th><th>Hirsch</th></tr>
+      </thead>
+      <tbody id="fgKahlwildBody"></tbody>
+    </table>
+  </div>
 </div>
 </section>
 <div id="fgHirschDetail" class="modal" aria-hidden="true">

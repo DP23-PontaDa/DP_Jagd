@@ -99,7 +99,7 @@ const WildklassenService = (() => {
         wildklasse_id,
         wildklasse_code,
         wildklasse_bezeichnung,
-        wildklassen!inner (aktiv, reihenfolge, stehzeit_jahre, stehzeit_nicht_passend_jahre, kahlwildpflicht)
+        wildklassen!inner (aktiv, reihenfolge, stehzeit_jahre, stehzeit_nicht_passend_jahre)
       `)
       .eq("planperiode_id", periodenResult.data.id)
       .eq("wildklassen.aktiv", true)
@@ -124,7 +124,6 @@ const WildklassenService = (() => {
           wildklasse_reihenfolge: Number(mapping.wildklassen?.reihenfolge) || 0,
           stehzeit_jahre: Number(mapping.wildklassen?.stehzeit_jahre) || 0,
           stehzeit_nicht_passend_jahre: Number(mapping.wildklassen?.stehzeit_nicht_passend_jahre) || 0,
-          kahlwildpflicht: Number(mapping.wildklassen?.kahlwildpflicht) || 0,
         };
       })
       .sort(vergleicheNachWildgruppeUndWildklasse);
@@ -156,6 +155,33 @@ const WildklassenService = (() => {
     if (error) throw error;
   }
 
+  async function getKahlwildpflichtRegeln(wildklasseId = null) {
+    let query = db.from("wildklasse_kahlwildpflicht").select("*")
+      .order("gueltig_ab_jahr", { ascending: true });
+    if (wildklasseId) query = query.eq("wildklasse_id", wildklasseId);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function createKahlwildpflichtRegel(daten) {
+    const { data, error } = await db.from("wildklasse_kahlwildpflicht").insert(daten).select().single();
+    if (error?.code === "23505") throw new Error(`Für diese Wildklasse existiert bereits eine Kahlwildpflicht ab ${daten.gueltig_ab_jahr}.`);
+    if (error) throw error;
+    return data;
+  }
+
+  async function updateKahlwildpflichtRegel(id, daten) {
+    const { error } = await db.from("wildklasse_kahlwildpflicht").update(daten).eq("id", id);
+    if (error?.code === "23505") throw new Error(`Für diese Wildklasse existiert bereits eine Kahlwildpflicht ab ${daten.gueltig_ab_jahr}.`);
+    if (error) throw error;
+  }
+
+  async function deleteKahlwildpflichtRegel(id) {
+    const { error } = await db.from("wildklasse_kahlwildpflicht").delete().eq("id", id);
+    if (error) throw error;
+  }
+
   return {
     getWildgruppen,
     getWildklassen,
@@ -167,6 +193,10 @@ const WildklassenService = (() => {
     sortiereNachWildgruppeUndWildklasse,
     createWildklasse,
     updateWildklasse,
-    deleteWildklasse
+    deleteWildklasse,
+    getKahlwildpflichtRegeln,
+    createKahlwildpflichtRegel,
+    updateKahlwildpflichtRegel,
+    deleteKahlwildpflichtRegel,
   };
 })();

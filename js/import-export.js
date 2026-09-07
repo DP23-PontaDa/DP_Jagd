@@ -5,7 +5,7 @@
 
 window.ImportExport = (() => {
   const ABSCHUSS_SPALTEN = [
-    "Nr", "Datum", "Jäger", "Wildgruppe", "Wildklasse", "Gewicht",
+    "Nr", "Datum", "Früh/Abend", "Jäger", "Wildgruppe", "Wildklasse", "Gewicht",
     "Preis/kg", "Gesamtpreis", "Wildhändler", "Zahlungseingang",
     "Fallwild", "Zusatzinfo", "Bemerkung", "Untersuchungsprotokoll",
   ];
@@ -18,6 +18,7 @@ window.ImportExport = (() => {
     "Freigabejahr", "Frei ab", "Bemerkung", "Aktiv",
   ];
   const ALLGEMEINE_REGEL_SPALTEN = ["Nr.", "Wildgruppe", "Wildklasse", "Gültig von", "Gültig bis", "Bedingung", "Operator", "Grenzwert", "Einheit", "Stehzeit Jahre", "Bezeichnung", "Bemerkung", "Aktiv"];
+  const WILDKLASSEN_SPALTEN = ["Wildgruppe", "Wildklasse", "Gültig ab", "Stück pro Hirsch"];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
@@ -25,6 +26,7 @@ window.ImportExport = (() => {
   let orteImportVorschau = [];
   let abschussregelnImportVorschau = [];
   let allgemeineRegelnImportVorschau = [];
+  let wildklassenImportVorschau = [];
 
   const element = (id) => document.getElementById(id);
   const aktiveSpalten = () =>
@@ -113,9 +115,28 @@ window.ImportExport = (() => {
     element("ieAllgemeineRegelnAbbrechen").addEventListener("click", allgemeineRegelnZuruecksetzen);
     element("ieAllgemeineRegelnBestaetigen").addEventListener("click", allgemeineRegelnImportieren);
     allgemeineRegelnRechteAnwenden();
+    element("ieWildklassenDateiAuswaehlen").addEventListener("click", () => element("ieWildklassenDatei").click());
+    element("ieWildklassenDatei").addEventListener("change", wildklassenDateiAusgewaehlt);
+    element("ieWildklassenVorlage").addEventListener("click", wildklassenVorlage);
+    element("ieWildklassenExport").addEventListener("click", wildklassenExportieren);
+    element("ieWildklassenAbbrechen").addEventListener("click", wildklassenZuruecksetzen);
+    element("ieWildklassenBestaetigen").addEventListener("click", wildklassenImportieren);
+    wildklassenRechteAnwenden();
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
   }
+
+  function wildklassenRechteAnwenden() {
+    const lesen=BerechtigungService.darf("wildklassen","Lesen"); const bearbeiten=BerechtigungService.darf("wildklassen","Bearbeiten");
+    element("ieWildklassenTitel").hidden=!lesen&&!bearbeiten; element("ieWildklassenBereich").hidden=!lesen&&!bearbeiten;
+    element("ieWildklassenDateiAuswaehlen").hidden=!bearbeiten; element("ieWildklassenVorlage").hidden=!lesen; element("ieWildklassenExport").hidden=!lesen;
+  }
+  function wildklassenVorlage(){xlsxPruefen();const beispiel={Wildgruppe:"Rotwild",Wildklasse:"Hirsch A","Gültig ab":"","Stück pro Hirsch":""};const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([beispiel],{header:WILDKLASSEN_SPALTEN}),"Kahlwildpflicht");XLSX.writeFile(mappe,"vorlage-kahlwildpflicht-regeln.xlsx");}
+  async function wildklassenDateiAusgewaehlt(event){const datei=event.target.files?.[0];event.target.value="";if(!datei)return;try{xlsxPruefen();const mappe=XLSX.read(await datei.arrayBuffer(),{type:"array"});const daten=XLSX.utils.sheet_to_json(mappe.Sheets[mappe.SheetNames[0]],{defval:"",raw:false});const spalten=new Set(daten.length?Object.keys(daten[0]):[]);const fehlend=WILDKLASSEN_SPALTEN.filter((spalte)=>!spalten.has(spalte));if(fehlend.length)throw new Error(`Erforderliche Spalten fehlen: ${fehlend.join(", ")}.`);wildklassenImportVorschau=ImportExportService.validiereWildklassenImportZeilen(daten,await ImportExportService.getWildklassenImportReferenzen());wildklassenVorschau();}catch(error){AppFeedback.error(error.message);}}
+  function wildklassenVorschau(){const body=element("ieWildklassenVorschauBody");body.innerHTML=wildklassenImportVorschau.map((e)=>`<tr class="${e.fehler.length?"ie-preview-error":""}"><td>${e.zeile}</td><td>${htmlSicher(e.wildgruppe)}</td><td>${htmlSicher(e.bezeichnung)}</td><td>${htmlSicher(e.gueltig_ab??"")}</td><td>${htmlSicher(e.pflicht)}</td><td>${htmlSicher(e.aktion)}</td><td>${htmlSicher(e.fehler.join(" "))}</td></tr>`).join("");element("ieWildklassenVorschau").hidden=false;const fehler=wildklassenImportVorschau.some((e)=>e.fehler.length);element("ieWildklassenBestaetigen").disabled=fehler||!wildklassenImportVorschau.length;element("ieWildklassenImportStatus").textContent=`${wildklassenImportVorschau.length} Regeln geprüft.`;}
+  function wildklassenZuruecksetzen(){wildklassenImportVorschau=[];element("ieWildklassenVorschau").hidden=true;element("ieWildklassenVorschauBody").innerHTML="";}
+  async function wildklassenImportieren(){try{const bericht=await ImportExportService.importWildklassen(wildklassenImportVorschau);wildklassenZuruecksetzen();AppFeedback.success(`${bericht.importiert} Kahlwildpflicht-Regeln importiert.`);}catch(error){AppFeedback.error(error.message);}}
+  async function wildklassenExportieren(){const status=element("ieWildklassenStatus");try{xlsxPruefen();const daten=ImportExportService.exportWildklassenZeilen(await ImportExportService.getExportWildklassen());const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet(daten,{header:WILDKLASSEN_SPALTEN}),"Kahlwildpflicht");XLSX.writeFile(mappe,`kahlwildpflicht-regeln-${new Date().toISOString().slice(0,10)}.xlsx`);status.textContent=`${daten.length} Regeln exportiert.`;}catch(error){status.textContent=error.message;}}
 
   function allgemeineRegelnRechteAnwenden() {
     const lesen = BerechtigungService.darf("allgemeine-abschussregeln", "Lesen"); const bearbeiten = BerechtigungService.darf("allgemeine-abschussregeln", "Bearbeiten");
@@ -417,6 +438,7 @@ window.ImportExport = (() => {
       const beispiel = {
         Nr: 1,
         Datum: `${new Date().getFullYear()}-01-15`,
+        "Früh/Abend": "Früh",
         "Jäger": "Max Mustermann",
         Wildgruppe: "Rehwild",
         Wildklasse: "Bock I",

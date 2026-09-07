@@ -188,13 +188,15 @@ function persRenderTable() {
   const criteria = document.getElementById('persSearchCriteria').value;
 
   let persons = persAllPersons.filter(function(person) {
-    return person.nameKat === persActiveKat;
+    return persActiveKat === 'Mitglied'
+      ? person.nameKat === 'Mitglied' || person.nameKat === 'Jungjäger'
+      : person.nameKat === persActiveKat;
   });
 
   if (query) {
     persons = persons.filter(function(person) {
       if (criteria === 'all') {
-        return [person.personenNr, person.vorname, person.nachname,
+        return [person.personenNr, person.vorname, person.nachname, person.nameKat,
           person.kjNr, person.jagdgastkarte, persJaegerGastDisplay(person),
           persLastActiveJagdYear(person.personId),
           person.adresse, person.plz, person.ort]
@@ -260,8 +262,13 @@ function persRenderTable() {
     }
 
     persAddCell(row, person.personenNr || '');
-    persAddCell(row, person.vorname);
-    persAddCell(row, person.nachname);
+    const vornameZelle = persAddCell(row, person.vorname);
+    const nachnameZelle = persAddCell(row, person.nachname);
+    if (person.nameKat === 'Jungjäger') {
+      vornameZelle.classList.add('person-jungjaeger-name');
+      nachnameZelle.classList.add('person-jungjaeger-name');
+    }
+    if (persActiveKat === 'Mitglied') persAddCell(row, person.nameKat || 'Mitglied');
 
     if (persActiveKat === 'Jagdgastkarte') {
       persAddCell(row, person.adresse);
@@ -356,6 +363,7 @@ function persRenderTableHead() {
     return;
   }
   const headers = ['Nr.', 'Vorname', 'Nachname'];
+  if (persActiveKat === 'Mitglied') headers.push('Kategorie');
   if (persActiveKat === 'Jagdgastkarte') {
     headers.push('Adresse', 'PLZ', 'Ort', 'Jahr', 'Mitglied', 'Jagdgastkarte', 'Aktion');
     const tr = document.createElement('tr');
@@ -405,6 +413,7 @@ function persAddCell(row, value) {
   const td = document.createElement('td');
   td.textContent = value == null ? '' : String(value);
   row.appendChild(td);
+  return td;
 }
 
 function persAddStatusCell(row, isActive) {
@@ -902,7 +911,7 @@ function persSavePerson() {
   }
 
   const allowedNameKats = [
-    'Mitglied', 'Jagdgast', 'Jagdgastkarte', 'Hundefuehrer', 'Hegering', 'Wildfleisch'
+    'Mitglied', 'Jungjäger', 'Jagdgast', 'Jagdgastkarte', 'Hundefuehrer', 'Hegering', 'Wildfleisch'
   ];
   if (allowedNameKats.indexOf(person.nameKat) === -1) {
     alert('Name_Kat ist ungültig.');

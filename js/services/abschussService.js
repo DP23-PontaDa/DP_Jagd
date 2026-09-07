@@ -10,7 +10,7 @@ const AbschussService = (() => {
   async function getAbschuesse() {
     const [abschussResult, rechnungspositionenResult] = await Promise.all([
       db.from("abschuesse").select(`
-        id, nr, datum, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, geweihgewicht,
+        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, geweihgewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung, fallwild, interner_hirsch_b1,
         untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
@@ -131,7 +131,7 @@ const AbschussService = (() => {
     const { data, error } = await db
       .from("personen")
       .select("id, personen_nr, vorname, nachname, name_kat, aktiv")
-      .in("name_kat", ["Mitglied", "Jagdgast", "Jagdgastkarte"])
+      .in("name_kat", ["Mitglied", "Jungjäger", "Jagdgast", "Jagdgastkarte"])
       .order("nachname", { ascending: true })
       .order("vorname", { ascending: true });
     if (error) throw fehler(error, "Das Laden der Jäger");

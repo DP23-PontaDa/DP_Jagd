@@ -85,6 +85,13 @@
     </section>
   </div>
 
+  <h2 id="ieWildklassenTitel">Kahlwildpflicht-Regeln</h2>
+  <div id="ieWildklassenBereich" class="ie-card-grid">
+    <section class="ap-overview-group"><h3>Import Kahlwildpflicht-Regeln</h3><p>Neue zeitabhängige Regeln prüfen und importieren. Vorhandene historische Regeln werden nicht überschrieben.</p><div class="btn-group"><button id="ieWildklassenDateiAuswaehlen" class="btn btn-primary" type="button">Importieren</button><button id="ieWildklassenVorlage" class="btn btn-outline" type="button">Excel-Vorlage</button></div><input id="ieWildklassenDatei" type="file" accept=".xlsx" hidden></section>
+    <section class="ap-overview-group"><h3>Export Kahlwildpflicht-Regeln</h3><button id="ieWildklassenExport" class="btn btn-primary" type="button">Exportieren</button><p id="ieWildklassenStatus" class="form-message"></p></section>
+  </div>
+  <section id="ieWildklassenVorschau" class="ap-overview-group ie-wizard" hidden><h3>Importvorschau Kahlwildpflicht-Regeln</h3><p id="ieWildklassenImportStatus" class="form-message"></p><div class="table-wrap"><table class="ap-table"><thead><tr><th>Zeile</th><th>Wildgruppe</th><th>Wildklasse</th><th>Gültig ab</th><th>Stück pro Hirsch</th><th>Aktion</th><th>Fehler</th></tr></thead><tbody id="ieWildklassenVorschauBody"></tbody></table></div><div class="btn-group"><button id="ieWildklassenAbbrechen" class="btn btn-outline" type="button">Abbrechen</button><button id="ieWildklassenBestaetigen" class="btn btn-primary" type="button">Import bestätigen</button></div></section>
+
   <h2 id="ieAbschussregelnTitel">Abschussregeln</h2>
   <div id="ieAbschussregelnBereich" class="ie-card-grid">
     <section id="ieAbschussregelnImportKarte" class="ap-overview-group">

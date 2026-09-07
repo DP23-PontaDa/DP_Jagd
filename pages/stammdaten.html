@@ -39,7 +39,7 @@
                 <th>Bezeichnung</th>
                 <th class="col-short">Stehzeit Jahre</th>
                 <th class="col-short">Nicht passend</th>
-                <th class="col-short">Kahlwildpflicht</th>
+                <th>Kahlwildpflicht-Regeln</th>
                 <th class="col-boolean">Aktiv</th>
                 <th class="col-actions">Aktion</th>
             </tr>
@@ -92,11 +92,6 @@
             <div class="form-group">
                 <label for="sdStehzeitNichtPassend">Stehzeit bei nicht passend</label>
                 <input id="sdStehzeitNichtPassend" class="form-control" type="number" min="0" step="1">
-            </div>
-
-            <div class="form-group">
-                <label for="sdKahlwildpflicht">Kahlwildpflicht</label>
-                <input id="sdKahlwildpflicht" class="form-control" type="number" min="0" step="1">
             </div>
 
             <div class="form-group">
@@ -154,6 +149,18 @@
             </div>
 
         </div>
+
+        <section class="ap-overview-group">
+            <h3>Kahlwildpflicht</h3>
+            <div class="table-wrap"><table class="ap-table"><thead><tr><th>Gültig ab</th><th>Stück pro Hirsch</th><th>Aktionen</th></tr></thead><tbody id="sdKahlwildregelnBody"></tbody></table></div>
+            <div id="sdKahlwildregelForm" class="form-grid" hidden>
+                <div class="form-group"><label for="sdKahlwildregelJahr">Gültig ab</label><input id="sdKahlwildregelJahr" class="form-control" type="number" min="1900" max="2999" step="1" inputmode="numeric"></div>
+                <div class="form-group"><label for="sdKahlwildregelAnzahl">Stück pro Hirsch</label><input id="sdKahlwildregelAnzahl" class="form-control" type="number" min="0" step="1"></div>
+                <div class="btn-group"><button id="sdKahlwildregelSpeichern" class="btn btn-primary" type="button">Regel speichern</button><button id="sdKahlwildregelAbbrechen" class="btn btn-outline" type="button">Abbrechen</button></div>
+            </div>
+            <button id="sdKahlwildregelNeu" class="btn btn-outline" type="button">+ Kahlwildpflicht</button>
+            <p id="sdKahlwildregelHinweis" class="form-message"></p>
+        </section>
 
         <div class="modal-footer">
 
