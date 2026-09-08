@@ -18,7 +18,8 @@ window.ImportExport = (() => {
     "Freigabejahr", "Frei ab", "Bemerkung", "Aktiv",
   ];
   const ALLGEMEINE_REGEL_SPALTEN = ["Nr.", "Wildgruppe", "Wildklasse", "Gültig von", "Gültig bis", "Bedingung", "Operator", "Grenzwert", "Einheit", "Stehzeit Jahre", "Bezeichnung", "Bemerkung", "Aktiv"];
-  const WILDKLASSEN_SPALTEN = ["Wildgruppe", "Wildklasse", "Gültig ab", "Stück pro Hirsch"];
+  const WILDKLASSEN_SPALTEN = ["Wildgruppe", "Wildklasse", "Kürzel", "Gültig ab", "Stück pro Hirsch"];
+  const JOURNAL_KATEGORIEN_SPALTEN = ["Nr", "Kategorie", "Farbe", "Aktiv"];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
@@ -27,6 +28,7 @@ window.ImportExport = (() => {
   let abschussregelnImportVorschau = [];
   let allgemeineRegelnImportVorschau = [];
   let wildklassenImportVorschau = [];
+  let journalKategorienImportVorschau = [];
 
   const element = (id) => document.getElementById(id);
   const aktiveSpalten = () =>
@@ -122,18 +124,33 @@ window.ImportExport = (() => {
     element("ieWildklassenAbbrechen").addEventListener("click", wildklassenZuruecksetzen);
     element("ieWildklassenBestaetigen").addEventListener("click", wildklassenImportieren);
     wildklassenRechteAnwenden();
+    element("ieJournalKategorienDateiAuswaehlen").addEventListener("click",()=>element("ieJournalKategorienDatei").click());
+    element("ieJournalKategorienDatei").addEventListener("change",journalKategorienDateiAusgewaehlt);
+    element("ieJournalKategorienVorlage").addEventListener("click",journalKategorienVorlage);
+    element("ieJournalKategorienExport").addEventListener("click",journalKategorienExportieren);
+    element("ieJournalKategorienAbbrechen").addEventListener("click",journalKategorienZuruecksetzen);
+    element("ieJournalKategorienBestaetigen").addEventListener("click",journalKategorienImportieren);
+    journalKategorienRechteAnwenden();
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
   }
+
+  function journalKategorienRechteAnwenden(){const lesen=BerechtigungService.darf("journal-kategorien","Lesen"),bearbeiten=BerechtigungService.darf("journal-kategorien","Bearbeiten");element("ieJournalKategorienTitel").hidden=!lesen&&!bearbeiten;element("ieJournalKategorienBereich").hidden=!lesen&&!bearbeiten;element("ieJournalKategorienDateiAuswaehlen").hidden=!bearbeiten;element("ieJournalKategorienVorlage").hidden=!lesen;element("ieJournalKategorienExport").hidden=!lesen;}
+  function journalKategorienVorlage(){xlsxPruefen();const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([{Nr:1,Kategorie:"Sitzung",Farbe:"#1565C0",Aktiv:"Ja"}],{header:JOURNAL_KATEGORIEN_SPALTEN}),"Journal-Kategorien");XLSX.writeFile(mappe,"vorlage-journal-kategorien.xlsx");}
+  async function journalKategorienDateiAusgewaehlt(event){const datei=event.target.files?.[0];event.target.value="";if(!datei)return;try{xlsxPruefen();const mappe=XLSX.read(await datei.arrayBuffer(),{type:"array"}),daten=XLSX.utils.sheet_to_json(mappe.Sheets[mappe.SheetNames[0]],{defval:"",raw:false}),spalten=new Set(daten.length?Object.keys(daten[0]):[]),fehlend=JOURNAL_KATEGORIEN_SPALTEN.filter((spalte)=>!spalten.has(spalte));if(fehlend.length)throw new Error(`Erforderliche Spalten fehlen: ${fehlend.join(", ")}.`);journalKategorienImportVorschau=ImportExportService.validiereJournalKategorienImportZeilen(daten,await ImportExportService.getExportJournalKategorien());journalKategorienVorschau();}catch(error){AppFeedback.error(error.message);}}
+  function journalKategorienVorschau(){const body=element("ieJournalKategorienVorschauBody");body.innerHTML=journalKategorienImportVorschau.map((row)=>`<tr class="${row.fehler.length?"ie-preview-error":""}"><td>${row.zeile}</td><td>${htmlSicher(row.nr)}</td><td>${htmlSicher(row.bezeichnung)}</td><td>${htmlSicher(row.farbe)}</td><td>${row.aktiv===true?"Ja":row.aktiv===false?"Nein":"–"}</td><td>${htmlSicher(row.aktion)}</td><td>${htmlSicher(row.fehler.join(" "))}</td></tr>`).join("");element("ieJournalKategorienVorschau").hidden=false;const fehler=journalKategorienImportVorschau.some((row)=>row.fehler.length);element("ieJournalKategorienBestaetigen").disabled=fehler||!journalKategorienImportVorschau.length;element("ieJournalKategorienImportStatus").textContent=`${journalKategorienImportVorschau.length} Kategorien geprüft.`;}
+  function journalKategorienZuruecksetzen(){journalKategorienImportVorschau=[];element("ieJournalKategorienVorschau").hidden=true;element("ieJournalKategorienVorschauBody").innerHTML="";}
+  async function journalKategorienImportieren(){try{const bericht=await ImportExportService.importJournalKategorien(journalKategorienImportVorschau);journalKategorienZuruecksetzen();AppFeedback.success(`${bericht.importiert} Journal-Kategorien importiert.`);}catch(error){AppFeedback.error(error.message);}}
+  async function journalKategorienExportieren(){const status=element("ieJournalKategorienStatus");try{xlsxPruefen();const daten=ImportExportService.exportJournalKategorienZeilen(await ImportExportService.getExportJournalKategorien()),mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet(daten,{header:JOURNAL_KATEGORIEN_SPALTEN}),"Journal-Kategorien");XLSX.writeFile(mappe,`journal-kategorien-${new Date().toISOString().slice(0,10)}.xlsx`);status.textContent=`${daten.length} Kategorien exportiert.`;}catch(error){status.textContent=error.message;}}
 
   function wildklassenRechteAnwenden() {
     const lesen=BerechtigungService.darf("wildklassen","Lesen"); const bearbeiten=BerechtigungService.darf("wildklassen","Bearbeiten");
     element("ieWildklassenTitel").hidden=!lesen&&!bearbeiten; element("ieWildklassenBereich").hidden=!lesen&&!bearbeiten;
     element("ieWildklassenDateiAuswaehlen").hidden=!bearbeiten; element("ieWildklassenVorlage").hidden=!lesen; element("ieWildklassenExport").hidden=!lesen;
   }
-  function wildklassenVorlage(){xlsxPruefen();const beispiel={Wildgruppe:"Rotwild",Wildklasse:"Hirsch A","Gültig ab":"","Stück pro Hirsch":""};const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([beispiel],{header:WILDKLASSEN_SPALTEN}),"Kahlwildpflicht");XLSX.writeFile(mappe,"vorlage-kahlwildpflicht-regeln.xlsx");}
+  function wildklassenVorlage(){xlsxPruefen();const beispiel={Wildgruppe:"Rotwild",Wildklasse:"Hirsch A","Kürzel":"A","Gültig ab":"","Stück pro Hirsch":""};const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([beispiel],{header:WILDKLASSEN_SPALTEN}),"Kahlwildpflicht");XLSX.writeFile(mappe,"vorlage-kahlwildpflicht-regeln.xlsx");}
   async function wildklassenDateiAusgewaehlt(event){const datei=event.target.files?.[0];event.target.value="";if(!datei)return;try{xlsxPruefen();const mappe=XLSX.read(await datei.arrayBuffer(),{type:"array"});const daten=XLSX.utils.sheet_to_json(mappe.Sheets[mappe.SheetNames[0]],{defval:"",raw:false});const spalten=new Set(daten.length?Object.keys(daten[0]):[]);const fehlend=WILDKLASSEN_SPALTEN.filter((spalte)=>!spalten.has(spalte));if(fehlend.length)throw new Error(`Erforderliche Spalten fehlen: ${fehlend.join(", ")}.`);wildklassenImportVorschau=ImportExportService.validiereWildklassenImportZeilen(daten,await ImportExportService.getWildklassenImportReferenzen());wildklassenVorschau();}catch(error){AppFeedback.error(error.message);}}
-  function wildklassenVorschau(){const body=element("ieWildklassenVorschauBody");body.innerHTML=wildklassenImportVorschau.map((e)=>`<tr class="${e.fehler.length?"ie-preview-error":""}"><td>${e.zeile}</td><td>${htmlSicher(e.wildgruppe)}</td><td>${htmlSicher(e.bezeichnung)}</td><td>${htmlSicher(e.gueltig_ab??"")}</td><td>${htmlSicher(e.pflicht)}</td><td>${htmlSicher(e.aktion)}</td><td>${htmlSicher(e.fehler.join(" "))}</td></tr>`).join("");element("ieWildklassenVorschau").hidden=false;const fehler=wildklassenImportVorschau.some((e)=>e.fehler.length);element("ieWildklassenBestaetigen").disabled=fehler||!wildklassenImportVorschau.length;element("ieWildklassenImportStatus").textContent=`${wildklassenImportVorschau.length} Regeln geprüft.`;}
+  function wildklassenVorschau(){const body=element("ieWildklassenVorschauBody");body.innerHTML=wildklassenImportVorschau.map((e)=>`<tr class="${e.fehler.length?"ie-preview-error":""}"><td>${e.zeile}</td><td>${htmlSicher(e.wildgruppe)}</td><td>${htmlSicher(e.bezeichnung)}</td><td>${htmlSicher(e.kuerzel)}</td><td>${htmlSicher(e.gueltig_ab??"")}</td><td>${htmlSicher(e.pflicht)}</td><td>${htmlSicher(e.aktion)}</td><td>${htmlSicher(e.fehler.join(" "))}</td></tr>`).join("");element("ieWildklassenVorschau").hidden=false;const fehler=wildklassenImportVorschau.some((e)=>e.fehler.length);element("ieWildklassenBestaetigen").disabled=fehler||!wildklassenImportVorschau.length;element("ieWildklassenImportStatus").textContent=`${wildklassenImportVorschau.length} Regeln geprüft.`;}
   function wildklassenZuruecksetzen(){wildklassenImportVorschau=[];element("ieWildklassenVorschau").hidden=true;element("ieWildklassenVorschauBody").innerHTML="";}
   async function wildklassenImportieren(){try{const bericht=await ImportExportService.importWildklassen(wildklassenImportVorschau);wildklassenZuruecksetzen();AppFeedback.success(`${bericht.importiert} Kahlwildpflicht-Regeln importiert.`);}catch(error){AppFeedback.error(error.message);}}
   async function wildklassenExportieren(){const status=element("ieWildklassenStatus");try{xlsxPruefen();const daten=ImportExportService.exportWildklassenZeilen(await ImportExportService.getExportWildklassen());const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet(daten,{header:WILDKLASSEN_SPALTEN}),"Kahlwildpflicht");XLSX.writeFile(mappe,`kahlwildpflicht-regeln-${new Date().toISOString().slice(0,10)}.xlsx`);status.textContent=`${daten.length} Regeln exportiert.`;}catch(error){status.textContent=error.message;}}

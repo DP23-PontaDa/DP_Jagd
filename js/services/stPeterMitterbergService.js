@@ -7,27 +7,18 @@ window.StPeterMitterbergService = (() => {
   function pruefen(result, text) { if (result.error) { console.error(text, result.error); throw new Error(result.error.message || text); } return result.data; }
   function selectText() {
     return `id,datum,uhrzeit,kategorie_id,titel,ort_freitext,beschreibung,weitere_personen,ort_id,erstellt_am,geaendert_am,
-      kategorie:journal_kategorien!st_peter_mitterberg_kategorie_id_fkey(id,nr,bezeichnung,aktiv),
+      kategorie:journal_kategorien!st_peter_mitterberg_kategorie_id_fkey(id,nr,bezeichnung,farbe,aktiv),
       ort_stammdaten:orte!st_peter_mitterberg_ort_id_fkey(id,name,art,reviereinrichtung,latitude,longitude),
-      personen:st_peter_mitterberg_personen(person_id,person:personen(id,vorname,nachname)),
       hashtags:st_peter_mitterberg_hashtags(hashtag_id,hashtag:journal_hashtags(id,bezeichnung,normalisiert))`;
   }
   async function laden() {
     return pruefen(await db.from("st_peter_mitterberg").select(selectText()).order("datum", { ascending: false }).order("uhrzeit", { ascending: false, nullsFirst: false }), "Journal-Einträge konnten nicht geladen werden.") || [];
-  }
-  async function personenLaden() {
-    return pruefen(await db.from("personen").select("id,vorname,nachname").eq("aktiv", true).order("nachname").order("vorname"), "Personen konnten nicht geladen werden.") || [];
   }
   function payload(daten) {
     return { datum: daten.datum, uhrzeit: daten.uhrzeit || null, kategorie_id: daten.kategorie_id,
       titel: daten.titel.trim(), ort_freitext: daten.ort_freitext?.trim() || null,
       beschreibung: daten.beschreibung?.trim() || null, weitere_personen: daten.weitere_personen?.trim() || null,
       ort_id: daten.ort_id || null };
-  }
-  async function personenErsetzen(id, personIds) {
-    pruefen(await db.from("st_peter_mitterberg_personen").delete().eq("journal_id", id), "Personenzuordnungen konnten nicht aktualisiert werden.");
-    const ids = [...new Set((personIds || []).filter(Boolean))];
-    if (ids.length) pruefen(await db.from("st_peter_mitterberg_personen").insert(ids.map((personId) => ({ journal_id: id, person_id: personId }))), "Personenzuordnungen konnten nicht gespeichert werden.");
   }
   async function hashtagsErsetzen(id, hashtags) {
     pruefen(await db.from("st_peter_mitterberg_hashtags").delete().eq("journal_id", id), "Hashtag-Zuordnungen konnten nicht aktualisiert werden.");
@@ -41,11 +32,11 @@ window.StPeterMitterbergService = (() => {
     if (fehlend.length) tags.push(...(pruefen(await db.from("journal_hashtags").insert(fehlend).select("id,bezeichnung,normalisiert"), "Hashtags konnten nicht gespeichert werden.") || []));
     pruefen(await db.from("st_peter_mitterberg_hashtags").insert(tags.map((tag) => ({ journal_id: id, hashtag_id: tag.id }))), "Hashtags konnten nicht zugeordnet werden.");
   }
-  async function speichern(id, daten, personIds, hashtags) {
+  async function speichern(id, daten, hashtags) {
     const result = id ? await db.from("st_peter_mitterberg").update(payload(daten)).eq("id", id).select("id").single()
       : await db.from("st_peter_mitterberg").insert(payload(daten)).select("id").single();
     const eintrag = pruefen(result, "Journal-Eintrag konnte nicht gespeichert werden.");
-    await personenErsetzen(eintrag.id, personIds); await hashtagsErsetzen(eintrag.id, hashtags); return eintrag;
+    await hashtagsErsetzen(eintrag.id, hashtags); return eintrag;
   }
   async function anhaengeLaden() {
     const rows = pruefen(await db.from("st_peter_mitterberg_anhaenge").select("id,journal_id,storage_path,dateiname,mime_type,sortierung,erstellt_am").order("journal_id").order("sortierung"), "Anhänge konnten nicht geladen werden.") || [];
@@ -78,5 +69,5 @@ window.StPeterMitterbergService = (() => {
     if (pfade.length) pruefen(await db.storage.from(BUCKET).remove(pfade), "Anhänge konnten nicht aus Storage gelöscht werden.");
     pruefen(await db.from("st_peter_mitterberg").delete().eq("id", id), "Journal-Eintrag konnte nicht gelöscht werden.");
   }
-  return { laden, personenLaden, speichern, anhaengeLaden, anhaengeHochladen, anhangLoeschen, loeschen, dateiValidieren };
+  return { laden, speichern, anhaengeLaden, anhaengeHochladen, anhangLoeschen, loeschen, dateiValidieren };
 })();

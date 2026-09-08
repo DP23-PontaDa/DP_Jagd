@@ -19,7 +19,6 @@ window.TagebuchDpService = (() => {
       ort_stammdaten:orte!tagebuch_dp_ort_id_fkey(id,name,art,reviereinrichtung,latitude,longitude),
       abschuss:abschuesse!tagebuch_dp_abschuss_id_fkey(id,nr,datum,
         wildgruppen(id,bezeichnung),wildklassen(id,bezeichnung)),
-      personen:tagebuch_dp_personen(person_id,person:personen(id,vorname,nachname)),
       hashtags:tagebuch_dp_hashtags(hashtag_id,hashtag:tagebuch_hashtags(id,bezeichnung,normalisiert))`;
   }
 
@@ -27,12 +26,6 @@ window.TagebuchDpService = (() => {
     return pruefen(await db.from("tagebuch_dp").select(eintragSelect())
       .order("datum", { ascending: false }).order("uhrzeit", { ascending: false, nullsFirst: false }),
     "Tagebucheinträge konnten nicht geladen werden.") || [];
-  }
-
-  async function personenLaden() {
-    return pruefen(await db.from("personen").select("id,vorname,nachname,aktiv")
-      .eq("aktiv", true).order("nachname").order("vorname"),
-    "Personen konnten nicht geladen werden.") || [];
   }
 
   async function abschuesseLaden() {
@@ -54,16 +47,6 @@ window.TagebuchDpService = (() => {
       ort_id: daten.ort_id || null,
       abschuss_id: daten.abschuss_id || null,
     };
-  }
-
-  async function personenErsetzen(tagebuchId, personIds) {
-    pruefen(await db.from("tagebuch_dp_personen").delete().eq("tagebuch_id", tagebuchId),
-      "Personenzuordnungen konnten nicht aktualisiert werden.");
-    const eindeutig = [...new Set((personIds || []).filter(Boolean))];
-    if (!eindeutig.length) return;
-    pruefen(await db.from("tagebuch_dp_personen").insert(eindeutig.map((personId) => ({
-      tagebuch_id: tagebuchId, person_id: personId,
-    }))), "Personenzuordnungen konnten nicht gespeichert werden.");
   }
 
   function hashtagNormalisieren(value) {
@@ -98,13 +81,12 @@ window.TagebuchDpService = (() => {
     }))), "Hashtags konnten dem Tagebucheintrag nicht zugeordnet werden.");
   }
 
-  async function speichern(id, daten, personIds, hashtags) {
+  async function speichern(id, daten, hashtags) {
     const result = id
       ? await db.from("tagebuch_dp").update(payload(daten)).eq("id", id).select("id").single()
       : await db.from("tagebuch_dp").insert(payload(daten)).select("id").single();
     const eintrag = pruefen(result, id ? "Tagebucheintrag konnte nicht gespeichert werden."
       : "Tagebucheintrag konnte nicht angelegt werden.");
-    await personenErsetzen(eintrag.id, personIds);
     await hashtagsErsetzen(eintrag.id, hashtags);
     return eintrag;
   }
@@ -176,7 +158,7 @@ window.TagebuchDpService = (() => {
   }
 
   return {
-    laden, personenLaden, abschuesseLaden, speichern, bilderLaden,
+    laden, abschuesseLaden, speichern, bilderLaden,
     bilderHochladen, bildLoeschen, loeschen, bildValidieren,
   };
 })();

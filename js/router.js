@@ -10,6 +10,8 @@ const Router = {
   currentDashboardSection: "dashboard-abschuss",
   currentPanel: "ap-overview",
   pendingRechnungAbschussId: null,
+  pendingAbschussDetailId: null,
+  pendingStPeterDetailId: null,
 
   routes: {
     login: "pages/login.html",
@@ -20,6 +22,7 @@ const Router = {
     abschuss: "pages/abschuss.html",
     "haar-federwild": "pages/abschuss.html",
     rechnungen: "pages/rechnungen.html",
+    "jagd-jahr": "pages/jagd-jahr.html",
     nachsuchen: "pages/nachsuchen.html",
     fehlschuesse: "pages/nachsuchen.html",
     probeschuesse: "pages/nachsuchen.html",
@@ -32,6 +35,7 @@ const Router = {
     "tagebuch-zusammenfassung": "pages/tagebuch-zusammenfassung.html",
     tagebucharten: "pages/tagebucharten.html",
     "st-peter-mitterberg": "pages/st-peter-mitterberg.html",
+    "key-dates": "pages/key-dates.html",
     "journal-kategorien": "pages/journal-kategorien.html",
     stammdaten: "pages/stammdaten.html",
     wildhaendler: "pages/wildhaendler.html",
@@ -198,6 +202,10 @@ const Router = {
       window.StPeterMitterberg.init();
     }
 
+    if (page === "key-dates" && window.KeyDates && typeof window.KeyDates.init === "function") {
+      window.KeyDates.init();
+    }
+
     if (page === "journal-kategorien" && window.JournalKategorien && typeof window.JournalKategorien.init === "function") {
       window.JournalKategorien.init();
     }
@@ -263,6 +271,11 @@ const Router = {
     if (page === "rechnungen" && window.Rechnungen &&
         typeof window.Rechnungen.init === "function") {
       window.Rechnungen.init();
+    }
+
+    if (page === "jagd-jahr" && window.JagdJahr &&
+        typeof window.JagdJahr.init === "function") {
+      window.JagdJahr.init();
     }
 
     if (page === "rechnungsvorlage" && window.Rechnungsvorlage &&

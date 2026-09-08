@@ -2070,39 +2070,47 @@ textarea.form-control {
         white-space: nowrap;
     }
     #app-content .abschuss-page .ap-table .col-wildgruppe {
-        width: 7%;
+        width: 6%;
         white-space: normal;
     }
     #app-content .abschuss-page .ap-table .col-wildklasse {
-        width: 10%;
+        width: 9%;
         white-space: normal;
     }
     #app-content .abschuss-page .ap-table .col-erlegungsort {
-        width: 12%;
+        width: calc(12% + 8px);
         white-space: normal;
     }
     #app-content .abschuss-page .ap-table .col-gewicht {
-        width: 7%;
+        width: 6%;
         white-space: nowrap;
     }
     #app-content .abschuss-page .ap-table .col-gesamtpreis {
-        width: 9%;
+        width: 8%;
         white-space: nowrap;
     }
     #app-content .abschuss-page .ap-table .col-wildhaendler {
-        width: 9%;
-        white-space: normal;
+        width: calc(8% + 6px);
+        max-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     #app-content .abschuss-page .ap-table .col-actions,
     #app-content .abschuss-page .ap-table .action-cell {
-        width: 12%;
+        box-sizing: border-box;
+        width: 96px;
+        min-width: 96px;
+        max-width: 96px;
         padding-left: 3px;
         padding-right: 3px;
+        white-space: nowrap;
     }
     #app-content .abschuss-page .ap-table .action-cell {
         gap: 3px;
-        overflow: visible;
-        justify-content: center;
+        overflow: hidden;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
     }
     #app-content .abschuss-page .ap-table .action-cell .action-btn {
         width: 27px;
@@ -3352,4 +3360,105 @@ textarea.form-control {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
     }
+}
+
+/* Jagd-Jahr: zwei feste A4-Kalenderseiten. */
+.jagdjahr-toolbar { align-items: flex-end; gap: 16px; }
+.jagdjahr-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.jagdjahr-controls > label { display: grid; gap: 4px; font-weight: 700; }
+.jagdjahr-filter { display: flex; flex-wrap: wrap; gap: 5px; }
+.jagdjahr-filter .active { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
+.jagdjahr-scroll { max-width: 100%; overflow-x: auto; padding: 12px 0; }
+.jagdjahr-pages { display: grid; gap: 24px; justify-content: center; }
+.jagdjahr-sheet { box-sizing: border-box; width: 210mm; height: 297mm; padding: 9mm; overflow: hidden; background: #fff; box-shadow: 0 2px 14px #0002; }
+.jagdjahr-sheet > header { height: 23mm; text-align: center; }
+.jagdjahr-sheet > header h2 { margin: 0; letter-spacing: .12em; color: #243342; font-size: 20pt; }
+.jagdjahr-sheet > header strong { display: block; margin-top: 2px; font-size: 14pt; }
+.jagdjahr-sheet > header p { margin: 3px 0 0; }
+.jagdjahr-calendar { width: 100%; height: 254mm; border-collapse: collapse; table-layout: fixed; background: #fff; }
+.jagdjahr-calendar th { height: 8mm; padding: 2px; border: 1px solid #75818a; background: #243342; color: #fff; text-align: center; font-size: 9pt; }
+.jagdjahr-calendar tbody tr { height: calc(246mm / 31); max-height: calc(246mm / 31); }
+.jagdjahr-calendar td { position: relative; box-sizing: border-box; height: calc(246mm / 31); max-height: calc(246mm / 31); padding: 0; overflow: hidden; border: 1px solid #9ca6ac; vertical-align: top; }
+.jagdjahr-calendar td.is-invalid { background: #f1f3f4; }
+.jagdjahr-tag { position: absolute; z-index: 2; top: 1px; left: 3px; color: #c0c5c9; font-size: 6.5pt; font-weight: 400; line-height: 1; }
+.jagdjahr-eintraege { position: absolute; inset: 1px 2px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; overflow: hidden; text-align: center; }
+.jagdjahr-eintragszeile { display: flex; flex: 0 1 auto; align-items: center; justify-content: center; gap: 2px; width: 100%; min-width: 0; overflow: hidden; }
+.jagdjahr-eintrag { display: grid; flex: 0 1 auto; place-items: center; align-content: center; box-sizing: border-box; min-width: 0; max-width: 100%; min-height: 0; padding: 0 1px; overflow: hidden; border: 0; background: transparent; color: #111; text-align: center; line-height: .95; cursor: pointer; }
+.jagdjahr-eintrag.is-simple { flex-basis: 16px; }
+.jagdjahr-eintrag.has-name { flex: 1 1 auto; width: auto; max-width: 60%; }
+.jagdjahr-eintrag b { display: block; box-sizing: border-box; width: 100%; max-width: 100%; overflow: hidden; font-size: 10pt; line-height: .95; text-overflow: ellipsis; white-space: nowrap; }
+.jagdjahr-eintrag.has-name b { font-size: var(--jagdjahr-name-kuerzel, 12px); }
+.jagdjahr-eintrag small { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; font-size: 6.5pt; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+.jagdjahr-eintrag.has-name small { font-size: var(--jagdjahr-vorname, 9px); }
+.jagdjahr-eintraege.has-multiple-names { --jagdjahr-name-kuerzel: 10px; --jagdjahr-vorname: 8px; }
+.jagdjahr-eintraege.has-multiple-names .jagdjahr-eintragszeile { gap: 1px; }
+.jagdjahr-eintraege.is-dense .jagdjahr-eintrag.has-name b { font-size: var(--jagdjahr-name-kuerzel, 10px); }
+.jagdjahr-eintraege.is-dense .jagdjahr-eintrag.has-name small { font-size: var(--jagdjahr-vorname, 8px); }
+.jagdjahr-eintraege.is-very-dense .jagdjahr-eintrag b { font-size: 7.5pt; }
+.jagdjahr-eintraege.is-very-dense .jagdjahr-eintrag.has-name small { font-size: var(--jagdjahr-vorname, 7px); }
+.jagdjahr-eintrag.is-fallwild, .jagdjahr-fallwild { color: #d97706; }
+.jagdjahr-legende { display: flex; justify-content: center; gap: 20px; margin: 4px 0 20px; font-size: .82rem; }
+
+@media (max-width: 768px) {
+    .jagdjahr-toolbar { align-items: stretch; }
+    .jagdjahr-controls { display: grid; grid-template-columns: 1fr 1fr; }
+    .jagdjahr-filter { grid-column: 1 / -1; }
+    .jagdjahr-scroll { width: 100%; -webkit-overflow-scrolling: touch; }
+    .jagdjahr-pages { width: max-content; justify-content: start; }
+    .jagdjahr-sheet { flex: none; box-shadow: 0 1px 7px #0002; }
+}
+
+@media print {
+    body:has(.jagdjahr-page) header,
+    body:has(.jagdjahr-page) #sidebar,
+    body:has(.jagdjahr-page) .jagdjahr-toolbar,
+    body:has(.jagdjahr-page) .jagdjahr-legende { display: none !important; }
+    body:has(.jagdjahr-page) #app-content { margin: 0 !important; padding: 0 !important; }
+    .jagdjahr-scroll { overflow: visible; padding: 0; }
+    .jagdjahr-pages { display: block; }
+    .jagdjahr-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+    .jagdjahr-sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+
+/* Key Dates: zwei A4-Seiten mit je sechs Monatsblöcken. */
+.key-dates-toolbar { align-items: flex-end; gap: 16px; }
+.key-dates-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.key-dates-controls > label { display: grid; gap: 4px; font-weight: 700; }
+.key-dates-scroll { max-width: 100%; overflow-x: auto; padding: 12px 0; }
+.key-dates-pages { display: grid; gap: 24px; justify-content: center; }
+.key-dates-sheet { box-sizing: border-box; width: 210mm; height: 297mm; padding: 10mm; overflow: hidden; background: #fff; box-shadow: 0 2px 14px #0002; }
+.key-dates-sheet > header { display: block; height: 27mm; min-height: 0; padding: 0; background: transparent; border: 0; text-align: center; }
+.key-dates-sheet > header h2 { margin: 0; color: #243342; font-size: 20pt; letter-spacing: .12em; }
+.key-dates-sheet > header strong { display: block; margin-top: 2px; font-size: 14pt; }
+.key-dates-sheet > header p { margin: 3px 0 0; }
+.key-dates-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, 120mm); gap: 8mm 6mm; }
+.key-dates-month { min-width: 0; overflow: hidden; }
+.key-dates-month h3 { margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 1px solid #7e8a91; color: #243342; font-size: 15pt; }
+.key-dates-list { display: grid; gap: 1.5mm; align-content: start; }
+.key-date-entry { display: grid; grid-template-columns: 8mm minmax(0, 1fr); align-items: start; width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.key-date-entry > span { color: #7f878c; font-size: 8.5pt; font-weight: 400; }
+.key-date-entry > b { display: -webkit-box; min-width: 0; overflow: hidden; color: var(--key-date-color, #46525b); font-size: 10pt; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.key-date-entry:hover > b, .key-date-entry:focus-visible > b { text-decoration: underline; }
+.journal-color-input { display: grid; grid-template-columns: 52px minmax(120px, 1fr); align-items: center; gap: 8px; }
+.journal-color-input input[type="color"] { box-sizing: border-box; width: 52px; height: 42px; padding: 3px; border: 1px solid var(--color-border); border-radius: 6px; background: #fff; cursor: pointer; }
+.journal-color-cell { white-space: nowrap; }
+.journal-color-swatch { display: inline-block; width: 18px; height: 18px; margin-right: 7px; border: 1px solid #89949a; border-radius: 4px; vertical-align: middle; }
+
+@media (max-width: 768px) {
+    .key-dates-toolbar { align-items: stretch; }
+    .key-dates-controls { display: grid; grid-template-columns: 1fr 1fr; }
+    .key-dates-controls > label { grid-column: 1 / -1; }
+    .key-dates-pages { width: max-content; justify-content: start; }
+    .key-dates-sheet { flex: none; box-shadow: 0 1px 7px #0002; }
+}
+
+@media print {
+    body:has(.key-dates-page) header,
+    body:has(.key-dates-page) #sidebar,
+    body:has(.key-dates-page) .key-dates-toolbar { display: none !important; }
+    body:has(.key-dates-page) #app-content { margin: 0 !important; padding: 0 !important; }
+    .key-dates-scroll { overflow: visible; padding: 0; }
+    .key-dates-pages { display: block; }
+    .key-dates-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+    .key-dates-sheet:last-child { break-after: auto; page-break-after: auto; }
 }

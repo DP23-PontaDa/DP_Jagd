@@ -2,7 +2,6 @@ window.TagebuchDp = (() => {
   const el = (id) => document.getElementById(id);
   let eintraege = [];
   let arten = [];
-  let personen = [];
   let abschuesse = [];
   let bilder = [];
   let aktuell = null;
@@ -17,12 +16,7 @@ window.TagebuchDp = (() => {
   function datumAnzeige(value) { return value ? new Date(`${value}T00:00:00`).toLocaleDateString("de-AT") : ""; }
   function zeitAnzeige(value) { return value ? String(value).slice(0, 5) : ""; }
   function personenNamen(row) {
-    const namen = (row.personen || []).map((item) => {
-      const person = relation(item.person);
-      return person ? [person.vorname, person.nachname].filter(Boolean).join(" ") : "";
-    }).filter(Boolean);
-    if (row.weitere_personen) namen.push(row.weitere_personen);
-    return namen.join(", ");
+    return row.weitere_personen || "";
   }
   function ortName(row) {
     const ort = relation(row.ort_stammdaten);
@@ -55,8 +49,8 @@ window.TagebuchDp = (() => {
   async function initialLaden() {
     el("tbFehler").hidden = true;
     try {
-      [arten, personen, abschuesse] = await Promise.all([
-        TagebuchartenService.laden(), TagebuchDpService.personenLaden(), TagebuchDpService.abschuesseLaden(), hashtagInput.laden(),
+      [arten, abschuesse] = await Promise.all([
+        TagebuchartenService.laden(), TagebuchDpService.abschuesseLaden(), hashtagInput.laden(),
       ]);
       await ortAuswahl.laden();
       optionenRendern();
@@ -75,12 +69,6 @@ window.TagebuchDp = (() => {
   function optionenRendern() {
     el("tbFilterArt").innerHTML = '<option value="">Alle</option>' + arten.map((art) =>
       `<option value="${art.id}">${escapeHtml(art.bezeichnung)}</option>`).join("");
-    el("tbPersonen").innerHTML = personen.map((person) => {
-      const option = document.createElement("option");
-      option.value = person.id;
-      option.textContent = [person.vorname, person.nachname].filter(Boolean).join(" ");
-      return option.outerHTML;
-    }).join("");
     el("tbAbschuss").innerHTML = '<option value="">Kein Abschuss</option>' + abschuesse.map((abschuss) => {
       const gruppe = relation(abschuss.wildgruppen)?.bezeichnung || "";
       const klasse = relation(abschuss.wildklassen)?.bezeichnung || "";
@@ -171,7 +159,6 @@ window.TagebuchDp = (() => {
     el("tbArt").value = ""; el("tbTitel").value = ""; el("tbOrtFreitext").value = "";
     el("tbBeschreibung").value = ""; el("tbWeiterePersonen").value = ""; el("tbAbschuss").value = "";
     hashtagInput.clear();
-    [...el("tbPersonen").options].forEach((option) => { option.selected = false; });
     ortAuswahl.clear(); bilderRendern(); modalModus(false); el("tbModalTitel").textContent = "Neuer Tagebucheintrag"; oeffnen();
   }
 
@@ -182,8 +169,6 @@ window.TagebuchDp = (() => {
     el("tbOrtFreitext").value = row.ort_freitext || ""; el("tbBeschreibung").value = row.beschreibung || "";
     hashtagInput.setTags(hashtagsFuer(row).map((tag) => tag.bezeichnung));
     el("tbWeiterePersonen").value = row.weitere_personen || ""; el("tbAbschuss").value = row.abschuss_id || "";
-    const ids = new Set((row.personen || []).map((item) => String(item.person_id)));
-    [...el("tbPersonen").options].forEach((option) => { option.selected = ids.has(option.value); });
     ortAuswahl.setValue(row.ort_id, false); bilderRendern(); modalModus(nurLesen);
     el("tbModalTitel").textContent = nurLesen ? row.titel : "Tagebucheintrag bearbeiten"; oeffnen();
   }
@@ -247,11 +232,10 @@ window.TagebuchDp = (() => {
     if (!daten.datum || !daten.art_id || !daten.titel.trim()) {
       el("tbModalFehler").textContent = "Datum, Art und Titel sind erforderlich."; el("tbModalFehler").hidden = false; return;
     }
-    const personIds = [...el("tbPersonen").selectedOptions].map((option) => option.value);
     const button = el("tbSpeichern"); const text = button.textContent; button.disabled = true; button.textContent = "Speichert …";
     try {
       const tags = hashtagInput.getTags();
-      const eintrag = await TagebuchDpService.speichern(aktuell?.id, daten, personIds, tags);
+      const eintrag = await TagebuchDpService.speichern(aktuell?.id, daten, tags);
       if (neueBilder.length) await TagebuchDpService.bilderHochladen(eintrag.id,
         neueBilder.map((bild) => bild.datei), aktuell
           ? bilderFuer(aktuell.id).reduce((max, bild) => Math.max(max, Number(bild.sortierung) || 0), 0)

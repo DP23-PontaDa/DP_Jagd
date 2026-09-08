@@ -98,6 +98,11 @@ window.Abschuss = (() => {
       await ladeFilterWildklassen();
       filterOptionenAufbauen();
       rendern();
+      if (Router.pendingAbschussDetailId) {
+        const detailId = Router.pendingAbschussDetailId;
+        Router.pendingAbschussDetailId = null;
+        await bearbeiten(detailId, "read");
+      }
       initialisierungErfolgreich = true;
     } catch (error) {
       console.error("Planfreigaben konnten nicht geladen werden:", error);
@@ -273,6 +278,7 @@ window.Abschuss = (() => {
         cell.textContent = spalte.wert(abschuss) ?? "";
         cell.dataset.label = spalte.label;
         if (spalte.zellenKlasse) cell.classList.add(spalte.zellenKlasse);
+        if (spalte.titel) cell.title = spalte.titel(abschuss) || "";
         if (spalte.label === "Datum" && abschuss.tageszeit) {
           cell.dataset.tageszeit = abschuss.tageszeit === "frueh" ? "Früh" : "Abend";
         }
@@ -367,6 +373,7 @@ window.Abschuss = (() => {
         label: "Wildhändler",
         wert: (abschuss) => abschuss.wildhaendler?.bezeichnung,
         zellenKlasse: "col-wildhaendler",
+        titel: (abschuss) => abschuss.wildhaendler?.bezeichnung,
       },
     ]);
   }

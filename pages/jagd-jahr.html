@@ -1,0 +1,22 @@
+<section class="jagdjahr-page">
+  <div class="page-title-row jagdjahr-toolbar">
+    <div><h1>JAGD JAHR</h1><p class="page-subtitle">Kalenderjahresübersicht</p></div>
+    <div class="jagdjahr-controls">
+      <label for="jjJahr">Jahr<select id="jjJahr" class="form-control"></select></label>
+      <div id="jjFilter" class="jagdjahr-filter" aria-label="Abschussfilter – Mehrfachauswahl">
+        <button class="btn btn-outline active" type="button" data-filter="alle" aria-pressed="true">Alle</button>
+        <button class="btn btn-outline" type="button" data-filter="fallwild" aria-pressed="false">Fallwild</button>
+        <button class="btn btn-outline" type="button" data-filter="rehwild" aria-pressed="false">Rehwild</button>
+        <button class="btn btn-outline" type="button" data-filter="rotwild" aria-pressed="false">Rotwild</button>
+        <button class="btn btn-outline" type="button" data-filter="haar-federwild" aria-pressed="false">Haar- und Federwild</button>
+      </div>
+      <button id="jjPdf" class="btn btn-primary" type="button">PDF speichern</button>
+      <button id="jjDrucken" class="btn btn-secondary" type="button">Drucken</button>
+    </div>
+  </div>
+  <p id="jjFehler" class="form-message" hidden></p>
+  <div class="jagdjahr-scroll">
+    <div id="jjSeiten" class="jagdjahr-pages"></div>
+  </div>
+  <div class="jagdjahr-legende"><span>Schwarz: normaler Abschuss</span><span class="jagdjahr-fallwild">Orange: Fallwild</span></div>
+</section>

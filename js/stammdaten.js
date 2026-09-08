@@ -99,6 +99,7 @@ window.Stammdaten = (() => {
           <td>${klasse.code}</td>
 
           <td>${klasse.bezeichnung}</td>
+          <td>${klasse.kuerzel || "–"}</td>
 
           <td>${Number(klasse.stehzeit_jahre) || 0}</td>
           <td>${Number(klasse.stehzeit_nicht_passend_jahre) || 0}</td>
@@ -152,6 +153,7 @@ window.Stammdaten = (() => {
     document.getElementById("sdCode").value = klasse.code;
 
     document.getElementById("sdBezeichnung").value = klasse.bezeichnung;
+    document.getElementById("sdKuerzel").value = klasse.kuerzel || "";
 
     document.getElementById("sdReihenfolge").value = klasse.reihenfolge;
     document.getElementById("sdStehzeit").value = klasse.stehzeit_jahre ?? 0;
@@ -184,6 +186,7 @@ window.Stammdaten = (() => {
 
     document.getElementById("sdCode").value = "";
     document.getElementById("sdBezeichnung").value = "";
+    document.getElementById("sdKuerzel").value = "";
     document.getElementById("sdReihenfolge").value = "";
     document.getElementById("sdStehzeit").value = "0";
     document.getElementById("sdStehzeitNichtPassend").value = "0";
@@ -244,6 +247,7 @@ window.Stammdaten = (() => {
       code: document.getElementById("sdCode").value.trim().toUpperCase(),
 
       bezeichnung: document.getElementById("sdBezeichnung").value.trim(),
+      kuerzel: document.getElementById("sdKuerzel").value.trim() || null,
 
       reihenfolge: Number(document.getElementById("sdReihenfolge").value),
 

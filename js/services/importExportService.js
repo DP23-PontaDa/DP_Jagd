@@ -851,7 +851,7 @@ const ImportExportService = (() => {
 
   async function getWildklassenImportReferenzen() {
     const [klassenResult, regelnResult] = await Promise.all([
-      db.from("wildklassen").select("id,bezeichnung,wildgruppe_id,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge)"),
+      db.from("wildklassen").select("id,bezeichnung,kuerzel,wildgruppe_id,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge)"),
       db.from("wildklasse_kahlwildpflicht").select("id,wildklasse_id,gueltig_ab_jahr,anzahl"),
     ]);
     if (klassenResult.error) throw klassenResult.error;
@@ -865,6 +865,8 @@ const ImportExportService = (() => {
       const zeile = index + 2; const fehler = [];
       const gruppenname = String(daten.Wildgruppe ?? "").trim();
       const klassenname = String(daten.Wildklasse ?? "").trim();
+      const kuerzel = String(daten["Kürzel"] ?? "").trim();
+      if (kuerzel.length > 12) fehler.push("Kürzel darf höchstens 12 Zeichen enthalten.");
       const treffer = referenzen.wildklassen.filter((klasse) => normalisieren(klasse.bezeichnung) === normalisieren(klassenname) && normalisieren(klasse.wildgruppe?.bezeichnung) === normalisieren(gruppenname));
       const wildklasse = treffer.length === 1 ? treffer[0] : null;
       if (!wildklasse) fehler.push(`Wildklasse '${klassenname || "–"}' in '${gruppenname || "–"}' wurde nicht eindeutig gefunden.`);
@@ -878,14 +880,18 @@ const ImportExportService = (() => {
       const vorhanden = wildklasse ? referenzen.regeln.find((regel) => String(regel.wildklasse_id) === String(wildklasse.id) && Number(regel.gueltig_ab_jahr) === gueltigAb) : null;
       if (vorhanden) fehler.push(`Für ${klassenname} existiert bereits eine Kahlwildpflicht ab ${gueltigAb}. Historische Regeln werden beim Import nicht überschrieben.`);
       const payload = fehler.length ? null : { wildklasse_id:wildklasse.id,gueltig_ab_jahr:gueltigAb,anzahl };
-      return { zeile,wildgruppe:gruppenname,bezeichnung:klassenname,pflicht:anzahl,gueltig_ab:gueltigAb,
-        aktion:"Neu",id:null,fehler,payload };
+      return { zeile,wildgruppe:gruppenname,bezeichnung:klassenname,kuerzel,pflicht:anzahl,gueltig_ab:gueltigAb,
+        aktion:"Neu",id:null,fehler,payload,wildklassePayload:wildklasse&&!fehler.length?{id:wildklasse.id,kuerzel:kuerzel||null}:null };
     });
   }
 
   async function importWildklassen(vorschau) {
     let importiert = 0;
     for (const eintrag of (vorschau || []).filter((wert) => wert.payload)) {
+      if (eintrag.wildklassePayload) {
+        const kuerzelResult = await db.from("wildklassen").update({ kuerzel:eintrag.wildklassePayload.kuerzel }).eq("id", eintrag.wildklassePayload.id);
+        if (kuerzelResult.error) throw new Error(`Zeile ${eintrag.zeile}: Kürzel konnte nicht gespeichert werden: ${kuerzelResult.error.message}`);
+      }
       const result = await db.from("wildklasse_kahlwildpflicht").insert(eintrag.payload);
       if (result.error) throw new Error(`Zeile ${eintrag.zeile}: Kahlwildpflicht-Regel konnte nicht gespeichert werden: ${result.error.message}`);
       importiert += 1;
@@ -894,14 +900,14 @@ const ImportExportService = (() => {
   }
 
   async function getExportWildklassen() {
-    const result = await db.from("wildklasse_kahlwildpflicht").select("*,wildklasse:wildklassen(id,bezeichnung,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge))");
+    const result = await db.from("wildklasse_kahlwildpflicht").select("*,wildklasse:wildklassen(id,bezeichnung,kuerzel,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge))");
     if (result.error) throw result.error;
     return (result.data || []).sort((a,b) => Number(a.wildklasse?.wildgruppe?.reihenfolge||0)-Number(b.wildklasse?.wildgruppe?.reihenfolge||0) || String(a.wildklasse?.bezeichnung||"").localeCompare(String(b.wildklasse?.bezeichnung||""),"de") || Number(a.gueltig_ab_jahr)-Number(b.gueltig_ab_jahr));
   }
 
   function exportWildklassenZeilen(klassen) {
     return (klassen || []).map((klasse) => ({
-      Wildgruppe:klasse.wildklasse?.wildgruppe?.bezeichnung||"",Wildklasse:klasse.wildklasse?.bezeichnung||"",
+      Wildgruppe:klasse.wildklasse?.wildgruppe?.bezeichnung||"",Wildklasse:klasse.wildklasse?.bezeichnung||"","Kürzel":klasse.wildklasse?.kuerzel||"",
       "Gültig ab":klasse.gueltig_ab_jahr,"Stück pro Hirsch":klasse.anzahl,
     }));
   }
@@ -1074,6 +1080,14 @@ const ImportExportService = (() => {
   async function getExportAllgemeineRegeln() { return AllgemeineAbschussregelnService.laden(); }
   function exportAllgemeineRegelnZeilen(regeln) { return regeln.map((regel) => ({ "Nr.":regel.nr, Wildgruppe:regel.wildklasse?.wildgruppe?.bezeichnung||"", Wildklasse:regel.wildklasse?.bezeichnung||"", "Gültig von":regel.jahr_von, "Gültig bis":regel.jahr_bis, Bedingung:AllgemeineAbschussregelnService.BEDINGUNGEN.find(([code])=>code===regel.bedingung_feld)?.[1]||regel.bedingung_feld, Operator:regel.vergleichsoperator, Grenzwert:regel.grenzwert, Einheit:regel.einheit||"", "Stehzeit Jahre":regel.stehzeit_jahre, Bezeichnung:regel.bezeichnung, Bemerkung:regel.bemerkung||"", Aktiv:regel.aktiv?"Ja":"Nein" })); }
 
+  async function getExportJournalKategorien() {
+    const result=await db.from("journal_kategorien").select("id,nr,bezeichnung,farbe,aktiv").order("nr");
+    if(result.error)throw result.error;return result.data||[];
+  }
+  function exportJournalKategorienZeilen(kategorien){return(kategorien||[]).map((row)=>({Nr:row.nr,Kategorie:row.bezeichnung,Farbe:row.farbe||"",Aktiv:row.aktiv===false?"Nein":"Ja"}));}
+  function validiereJournalKategorienImportZeilen(zeilen,bestehende){const nummern=new Set();const namen=new Map((bestehende||[]).map((row)=>[normalisieren(row.bezeichnung),row]));return(zeilen||[]).map((daten,index)=>{const fehler=[],nr=Number(daten.Nr),bezeichnung=String(daten.Kategorie||"").trim(),farbe=String(daten.Farbe||"").trim().toUpperCase(),aktivText=normalisieren(daten.Aktiv);let aktiv=null;if(["ja","true","1","x"].includes(aktivText))aktiv=true;if(["nein","false","0"].includes(aktivText))aktiv=false;if(!Number.isInteger(nr)||nr<1)fehler.push("Nr. muss eine positive ganze Zahl sein.");if(nummern.has(nr))fehler.push(`Nr. ${nr} kommt in der Datei mehrfach vor.`);nummern.add(nr);if(!bezeichnung)fehler.push("Kategorie ist erforderlich.");const gleichnamig=namen.get(normalisieren(bezeichnung));if(gleichnamig&&Number(gleichnamig.nr)!==nr)fehler.push(`Kategorie „${bezeichnung}“ gehört bereits zu Nr. ${gleichnamig.nr}.`);if(farbe&&!/^#[0-9A-F]{6}$/.test(farbe))fehler.push(`Ungültige Farbe „${farbe}“. Erwartet wird #RRGGBB.`);if(aktiv===null)fehler.push("Aktiv muss Ja oder Nein sein.");const vorhanden=(bestehende||[]).find((row)=>Number(row.nr)===nr);return{zeile:index+2,nr,bezeichnung,farbe,aktiv,aktion:vorhanden?"Aktualisieren":"Neu",fehler,payload:fehler.length?null:{nr,bezeichnung,farbe:farbe||null,aktiv}};});}
+  async function importJournalKategorien(vorschau){const payloads=(vorschau||[]).filter((row)=>row.payload).map((row)=>row.payload);if(!payloads.length)return{importiert:0};const result=await db.from("journal_kategorien").upsert(payloads,{onConflict:"nr"});if(result.error)throw result.error;return{importiert:payloads.length};}
+
   return {
     getExportAbschuesse,
     exportZeilen,
@@ -1101,5 +1115,9 @@ const ImportExportService = (() => {
     importAllgemeineRegeln,
     getExportAllgemeineRegeln,
     exportAllgemeineRegelnZeilen,
+    getExportJournalKategorien,
+    exportJournalKategorienZeilen,
+    validiereJournalKategorienImportZeilen,
+    importJournalKategorien,
   };
 })();
