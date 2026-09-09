@@ -1,14 +1,8 @@
-const CACHE_NAME = "dp-jagd-shell-v191";
+const CACHE_NAME = "dp-jagd-shell-v192";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./apple-touch-icon.png",
-  "./favicon.ico",
-  "./favicon-32x32.png",
-  "./favicon-16x16.png",
-  "./icon-192.png",
-  "./icon-512.png",
   "./assets/app-icon.svg",
   "./assets/rechnung-logo.png",
   "./css/layout.css?v=202",
