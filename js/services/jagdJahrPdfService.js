@@ -27,11 +27,11 @@ const JagdJahrPdfService = (() => {
     return new Blob(teile, { type: "application/pdf" });
   }
 
-  function seiteZeichnen(jahr, untertitel, monate, eintraege) {
+  function seiteZeichnen(jahr, untertitel, monate, eintraege, optionen = {}) {
     const canvas = document.createElement("canvas"); canvas.width = A4_BREITE; canvas.height = A4_HOEHE;
     const ctx = canvas.getContext("2d", { alpha: false });
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = "center"; ctx.fillStyle = "#243342"; ctx.font = "bold 38px Arial"; ctx.fillText("JAGD JAHR", 620, 55);
+    ctx.textAlign = "center"; ctx.fillStyle = "#243342"; ctx.font = "bold 38px Arial"; ctx.fillText(optionen.titel || "JAGD JAHR", 620, 55);
     ctx.font = "bold 26px Arial"; ctx.fillText(String(jahr), 620, 91);
     ctx.font = "20px Arial"; ctx.fillText(untertitel, 620, 122);
     const links = 35, oben = 150, rechts = 35, unten = 38;
@@ -61,7 +61,9 @@ const JagdJahrPdfService = (() => {
           ctx.textAlign = "center";
           for(let start=0;start<sichtbar.length;start+=3){
             const rasterZeile=Math.floor(start/3),zeilenItems=sichtbar.slice(start,start+3),verfuegbar=breite-4;
-            const wuensche=zeilenItems.map((eintrag)=>eintrag.vorname?Math.max(30,Math.min(58,eintrag.vorname.length*namenGroesse*.58+5)):18);
+            const wuensche=zeilenItems.map((eintrag)=>eintrag.vorname
+              ?Math.max(30,Math.min(58,eintrag.vorname.length*namenGroesse*.58+5))
+              :eintrag.lang?Math.max(30,Math.min(80,String(eintrag.anzeige||eintrag.kuerzel||"").length*6+5)):18);
             const gesamtWunsch=wuensche.reduce((summe,wert)=>summe+wert,0)+Math.max(0,zeilenItems.length-1)*2;
             const faktor=Math.min(1,verfuegbar/gesamtWunsch),gesamtBreite=gesamtWunsch*faktor;
             let entryX=x+(breite-gesamtBreite)/2;
@@ -70,8 +72,9 @@ const JagdJahrPdfService = (() => {
               const mitteX=entryX+aktuelleBreite/2;
               const entryY=y+(hoehe-rasterHoehe)/2+rasterZeile*zeilenHoehe;
               ctx.fillStyle=eintrag.fallwild?"#d97706":"#111";
-              ctx.font=`bold ${eintrag.vorname?kuerzelGroesse:Math.max(13,kuerzelGroesse)}px Arial`;
-              ctx.fillText(eintrag.kuerzel.slice(0,4),mitteX,entryY+(eintrag.vorname?zeilenHoehe*.45:zeilenHoehe*.65),Math.max(12,aktuelleBreite-2));
+              const anzeige=eintrag.anzeige||eintrag.kuerzel.slice(0,4),schrift=eintrag.lang?Math.min(10,Math.max(8,kuerzelGroesse)):eintrag.vorname?kuerzelGroesse:Math.max(13,kuerzelGroesse);
+              ctx.font=`bold ${schrift}px Arial`;
+              ctx.fillText(anzeige,mitteX,entryY+(eintrag.vorname?zeilenHoehe*.45:zeilenHoehe*.65),Math.max(12,aktuelleBreite-2));
               if(eintrag.vorname){ctx.font=`${namenGroesse}px Arial`;ctx.fillText(eintrag.vorname,mitteX,entryY+zeilenHoehe*.82,Math.max(18,aktuelleBreite-2));}
               entryX+=aktuelleBreite+2*faktor;
             });
@@ -88,9 +91,9 @@ const JagdJahrPdfService = (() => {
       : reject(new Error("PDF-Seite konnte nicht erzeugt werden.")), "image/jpeg", 0.94));
   }
 
-  async function erstellen(jahr, seiten) {
+  async function erstellen(jahr, seiten, optionen = {}) {
     const bilder = [];
-    for (const seite of seiten) bilder.push(await seiteZeichnen(jahr, seite.untertitel, seite.monate, seite.eintraege));
+    for (const seite of seiten) bilder.push(await seiteZeichnen(jahr, seite.untertitel, seite.monate, seite.eintraege, optionen));
     return jpegPdf(bilder);
   }
 

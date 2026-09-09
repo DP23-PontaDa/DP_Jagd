@@ -55,6 +55,12 @@ window.TagebuchDp = (() => {
       await ortAuswahl.laden();
       optionenRendern();
       await datenLaden();
+      const detailId = Router.pendingTagebuchDetailId;
+      Router.pendingTagebuchDetailId = null;
+      if (detailId) {
+        const eintrag = eintraege.find((row) => String(row.id) === String(detailId));
+        if (eintrag) formularOeffnen(eintrag, true);
+      }
     } catch (error) {
       console.error("Tagebuch DP initialisieren:", error);
       el("tbFehler").textContent = error.message; el("tbFehler").hidden = false;

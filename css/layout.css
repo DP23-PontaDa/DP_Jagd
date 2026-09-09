@@ -3385,6 +3385,43 @@ textarea.form-control {
 .jagdjahr-eintragszeile { display: flex; flex: 0 1 auto; align-items: center; justify-content: center; gap: 2px; width: 100%; min-width: 0; overflow: hidden; }
 .jagdjahr-eintrag { display: grid; flex: 0 1 auto; place-items: center; align-content: center; box-sizing: border-box; min-width: 0; max-width: 100%; min-height: 0; padding: 0 1px; overflow: hidden; border: 0; background: transparent; color: #111; text-align: center; line-height: .95; cursor: pointer; }
 .jagdjahr-eintrag.is-simple { flex-basis: 16px; }
+.dp-jahr-eintrag.is-long { flex: 1 1 auto; max-width: 60%; }
+.dp-jahr-eintrag.is-long b { display: -webkit-box; font-size: 8pt; line-height: .9; overflow-wrap: anywhere; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.dp-jahr-controls { align-items: flex-end; }
+.dp-jahr-controls > label { min-width: 110px; }
+.dp-jahr-controls > label:has(#dpjHashtag) { min-width: 145px; }
+.dp-jahr-filter-button.active { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
+.dp-jahr-artfilter { position: relative; display: grid; min-width: 145px; gap: 4px; font-weight: 700; }
+.dp-jahr-artfilter details { position: relative; }
+.dp-jahr-artfilter summary { box-sizing: border-box; min-height: 42px; cursor: pointer; list-style: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-jahr-artfilter summary::-webkit-details-marker { display: none; }
+.dp-jahr-artfilter summary::after { content: "▾"; float: right; margin-left: 8px; }
+.dp-jahr-artoptionen { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; display: grid; min-width: 220px; max-height: 280px; padding: 8px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 6px; background: #fff; box-shadow: 0 8px 22px #0002; }
+.dp-jahr-artoptionen label { display: flex; align-items: center; gap: 7px; padding: 7px 5px; font-weight: 400; cursor: pointer; }
+.dp-jahr-artoptionen input { width: 18px; height: 18px; margin: 0; }
+.hashtags-search-layout { display: grid; grid-template-columns: minmax(240px, .75fr) minmax(300px, 1.25fr); gap: 16px; margin-bottom: 20px; }
+.hashtags-panel { min-width: 0; padding: 16px; border: 1px solid var(--color-border); border-radius: 8px; background: #fff; }
+.hashtags-panel h2, .hashtags-results h2 { margin: 0; font-size: 1.05rem; }
+.hashtags-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.hashtags-panel-heading .btn { padding: 6px 9px; }
+.hashtags-list { display: grid; align-content: start; max-height: 320px; overflow-y: auto; }
+.hashtags-list label { display: flex; align-items: center; gap: 8px; padding: 7px 4px; cursor: pointer; }
+.hashtags-list input { width: 18px; height: 18px; margin: 0; }
+.hashtags-query-panel { display: grid; align-content: start; gap: 9px; }
+.hashtags-query-panel .btn { justify-self: start; }
+.hashtags-results { min-width: 0; }
+.hashtags-results > h2 { margin-bottom: 10px; }
+.hashtags-result-row { cursor: pointer; }
+.hashtags-result-row:hover, .hashtags-result-row:focus { background: rgba(53, 91, 110, .08); outline: none; }
+.hashtags-inline { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.hashtags-inline span { color: var(--color-primary); white-space: nowrap; }
+.hashtags-table { table-layout: fixed; width: 100%; }
+.hashtags-table .hashtags-col-date { width: 10%; }
+.hashtags-table .hashtags-col-source { width: 15%; }
+.hashtags-table .hashtags-col-title { width: 22%; }
+.hashtags-table .hashtags-col-tags { width: 18%; }
+.hashtags-table .hashtags-col-description { width: 35%; }
+.hashtags-description { display: -webkit-box; width: 100%; overflow: hidden; line-height: 1.3; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .jagdjahr-eintrag.has-name { flex: 1 1 auto; width: auto; max-width: 60%; }
 .jagdjahr-eintrag b { display: block; box-sizing: border-box; width: 100%; max-width: 100%; overflow: hidden; font-size: 10pt; line-height: .95; text-overflow: ellipsis; white-space: nowrap; }
 .jagdjahr-eintrag.has-name b { font-size: var(--jagdjahr-name-kuerzel, 12px); }
@@ -3406,6 +3443,14 @@ textarea.form-control {
     .jagdjahr-scroll { width: 100%; -webkit-overflow-scrolling: touch; }
     .jagdjahr-pages { width: max-content; justify-content: start; }
     .jagdjahr-sheet { flex: none; box-shadow: 0 1px 7px #0002; }
+    .dp-jahr-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dp-jahr-controls > label, .dp-jahr-controls > label:has(#dpjHashtag) { min-width: 0; }
+    .dp-jahr-artfilter { min-width: 0; }
+    .dp-jahr-artoptionen { right: 0; left: auto; min-width: min(260px, calc(100vw - 32px)); }
+    .dp-jahr-controls > button { min-width: 0; white-space: normal; }
+    .hashtags-search-layout { grid-template-columns: minmax(0, 1fr); }
+    .hashtags-list { max-height: 240px; }
+    .hashtags-table { table-layout: auto; }
 }
 
 @media print {

@@ -12,6 +12,7 @@ const Router = {
   pendingRechnungAbschussId: null,
   pendingAbschussDetailId: null,
   pendingStPeterDetailId: null,
+  pendingTagebuchDetailId: null,
 
   routes: {
     login: "pages/login.html",
@@ -33,9 +34,11 @@ const Router = {
     orte: "pages/orte.html",
     "tagebuch-dp": "pages/tagebuch-dp.html",
     "tagebuch-zusammenfassung": "pages/tagebuch-zusammenfassung.html",
+    "dp-jahr": "pages/dp-jahr.html",
     tagebucharten: "pages/tagebucharten.html",
     "st-peter-mitterberg": "pages/st-peter-mitterberg.html",
     "key-dates": "pages/key-dates.html",
+    hashtags: "pages/hashtags.html",
     "journal-kategorien": "pages/journal-kategorien.html",
     stammdaten: "pages/stammdaten.html",
     wildhaendler: "pages/wildhaendler.html",
@@ -194,6 +197,10 @@ const Router = {
       window.TagebuchZusammenfassung.init();
     }
 
+    if (page === "dp-jahr" && window.DpJahr && typeof window.DpJahr.init === "function") {
+      window.DpJahr.init();
+    }
+
     if (page === "tagebucharten" && window.Tagebucharten && typeof window.Tagebucharten.init === "function") {
       window.Tagebucharten.init();
     }
@@ -204,6 +211,10 @@ const Router = {
 
     if (page === "key-dates" && window.KeyDates && typeof window.KeyDates.init === "function") {
       window.KeyDates.init();
+    }
+
+    if (page === "hashtags" && window.Hashtags && typeof window.Hashtags.init === "function") {
+      window.Hashtags.init();
     }
 
     if (page === "journal-kategorien" && window.JournalKategorien && typeof window.JournalKategorien.init === "function") {

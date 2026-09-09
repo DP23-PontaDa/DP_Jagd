@@ -1,0 +1,23 @@
+<section class="hashtags-page">
+  <div class="page-title-row"><div><h1>Hashtags</h1><p class="page-subtitle">Zentrale Suche in vorhandenen Hashtags</p></div></div>
+  <p id="htFehler" class="form-message" hidden></p>
+  <div class="hashtags-search-layout">
+    <section class="hashtags-panel">
+      <div class="hashtags-panel-heading"><h2>Alle Hashtags</h2><button id="htAuswahlAufheben" class="btn btn-secondary" type="button">Auswahl aufheben</button></div>
+      <div id="htListe" class="hashtags-list" aria-label="Hashtags – Mehrfachauswahl"></div>
+    </section>
+    <section class="hashtags-panel hashtags-query-panel">
+      <label for="htSuche"><strong>Hashtags suchen</strong></label>
+      <input id="htSuche" class="form-control" type="search" placeholder="#hirsch #ansitz" autocomplete="off">
+      <small>Mehrere Hashtags mit Leerzeichen oder Komma trennen. Alle gesuchten Hashtags müssen im Eintrag vorkommen.</small>
+      <button id="htReset" class="btn btn-secondary" type="button">Filter zurücksetzen</button>
+    </section>
+  </div>
+  <section class="hashtags-results">
+    <h2>Treffer</h2>
+    <p id="htHinweis" class="empty-state">Bitte mindestens einen Hashtag auswählen.</p>
+    <div id="htTabelleWrap" class="table-wrap" hidden>
+      <table class="ap-table hashtags-table"><colgroup><col class="hashtags-col-date"><col class="hashtags-col-source"><col class="hashtags-col-title"><col class="hashtags-col-tags"><col class="hashtags-col-description"></colgroup><thead><tr><th>Datum</th><th>Quelle</th><th>Art / Titel</th><th>Hashtags</th><th>Beschreibung</th></tr></thead><tbody id="htBody"></tbody></table>
+    </div>
+  </section>
+</section>

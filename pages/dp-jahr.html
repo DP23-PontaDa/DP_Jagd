@@ -1,0 +1,16 @@
+<section class="jagdjahr-page dp-jahr-page">
+  <div class="page-title-row jagdjahr-toolbar">
+    <div><h1>DP JAHR</h1><p class="page-subtitle">Kalenderübersicht Tagebuch DP</p></div>
+    <div class="jagdjahr-controls dp-jahr-controls">
+      <label for="dpjJahr">Jahr<select id="dpjJahr" class="form-control"></select></label>
+      <button id="dpjAnsitz" class="btn btn-secondary dp-jahr-filter-button" type="button" aria-pressed="false">Ansitz</button>
+      <div class="dp-jahr-artfilter"><span>Art</span><details id="dpjArtDropdown"><summary id="dpjArtSummary" class="form-control">Alle</summary><div id="dpjArt" class="dp-jahr-artoptionen" aria-label="Art – Mehrfachauswahl"></div></details></div>
+      <label for="dpjHashtag">Hashtag<input id="dpjHashtag" class="form-control" type="search" placeholder="#Hashtag" autocomplete="off"></label>
+      <button id="dpjReset" class="btn btn-secondary" type="button">Filter zurücksetzen</button>
+      <button id="dpjPdf" class="btn btn-primary" type="button">PDF speichern</button>
+      <button id="dpjDrucken" class="btn btn-secondary" type="button">Drucken</button>
+    </div>
+  </div>
+  <p id="dpjFehler" class="form-message" hidden></p>
+  <div class="jagdjahr-scroll"><div id="dpjSeiten" class="jagdjahr-pages"></div></div>
+</section>

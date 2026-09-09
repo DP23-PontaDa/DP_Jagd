@@ -28,6 +28,19 @@ window.TagebuchDpService = (() => {
     "Tagebucheinträge konnten nicht geladen werden.") || [];
   }
 
+  async function jahresEintraege(jahr) {
+    return pruefen(await db.from("tagebuch_dp").select(eintragSelect())
+      .gte("datum", `${jahr}-01-01`).lte("datum", `${jahr}-12-31`)
+      .order("datum", { ascending: true }).order("uhrzeit", { ascending: true, nullsFirst: false }),
+    "Tagebucheinträge des Jahres konnten nicht geladen werden.") || [];
+  }
+
+  async function verfuegbareJahre() {
+    const rows=pruefen(await db.from("tagebuch_dp").select("datum").order("datum", { ascending: false }),
+      "Verfügbare Tagebuchjahre konnten nicht geladen werden.") || [];
+    return [...new Set([new Date().getFullYear(), ...rows.map((row)=>Number(String(row.datum).slice(0,4))).filter(Number.isInteger)])].sort((a,b)=>b-a);
+  }
+
   async function abschuesseLaden() {
     return pruefen(await db.from("abschuesse").select(
       "id,nr,datum,wildgruppen(id,bezeichnung),wildklassen(id,bezeichnung)",
@@ -158,7 +171,7 @@ window.TagebuchDpService = (() => {
   }
 
   return {
-    laden, abschuesseLaden, speichern, bilderLaden,
+    laden, jahresEintraege, verfuegbareJahre, abschuesseLaden, speichern, bilderLaden,
     bilderHochladen, bildLoeschen, loeschen, bildValidieren,
   };
 })();

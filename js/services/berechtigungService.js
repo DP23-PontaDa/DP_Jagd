@@ -11,8 +11,10 @@ const BerechtigungService = (() => {
     freigaben: "abschussplan-freigaben",
     wildgruppen: "wildgruppen", orte: "wildgruppen", stammdaten: "wildklassen",
     "tagebuch-dp": "tagebuch-dp", "tagebuch-zusammenfassung": "tagebuch-dp-zusammenfassung",
+    "dp-jahr": "tagebuch-dp",
     tagebucharten: "tagebucharten",
     "st-peter-mitterberg": "st-peter-mitterberg", "key-dates": "st-peter-mitterberg", "journal-kategorien": "journal-kategorien",
+    hashtags: "hashtags",
     planpositionen: "planpositionen", wildhaendler: "wildhaendler",
     rechnungsvorlage: "rechnungsvorlage", abschussregeln: "abschussregeln",
     "allgemeine-abschussregeln": "allgemeine-abschussregeln",
@@ -75,6 +77,7 @@ const BerechtigungService = (() => {
   }
 
   function darfSeite(seite, recht = "Lesen") {
+    if (seite === "hashtags") return darf("tagebuch-dp", recht) || darf("st-peter-mitterberg", recht);
     if (seite === "dashboard" || seite === "abschussplan") {
       return Boolean(ersterBereich(seite)) && (recht === "Lesen" ||
         Object.keys(seite === "dashboard" ? dashboardBereiche : abschussplanBereiche)
