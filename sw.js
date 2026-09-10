@@ -1,11 +1,11 @@
-const CACHE_NAME = "dp-jagd-shell-v192";
+const CACHE_NAME = "dp-jagd-shell-v194";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.json",
-  "./assets/app-icon.svg",
+  "./manifest.json?v=2",
+  "./assets/app-icon.svg?v=2",
   "./assets/rechnung-logo.png",
-  "./css/layout.css?v=202",
+  "./css/layout.css?v=203",
   "./css/sidebar.css?v=168",
   "./css/login.css",
   "./css/orte.css?v=160",
