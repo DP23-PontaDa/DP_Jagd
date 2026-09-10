@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<site-list version="42">
+ <site url="10.77.20.10">
+  <compat-mode>Default</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="10.77.20.50">
+  <compat-mode>Default</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="10.77.4.230">
+  <compat-mode>IE8Enterprise</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="nexus.rhimagnesita.com">
+  <compat-mode>Default</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="vdcscsotds.rhi.local">
+  <compat-mode>Default</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="vdcsweb01.rhimagnesita.com/standards-stock.html">
+  <compat-mode>Default</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+ <site url="zwfw.safe.gov.cn">
+  <compat-mode>Default</compat-mode>
+  <open-in>IE11</open-in>
+ </site>
+</site-list>
