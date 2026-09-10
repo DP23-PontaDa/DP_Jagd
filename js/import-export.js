@@ -20,6 +20,8 @@ window.ImportExport = (() => {
   const ALLGEMEINE_REGEL_SPALTEN = ["Nr.", "Wildgruppe", "Wildklasse", "Gültig von", "Gültig bis", "Bedingung", "Operator", "Grenzwert", "Einheit", "Stehzeit Jahre", "Bezeichnung", "Bemerkung", "Aktiv"];
   const WILDKLASSEN_SPALTEN = ["Wildgruppe", "Wildklasse", "Kürzel", "Gültig ab", "Stück pro Hirsch"];
   const JOURNAL_KATEGORIEN_SPALTEN = ["Nr", "Kategorie", "Farbe", "Aktiv"];
+  const TAGEBUCH_DP_SPALTEN = ["ID", "Datum", "Uhrzeit", "Art-ID", "Art", "Titel", "Ort-ID", "Ort", "Ort (Freitext)", "Beschreibung", "Personen", "Abschuss-ID", "Hashtags"];
+  const ST_PETER_SPALTEN = ["ID", "Datum", "Uhrzeit", "Kategorie-ID", "Kategorie", "Titel", "Ort-ID", "Ort", "Ort (Freitext)", "Beschreibung", "Personen", "Hashtags"];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
@@ -29,6 +31,7 @@ window.ImportExport = (() => {
   let allgemeineRegelnImportVorschau = [];
   let wildklassenImportVorschau = [];
   let journalKategorienImportVorschau = [];
+  const journalImportVorschau = { "tagebuch-dp": [], "st-peter": [] };
 
   const element = (id) => document.getElementById(id);
   const aktiveSpalten = () =>
@@ -53,8 +56,33 @@ window.ImportExport = (() => {
     }
   }
 
+  async function gesamtExportieren() {
+    const status = element("ieGesamtExportStatus");
+    const buttons = [element("ieAllesExportieren"), element("ieBackupVorImport")];
+    buttons.forEach((button) => { button.disabled = true; });
+    status.textContent = "Gesamtsicherung wird erstellt …";
+    try {
+      xlsxPruefen();
+      const bereiche = await ImportExportService.getGesamtExportDaten();
+      const mappe = XLSX.utils.book_new();
+      let anzahl = 0;
+      bereiche.forEach(({ blatt, tabelle, zeilen }) => {
+        const daten = zeilen.length ? zeilen : [{ Hinweis: "Keine Datensätze", Tabelle: tabelle }];
+        XLSX.utils.book_append_sheet(mappe, XLSX.utils.json_to_sheet(daten), blatt.slice(0, 31));
+        anzahl += zeilen.length;
+      });
+      XLSX.writeFile(mappe, `DP_Jagd_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      status.textContent = `${anzahl} Datensätze aus ${bereiche.length} Bereichen exportiert.`;
+    } catch (error) {
+      console.error("Gesamtexport:", error);
+      status.textContent = error.message || "Gesamtexport fehlgeschlagen.";
+    } finally { buttons.forEach((button) => { button.disabled = false; }); }
+  }
+
   async function init() {
     await personenkategorienLaden();
+    element("ieAllesExportieren").addEventListener("click", gesamtExportieren);
+    element("ieBackupVorImport").addEventListener("click", gesamtExportieren);
     element("ieDateiAuswaehlen").addEventListener("click", () =>
       element("ieDatei").click());
     element("ieDatei").addEventListener("change", dateiAusgewaehlt);
@@ -131,11 +159,70 @@ window.ImportExport = (() => {
     element("ieJournalKategorienAbbrechen").addEventListener("click",journalKategorienZuruecksetzen);
     element("ieJournalKategorienBestaetigen").addEventListener("click",journalKategorienImportieren);
     journalKategorienRechteAnwenden();
+    journalImportInit("tagebuch-dp");
+    journalImportInit("st-peter");
     element("ieDubletteClose").addEventListener("click", dublettenDialogAbbrechen);
     element("ieDubletteAbbrechen").addEventListener("click", dublettenDialogAbbrechen);
   }
 
   function journalKategorienRechteAnwenden(){const lesen=BerechtigungService.darf("journal-kategorien","Lesen"),bearbeiten=BerechtigungService.darf("journal-kategorien","Bearbeiten");element("ieJournalKategorienTitel").hidden=!lesen&&!bearbeiten;element("ieJournalKategorienBereich").hidden=!lesen&&!bearbeiten;element("ieJournalKategorienDateiAuswaehlen").hidden=!bearbeiten;element("ieJournalKategorienVorlage").hidden=!lesen;element("ieJournalKategorienExport").hidden=!lesen;}
+
+  const journalImportKonfiguration = {
+    "tagebuch-dp": { prefix: "ieTagebuchDp", recht: "tagebuch-dp", blatt: "Tagebuch DP", dateiname: "Tagebuch_DP", spalten: TAGEBUCH_DP_SPALTEN, beispiel: { ID:"", Datum:"2026-09-05", Uhrzeit:"06:30", "Art-ID":"", Art:"Ansitz", Titel:"Beispiel", "Ort-ID":"", Ort:"", "Ort (Freitext)":"", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", "Abschuss-ID":"", Hashtags:"#hirsch, #ansitz" } },
+    "st-peter": { prefix: "ieStPeter", recht: "st-peter-mitterberg", blatt: "St. Peter-Mitterberg", dateiname: "St_Peter_Mitterberg", spalten: ST_PETER_SPALTEN, beispiel: { ID:"", Datum:"2026-03-21", Uhrzeit:"18:30", "Kategorie-ID":"", Kategorie:"Sitzung", Titel:"Beispielsitzung", "Ort-ID":"", Ort:"", "Ort (Freitext)":"", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", Hashtags:"#sitzung, #planung" } },
+  };
+  function journalImportInit(typ) {
+    const cfg=journalImportKonfiguration[typ], e=(suffix)=>element(cfg.prefix+suffix);
+    e("DateiAuswaehlen").addEventListener("click",()=>e("Datei").click());
+    e("Datei").addEventListener("change",(event)=>journalDateiAusgewaehlt(event,typ));
+    e("Vorlage").addEventListener("click",()=>journalVorlage(typ));
+    e("Export").addEventListener("click",()=>journalExportieren(typ));
+    e("Abbrechen").addEventListener("click",()=>journalImportZuruecksetzen(typ));
+    e("Bestaetigen").addEventListener("click",()=>journalImportieren(typ));
+    const lesen=BerechtigungService.darf(cfg.recht,"Lesen"), bearbeiten=BerechtigungService.darf(cfg.recht,"Bearbeiten");
+    e("Titel").hidden=!lesen&&!bearbeiten; e("Bereich").hidden=!lesen&&!bearbeiten;
+    e("DateiAuswaehlen").hidden=!bearbeiten; e("Vorlage").hidden=!bearbeiten; e("Export").hidden=!lesen;
+  }
+  function journalVorlage(typ) {
+    xlsxPruefen(); const cfg=journalImportKonfiguration[typ], mappe=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([cfg.beispiel],{header:cfg.spalten}),cfg.blatt);
+    XLSX.writeFile(mappe,`Vorlage_${cfg.dateiname}.xlsx`);
+  }
+  async function journalExportieren(typ) {
+    const cfg=journalImportKonfiguration[typ], status=element(cfg.prefix+"ExportStatus");
+    try { xlsxPruefen(); status.textContent="Daten werden geladen …";
+      const refs=typ==="tagebuch-dp"?await ImportExportService.getTagebuchDpImportReferenzen():await ImportExportService.getStPeterImportReferenzen();
+      const daten=typ==="tagebuch-dp"?ImportExportService.exportTagebuchDpZeilen(refs.eintraege):ImportExportService.exportStPeterZeilen(refs.eintraege);
+      const mappe=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet(daten,{header:cfg.spalten}),cfg.blatt);
+      XLSX.writeFile(mappe,`${cfg.dateiname}_${new Date().toISOString().slice(0,10)}.xlsx`); status.textContent=`${daten.length} Einträge exportiert.`;
+    } catch(error) { console.error(`${cfg.blatt}-Export:`,error); status.textContent=error.message||"Export fehlgeschlagen."; }
+  }
+  async function journalDateiAusgewaehlt(event,typ) {
+    const cfg=journalImportKonfiguration[typ], datei=event.target.files?.[0]; event.target.value=""; if(!datei)return;
+    try { xlsxPruefen(); const mappe=XLSX.read(await datei.arrayBuffer(),{type:"array"});
+      const blattName=mappe.SheetNames.find((name)=>name===cfg.blatt)||mappe.SheetNames[0]; if(!blattName)throw new Error("Die XLSX-Datei enthält kein Tabellenblatt.");
+      const daten=XLSX.utils.sheet_to_json(mappe.Sheets[blattName],{defval:"",raw:false,dateNF:"yyyy-mm-dd"});
+      const spalten=new Set(daten.length?Object.keys(daten[0]):[]), erforderlich=typ==="tagebuch-dp"?["Datum","Art","Titel"]:["Datum","Kategorie","Titel"];
+      const fehlend=erforderlich.filter((spalte)=>!spalten.has(spalte)&&!((spalte==="Art"&&spalten.has("Art-ID"))||(spalte==="Kategorie"&&spalten.has("Kategorie-ID"))));
+      if(fehlend.length)throw new Error(`Erforderliche Spalten fehlen: ${fehlend.join(", ")}.`);
+      const refs=typ==="tagebuch-dp"?await ImportExportService.getTagebuchDpImportReferenzen():await ImportExportService.getStPeterImportReferenzen();
+      journalImportVorschau[typ]=ImportExportService.journalZeilenValidieren(daten,refs,element(cfg.prefix+"Modus").value,typ); journalVorschauAnzeigen(typ);
+    } catch(error) { console.error(`${cfg.blatt}-Import prüfen:`,error); AppFeedback.error(error.message); }
+  }
+  function journalVorschauAnzeigen(typ) {
+    const cfg=journalImportKonfiguration[typ], rows=journalImportVorschau[typ], e=(suffix)=>element(cfg.prefix+suffix);
+    e("VorschauBody").innerHTML=rows.flatMap((row)=>{const details=row.fehler.length?row.fehler:row.warnungen.map((meldung)=>({feld:"–",wert:"",meldung}));const anzeigen=details.length?details:[{feld:"–",wert:"",meldung:"OK"}];return anzeigen.map((detail)=>`<tr class="${row.fehler.length?"ie-preview-error":""}"><td>${htmlSicher(cfg.blatt)}</td><td>${row.zeile}</td><td>${htmlSicher(row.aktion)}</td><td>${htmlSicher(row.datum)}</td><td>${htmlSicher(row.titel)}</td><td>${htmlSicher(detail.feld)}</td><td>${htmlSicher(detail.wert??"")}</td><td>${htmlSicher(detail.meldung)}</td></tr>`);}).join("");
+    const anzahl=(aktion)=>rows.filter((row)=>row.aktion===aktion).length, fehler=rows.reduce((sum,row)=>sum+row.fehler.length,0), warnungen=rows.reduce((sum,row)=>sum+row.warnungen.length,0);
+    e("Summen").innerHTML=`<div><span>Neue</span><strong>${anzahl("Neu")}</strong></div><div><span>Änderungen</span><strong>${anzahl("Änderung")}</strong></div><div><span>Unverändert</span><strong>${anzahl("Unverändert")}</strong></div><div><span>Warnungen</span><strong>${warnungen}</strong></div><div><span>Fehler</span><strong>${fehler}</strong></div>`;
+    e("ImportStatus").textContent=`${rows.length} Zeilen geprüft.`; e("Vorschau").hidden=false; e("Bestaetigen").disabled=!rows.some((row)=>row.ausfuehren)||fehler>0;
+  }
+  function journalImportZuruecksetzen(typ) { const cfg=journalImportKonfiguration[typ]; journalImportVorschau[typ]=[]; element(cfg.prefix+"Vorschau").hidden=true; element(cfg.prefix+"VorschauBody").innerHTML=""; }
+  async function journalImportieren(typ) {
+    const cfg=journalImportKonfiguration[typ], rows=journalImportVorschau[typ], button=element(cfg.prefix+"Bestaetigen"); if(rows.some((row)=>row.fehler.length)||!rows.some((row)=>row.ausfuehren))return;
+    if(!window.confirm(`${rows.filter((row)=>row.ausfuehren).length} validierte Einträge in ${cfg.blatt} importieren?`))return;
+    button.disabled=true; try { const bericht=await ImportExportService.importJournalZeilen(rows,typ); journalImportZuruecksetzen(typ); AppFeedback.success(`${bericht.neu} neue und ${bericht.aktualisiert} aktualisierte Einträge importiert.`); }
+    catch(error){console.error(`${cfg.blatt}-Import:`,error);element(cfg.prefix+"ImportStatus").textContent=error.message||"Import fehlgeschlagen.";AppFeedback.error(error.message||"Import fehlgeschlagen.");}finally{button.disabled=false;}
+  }
   function journalKategorienVorlage(){xlsxPruefen();const mappe=XLSX.utils.book_new();XLSX.utils.book_append_sheet(mappe,XLSX.utils.json_to_sheet([{Nr:1,Kategorie:"Sitzung",Farbe:"#1565C0",Aktiv:"Ja"}],{header:JOURNAL_KATEGORIEN_SPALTEN}),"Journal-Kategorien");XLSX.writeFile(mappe,"vorlage-journal-kategorien.xlsx");}
   async function journalKategorienDateiAusgewaehlt(event){const datei=event.target.files?.[0];event.target.value="";if(!datei)return;try{xlsxPruefen();const mappe=XLSX.read(await datei.arrayBuffer(),{type:"array"}),daten=XLSX.utils.sheet_to_json(mappe.Sheets[mappe.SheetNames[0]],{defval:"",raw:false}),spalten=new Set(daten.length?Object.keys(daten[0]):[]),fehlend=JOURNAL_KATEGORIEN_SPALTEN.filter((spalte)=>!spalten.has(spalte));if(fehlend.length)throw new Error(`Erforderliche Spalten fehlen: ${fehlend.join(", ")}.`);journalKategorienImportVorschau=ImportExportService.validiereJournalKategorienImportZeilen(daten,await ImportExportService.getExportJournalKategorien());journalKategorienVorschau();}catch(error){AppFeedback.error(error.message);}}
   function journalKategorienVorschau(){const body=element("ieJournalKategorienVorschauBody");body.innerHTML=journalKategorienImportVorschau.map((row)=>`<tr class="${row.fehler.length?"ie-preview-error":""}"><td>${row.zeile}</td><td>${htmlSicher(row.nr)}</td><td>${htmlSicher(row.bezeichnung)}</td><td>${htmlSicher(row.farbe)}</td><td>${row.aktiv===true?"Ja":row.aktiv===false?"Nein":"–"}</td><td>${htmlSicher(row.aktion)}</td><td>${htmlSicher(row.fehler.join(" "))}</td></tr>`).join("");element("ieJournalKategorienVorschau").hidden=false;const fehler=journalKategorienImportVorschau.some((row)=>row.fehler.length);element("ieJournalKategorienBestaetigen").disabled=fehler||!journalKategorienImportVorschau.length;element("ieJournalKategorienImportStatus").textContent=`${journalKategorienImportVorschau.length} Kategorien geprüft.`;}

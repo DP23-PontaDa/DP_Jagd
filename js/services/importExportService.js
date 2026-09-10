@@ -1088,6 +1088,108 @@ const ImportExportService = (() => {
   function validiereJournalKategorienImportZeilen(zeilen,bestehende){const nummern=new Set();const namen=new Map((bestehende||[]).map((row)=>[normalisieren(row.bezeichnung),row]));return(zeilen||[]).map((daten,index)=>{const fehler=[],nr=Number(daten.Nr),bezeichnung=String(daten.Kategorie||"").trim(),farbe=String(daten.Farbe||"").trim().toUpperCase(),aktivText=normalisieren(daten.Aktiv);let aktiv=null;if(["ja","true","1","x"].includes(aktivText))aktiv=true;if(["nein","false","0"].includes(aktivText))aktiv=false;if(!Number.isInteger(nr)||nr<1)fehler.push("Nr. muss eine positive ganze Zahl sein.");if(nummern.has(nr))fehler.push(`Nr. ${nr} kommt in der Datei mehrfach vor.`);nummern.add(nr);if(!bezeichnung)fehler.push("Kategorie ist erforderlich.");const gleichnamig=namen.get(normalisieren(bezeichnung));if(gleichnamig&&Number(gleichnamig.nr)!==nr)fehler.push(`Kategorie „${bezeichnung}“ gehört bereits zu Nr. ${gleichnamig.nr}.`);if(farbe&&!/^#[0-9A-F]{6}$/.test(farbe))fehler.push(`Ungültige Farbe „${farbe}“. Erwartet wird #RRGGBB.`);if(aktiv===null)fehler.push("Aktiv muss Ja oder Nein sein.");const vorhanden=(bestehende||[]).find((row)=>Number(row.nr)===nr);return{zeile:index+2,nr,bezeichnung,farbe,aktiv,aktion:vorhanden?"Aktualisieren":"Neu",fehler,payload:fehler.length?null:{nr,bezeichnung,farbe:farbe||null,aktiv}};});}
   async function importJournalKategorien(vorschau){const payloads=(vorschau||[]).filter((row)=>row.payload).map((row)=>row.payload);if(!payloads.length)return{importiert:0};const result=await db.from("journal_kategorien").upsert(payloads,{onConflict:"nr"});if(result.error)throw result.error;return{importiert:payloads.length};}
 
+  function journalHashtags(row) {
+    return (row.hashtags || []).map((zuordnung) => zuordnung.hashtag?.bezeichnung || zuordnung.bezeichnung || "").filter(Boolean);
+  }
+  function journalHashtagsLesen(value) {
+    const gesehen = new Set();
+    return String(value || "").split(/\s*[,;]\s*|\s+(?=#)/).map((tag) => tag.trim().replace(/^#+/, "").trim()).filter((tag) => {
+      const key = normalisieren(tag); if (!key || gesehen.has(key)) return false; gesehen.add(key); return true;
+    });
+  }
+  function journalDatum(value) {
+    const text = String(value || "").trim(); if (istGueltigesDatum(text)) return text;
+    const treffer = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (!treffer) return null;
+    const iso = `${treffer[3]}-${String(treffer[2]).padStart(2, "0")}-${String(treffer[1]).padStart(2, "0")}`;
+    return istGueltigesDatum(iso) ? iso : null;
+  }
+  function journalUhrzeit(value) {
+    const text = String(value || "").trim(); if (!text) return null;
+    const treffer = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!treffer || Number(treffer[1]) > 23 || Number(treffer[2]) > 59) return undefined;
+    return `${String(treffer[1]).padStart(2, "0")}:${treffer[2]}`;
+  }
+  function journalBeziehungAufloesen(idWert, nameWert, liste, bezeichnung, erforderlich = false) {
+    const id = String(idWert || "").trim(), name = String(nameWert || "").trim();
+    if (id) { const treffer = liste.find((row) => String(row.id) === id); return treffer ? { wert: treffer.id } : { fehler: `${bezeichnung}-ID „${id}“ wurde nicht gefunden.` }; }
+    if (!name) return erforderlich ? { fehler: `${bezeichnung} ist erforderlich.` } : { wert: null };
+    const treffer = liste.filter((row) => normalisieren(row.bezeichnung || row.name) === normalisieren(name));
+    if (treffer.length === 1) return { wert: treffer[0].id };
+    return { fehler: treffer.length ? `${bezeichnung} „${name}“ ist nicht eindeutig.` : `${bezeichnung} „${name}“ wurde nicht gefunden.` };
+  }
+  async function getTagebuchDpImportReferenzen() {
+    const [eintraege, arten, orte, abschuesse] = await Promise.all([TagebuchDpService.laden(), db.from("tagebuch_arten").select("id,bezeichnung"), db.from("orte").select("id,name"), db.from("abschuesse").select("id,nr")]);
+    for (const result of [arten, orte, abschuesse]) if (result.error) throw result.error;
+    return { eintraege, arten: arten.data || [], orte: orte.data || [], abschuesse: abschuesse.data || [] };
+  }
+  async function getStPeterImportReferenzen() {
+    const [eintraege, kategorien, orte] = await Promise.all([StPeterMitterbergService.laden(), db.from("journal_kategorien").select("id,bezeichnung"), db.from("orte").select("id,name")]);
+    for (const result of [kategorien, orte]) if (result.error) throw result.error;
+    return { eintraege, kategorien: kategorien.data || [], orte: orte.data || [] };
+  }
+  function exportTagebuchDpZeilen(eintraege) {
+    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Art-ID": row.art_id, Art: row.art?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort (Freitext)": row.ort_freitext || "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", "Abschuss-ID": row.abschuss_id || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
+  }
+  function exportStPeterZeilen(eintraege) {
+    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Kategorie-ID": row.kategorie_id, Kategorie: row.kategorie?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort (Freitext)": row.ort_freitext || "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
+  }
+  function journalZeilenValidieren(zeilen, refs, modus, typ) {
+    const istDp = typ === "tagebuch-dp", vorhandene = new Map(refs.eintraege.map((row) => [String(row.id), row]));
+    return (zeilen || []).map((daten, index) => {
+      const fehler = [], warnungen = [], id = String(daten.ID || "").trim(), bestehend = id ? vorhandene.get(id) : null;
+      const datum = journalDatum(daten.Datum), uhrzeit = journalUhrzeit(daten.Uhrzeit);
+      if (!datum) fehler.push({ feld: "Datum", wert: daten.Datum, meldung: "Ungültiges Datum. Erwartet wird TT.MM.JJJJ oder YYYY-MM-DD." });
+      if (uhrzeit === undefined) fehler.push({ feld: "Uhrzeit", wert: daten.Uhrzeit, meldung: "Ungültige Uhrzeit. Erwartet wird HH:MM." });
+      const haupt = istDp ? journalBeziehungAufloesen(daten["Art-ID"], daten.Art, refs.arten, "Art", true) : journalBeziehungAufloesen(daten["Kategorie-ID"], daten.Kategorie, refs.kategorien, "Kategorie", true);
+      if (haupt.fehler) fehler.push({ feld: istDp ? "Art" : "Kategorie", wert: daten[istDp ? "Art" : "Kategorie"], meldung: haupt.fehler });
+      const ort = journalBeziehungAufloesen(daten["Ort-ID"], daten.Ort, refs.orte, "Ort"); if (ort.fehler) fehler.push({ feld: daten["Ort-ID"] ? "Ort-ID" : "Ort", wert: daten["Ort-ID"] || daten.Ort, meldung: ort.fehler });
+      const titel = String(daten.Titel || "").trim(); if (!titel) fehler.push({ feld: "Titel", wert: daten.Titel, meldung: "Titel ist erforderlich." });
+      let abschussId = null;
+      if (istDp && String(daten["Abschuss-ID"] || "").trim()) { abschussId = String(daten["Abschuss-ID"]).trim(); if (!refs.abschuesse.some((row) => String(row.id) === abschussId)) fehler.push({ feld: "Abschuss-ID", wert: abschussId, meldung: "Abschuss-ID wurde nicht gefunden." }); }
+      const hashtags = journalHashtagsLesen(daten.Hashtags);
+      let aktion = bestehend ? "Änderung" : "Neu";
+      if (modus === "nur-neu" && bestehend) { aktion = "Unverändert"; warnungen.push("Bestehender Datensatz wird im Modus ‚Nur neue‘ übersprungen."); }
+      if (modus === "nur-aktualisieren" && !bestehend) { aktion = "Unverändert"; warnungen.push("Neuer Datensatz wird im Modus ‚Nur Aktualisieren‘ übersprungen."); }
+      const payload = { datum, uhrzeit: uhrzeit || null, titel, ort_id: ort.wert || null, ort_freitext: String(daten["Ort (Freitext)"] || "").trim() || null, beschreibung: String(daten.Beschreibung || "").trim() || null, weitere_personen: String(daten.Personen || "").trim() || null };
+      if (istDp) { payload.art_id = haupt.wert; payload.abschuss_id = abschussId; } else payload.kategorie_id = haupt.wert;
+      if (bestehend && !fehler.length) {
+        const felder = Object.keys(payload), bisherigeTags = journalHashtags(bestehend).map(normalisieren).sort(), neueTags = hashtags.map(normalisieren).sort();
+        const vergleich = (wert, feld) => feld === "uhrzeit" ? String(wert ?? "").slice(0, 5) : String(wert ?? "");
+        const gleich = felder.every((feld) => vergleich(bestehend[feld], feld) === vergleich(payload[feld], feld)) && JSON.stringify(bisherigeTags) === JSON.stringify(neueTags);
+        if (gleich) aktion = "Unverändert";
+      }
+      return { zeile: index + 2, id, datum: daten.Datum, titel, aktion, fehler, warnungen, payload, hashtags, bestehend, ausfuehren: !fehler.length && aktion !== "Unverändert" };
+    });
+  }
+  async function importJournalZeilen(vorschau, typ) {
+    let neu = 0, aktualisiert = 0;
+    for (const row of (vorschau || []).filter((eintrag) => eintrag.ausfuehren)) {
+      if (typ === "tagebuch-dp") await TagebuchDpService.speichern(row.bestehend?.id || null, row.payload, row.hashtags); else await StPeterMitterbergService.speichern(row.bestehend?.id || null, row.payload, row.hashtags);
+      if (row.bestehend) aktualisiert += 1; else neu += 1;
+    }
+    return { neu, aktualisiert };
+  }
+
+  const GESAMTEXPORT_BEREICHE = [
+    ["01 Personen", "personen"], ["02 Personenkategorien", "personen_kategorien"], ["03 Wildgruppen", "wildgruppen"],
+    ["04 Wildklassen", "wildklassen"], ["05 Kahlwildpflicht", "wildklasse_kahlwildpflicht"], ["06 Tagebucharten", "tagebuch_arten"],
+    ["07 Journal-Kategorien", "journal_kategorien"], ["08 Rechnungsvorlagen", "rechnungsvorlagen"], ["09 Wildhaendler", "wildhaendler"],
+    ["10 Orte", "orte"], ["11 Abschussregeln", "abschussregeln"], ["12 Allgemeine Regeln", "allgemeine_abschussregeln"],
+    ["13 Abschuesse", "abschuesse"], ["14 Nachsuchen", "nachsuchen"], ["15 Rechnungen", "rechnungen"],
+    ["16 Rechnungspositionen", "rechnungspositionen"], ["17 Tagebuch DP", "tagebuch_dp"], ["18 Tagebuch Hashtags", "tagebuch_hashtags"],
+    ["19 Tagebuch-Tag-Zuordnung", "tagebuch_dp_hashtags"], ["20 St Peter-Mitterberg", "st_peter_mitterberg"],
+    ["21 Journal Hashtags", "journal_hashtags"], ["22 Journal-Tag-Zuordnung", "st_peter_mitterberg_hashtags"],
+  ];
+  async function getGesamtExportDaten() {
+    const ergebnis = [];
+    for (const [blatt, tabelle] of GESAMTEXPORT_BEREICHE) {
+      const result = await db.from(tabelle).select("*");
+      if (result.error) throw new Error(`${blatt} konnte nicht exportiert werden: ${result.error.message}`);
+      ergebnis.push({ blatt, tabelle, zeilen: result.data || [] });
+    }
+    return ergebnis;
+  }
+
   return {
     getExportAbschuesse,
     exportZeilen,
@@ -1119,5 +1221,13 @@ const ImportExportService = (() => {
     exportJournalKategorienZeilen,
     validiereJournalKategorienImportZeilen,
     importJournalKategorien,
+    getTagebuchDpImportReferenzen,
+    getStPeterImportReferenzen,
+    exportTagebuchDpZeilen,
+    exportStPeterZeilen,
+    journalZeilenValidieren,
+    importJournalZeilen,
+    getGesamtExportDaten,
+    GESAMTEXPORT_BEREICHE,
   };
 })();

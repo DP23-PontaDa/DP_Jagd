@@ -124,6 +124,7 @@ window.DpJahr = (() => {
     catch(error) { AppFeedback.error(error.message); } finally { button.disabled=false; button.textContent=text; }
   }
   async function init() {
+    A4PreviewZoom.create({ scroll:document.querySelector(".jagdjahr-scroll"), pages:el("dpjSeiten"), sheetSelector:".jagdjahr-sheet" });
     const jahre=await TagebuchDpService.verfuegbareJahre(); el("dpjJahr").innerHTML=jahre.map((wert)=>`<option value="${wert}">${wert}</option>`).join(""); el("dpjJahr").value=jahr;
     el("dpjJahr").addEventListener("change",(event)=>{jahr=Number(event.target.value);laden();});
     el("dpjAnsitz").addEventListener("click",()=>{nurAnsitz=!nurAnsitz;ansitzStatus();rendern();});

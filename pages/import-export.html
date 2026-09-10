@@ -33,10 +33,10 @@
     </section>
   </div>
 
-  <h2>Mitglieder</h2>
+  <h2>Personen</h2>
   <div class="ie-card-grid">
     <section class="ap-overview-group">
-      <h3>Import Mitglieder</h3>
+      <h3>Import Personen</h3>
       <p>Excel- oder CSV-Datei prüfen, Dubletten entscheiden und importieren.</p>
       <p><small>Unterstützte Formate: Excel (.xlsx), CSV</small></p>
       <div class="form-group">
@@ -60,7 +60,7 @@
     </section>
 
     <section class="ap-overview-group">
-      <h3>Export Mitglieder</h3>
+      <h3>Export Personen</h3>
       <fieldset class="ie-filter-group">
         <legend>Filter kombinieren</legend>
         <label><input id="ieMitgliederAlle" type="checkbox" checked> Alle Mitglieder</label>
@@ -180,6 +180,32 @@
     </div>
   </section>
 
+  <h2 id="ieTagebuchDpTitel">Tagebuch DP</h2>
+  <div id="ieTagebuchDpBereich" class="ie-card-grid">
+    <section class="ap-overview-group">
+      <h3>Import Tagebuch DP</h3>
+      <p>Einträge einschließlich Freitext-Personen und Hashtag-Zuordnungen aus einer eigenen XLSX-Datei importieren.</p>
+      <div class="form-group"><label for="ieTagebuchDpModus">Importmodus</label><select id="ieTagebuchDpModus" class="form-control"><option value="neu-aktualisieren">Neu + Aktualisieren</option><option value="nur-neu">Nur neue</option><option value="nur-aktualisieren">Nur Aktualisieren</option></select></div>
+      <div class="btn-group"><button id="ieTagebuchDpDateiAuswaehlen" class="btn btn-primary" type="button">Import</button><button id="ieTagebuchDpVorlage" class="btn btn-outline" type="button">Vorlage</button></div>
+      <input id="ieTagebuchDpDatei" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    </section>
+    <section class="ap-overview-group"><h3>Export Tagebuch DP</h3><p>Exportiert ausschließlich die tatsächlich gespeicherten Tagebuch-DP-Einträge.</p><button id="ieTagebuchDpExport" class="btn btn-primary" type="button">Export</button><p id="ieTagebuchDpExportStatus" class="form-message" aria-live="polite"></p></section>
+  </div>
+  <section id="ieTagebuchDpVorschau" class="ap-overview-group ie-wizard" hidden><h3>Importvorschau Tagebuch DP</h3><p id="ieTagebuchDpImportStatus" class="form-message" aria-live="polite"></p><div id="ieTagebuchDpSummen" class="ap-overview-totals"></div><div class="table-wrap"><table class="ap-table"><thead><tr><th>Blatt</th><th>Zeile</th><th>Aktion</th><th>Datum</th><th>Titel</th><th>Feld</th><th>Wert</th><th>Meldung</th></tr></thead><tbody id="ieTagebuchDpVorschauBody"></tbody></table></div><div class="btn-group"><button id="ieTagebuchDpAbbrechen" class="btn btn-outline" type="button">Abbrechen</button><button id="ieTagebuchDpBestaetigen" class="btn btn-primary" type="button">Import durchführen</button></div></section>
+
+  <h2 id="ieStPeterTitel">St. Peter/Mitterberg</h2>
+  <div id="ieStPeterBereich" class="ie-card-grid">
+    <section class="ap-overview-group">
+      <h3>Import St. Peter/Mitterberg</h3>
+      <p>Einträge einschließlich Kategorie, Freitext-Personen und Hashtags unabhängig importieren.</p>
+      <div class="form-group"><label for="ieStPeterModus">Importmodus</label><select id="ieStPeterModus" class="form-control"><option value="neu-aktualisieren">Neu + Aktualisieren</option><option value="nur-neu">Nur neue</option><option value="nur-aktualisieren">Nur Aktualisieren</option></select></div>
+      <div class="btn-group"><button id="ieStPeterDateiAuswaehlen" class="btn btn-primary" type="button">Import</button><button id="ieStPeterVorlage" class="btn btn-outline" type="button">Vorlage</button></div>
+      <input id="ieStPeterDatei" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    </section>
+    <section class="ap-overview-group"><h3>Export St. Peter/Mitterberg</h3><p>Exportiert ausschließlich die tatsächlich gespeicherten Journal-Einträge.</p><button id="ieStPeterExport" class="btn btn-primary" type="button">Export</button><p id="ieStPeterExportStatus" class="form-message" aria-live="polite"></p></section>
+  </div>
+  <section id="ieStPeterVorschau" class="ap-overview-group ie-wizard" hidden><h3>Importvorschau St. Peter/Mitterberg</h3><p id="ieStPeterImportStatus" class="form-message" aria-live="polite"></p><div id="ieStPeterSummen" class="ap-overview-totals"></div><div class="table-wrap"><table class="ap-table"><thead><tr><th>Blatt</th><th>Zeile</th><th>Aktion</th><th>Datum</th><th>Titel</th><th>Feld</th><th>Wert</th><th>Meldung</th></tr></thead><tbody id="ieStPeterVorschauBody"></tbody></table></div><div class="btn-group"><button id="ieStPeterAbbrechen" class="btn btn-outline" type="button">Abbrechen</button><button id="ieStPeterBestaetigen" class="btn btn-primary" type="button">Import durchführen</button></div></section>
+
   <section id="ieAssistent" class="ap-overview-group ie-wizard" hidden>
     <div class="ie-step-list" aria-label="Importschritte">
       <span data-step="1">1 Datei</span>
@@ -259,6 +285,17 @@
         Import verbindlich bestätigen
       </button>
     </div>
+  </section>
+
+  <section class="ap-overview-group ie-backup-card">
+    <h2>Gesamtsicherung</h2>
+    <p>Erstellt eine XLSX-Datei mit allen relevanten Stamm- und Bewegungsdaten. Berechnete Ansichten und Anmeldedaten sind nicht enthalten.</p>
+    <p><small>Die Gesamtsicherung kann exportiert werden. Importe erfolgen aus Sicherheitsgründen immer getrennt je Datenbereich.</small></p>
+    <div class="btn-group">
+      <button id="ieAllesExportieren" class="btn btn-primary" type="button">Alles exportieren</button>
+      <button id="ieBackupVorImport" class="btn btn-outline" type="button">Backup vor Import</button>
+    </div>
+    <p id="ieGesamtExportStatus" class="form-message" aria-live="polite"></p>
   </section>
 
   <div id="ieDubletteModal" class="modal" aria-hidden="true">

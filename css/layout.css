@@ -3506,7 +3506,73 @@ textarea.form-control {
     .key-dates-scroll { overflow: visible; padding: 0; }
     .key-dates-pages { display: block; }
     .key-dates-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
-    .key-dates-sheet:last-child { break-after: auto; page-break-after: auto; }
+.key-dates-sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+
+/* Gemeinsame Bildschirm-Zoomsteuerung fuer alle A4-Jahresvorschauen. */
+.a4-zoom-toolbar {
+    display: inline-flex;
+    width: auto;
+    max-width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 0;
+    flex: 0 0 auto;
+}
+.a4-zoom-toolbar .btn { width: 34px; min-width: 34px; min-height: 34px; padding: 4px 7px; }
+.a4-zoom-toolbar .a4-zoom-fit { width: 48px; min-width: 48px; }
+.a4-zoom-value {
+    display: inline-grid;
+    width: 52px;
+    min-width: 52px;
+    min-height: 34px;
+    place-items: center;
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: #fff;
+    color: var(--color-text);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+.a4-zoom-fit.active { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
+.a4-preview-container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    height: var(--a4-preview-height, calc(100vh - 220px));
+    min-height: 300px;
+    padding: 12px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+.a4-zoom-stage { position: relative; min-width: 1px; min-height: 1px; margin: 0 auto; }
+.a4-zoom-canvas {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    margin: 0;
+    transform: translateX(-50%) scale(var(--a4-preview-zoom, 1));
+    transform-origin: top center;
+    will-change: transform;
+}
+
+@media (max-width: 480px) {
+    .jagdjahr-controls,
+    .key-dates-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .a4-zoom-toolbar { flex-wrap: nowrap; gap: 3px; }
+    .a4-zoom-toolbar .btn { min-height: 40px; }
+    .jagdjahr-filter { order: 20; width: 100%; }
+    .a4-preview-container { padding: 8px; }
+}
+
+@media print {
+    .a4-zoom-toolbar { display: none !important; }
+    .a4-preview-container { width: auto; height: auto; min-height: 0; padding: 0; overflow: visible; }
+    .a4-zoom-stage { width: auto !important; height: auto !important; margin: 0; }
+    .a4-zoom-canvas { position: static; transform: none !important; }
 }
 
 /* Zentrale Mobile-Sicherheitsregeln: Komponenten bleiben im Viewport,
