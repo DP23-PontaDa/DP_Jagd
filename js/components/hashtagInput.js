@@ -15,7 +15,7 @@ window.HashtagInput = class HashtagInput {
     this.liste = document.createElement("div");
     this.liste.className = "hashtag-suggestions";
     this.liste.hidden = true;
-    document.body.appendChild(this.liste);
+    this.wrapper.appendChild(this.liste);
     input.addEventListener("input", () => this.vorschlaegeRendern());
     input.addEventListener("focus", () => this.vorschlaegeRendern());
     input.addEventListener("blur", () => setTimeout(() => this.schliessen(), 180));
@@ -25,6 +25,11 @@ window.HashtagInput = class HashtagInput {
       const button = event.target.closest("button[data-tag]");
       if (button) this.hinzufuegen(button.dataset.tag);
     });
+    this.viewportAktualisieren = () => {
+      if (!this.liste.hidden) this.positionAktualisieren();
+    };
+    window.addEventListener("resize", this.viewportAktualisieren, { passive: true });
+    window.visualViewport?.addEventListener("resize", this.viewportAktualisieren, { passive: true });
     this.chips.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-index]");
       if (!button || this.disabled) return;
@@ -84,19 +89,24 @@ window.HashtagInput = class HashtagInput {
       button.dataset.tag = tag; button.textContent = tag; this.liste.appendChild(button);
     });
     if (!treffer.length) return this.schliessen();
-    const rect = this.wrapper.getBoundingClientRect();
-    const breite = Math.min(rect.width, window.innerWidth - 16);
-    const links = Math.min(Math.max(8, rect.left), window.innerWidth - breite - 8);
-    const platzUnten = window.innerHeight - rect.bottom - 12;
-    const platzOben = rect.top - 12;
-    const nachUnten = platzUnten >= 150 || platzUnten >= platzOben;
-    const maxHoehe = Math.max(80, Math.min(260, nachUnten ? platzUnten : platzOben));
-    const oben = nachUnten ? rect.bottom + 4 : Math.max(8, rect.top - maxHoehe - 4);
-    this.liste.style.left = `${links}px`;
-    this.liste.style.top = `${oben}px`;
-    this.liste.style.width = `${breite}px`;
-    this.liste.style.maxHeight = `${maxHoehe}px`;
     this.liste.hidden = false;
+    this.positionAktualisieren();
+  }
+
+  positionAktualisieren() {
+    const rect = this.wrapper.getBoundingClientRect();
+    const viewportHoehe = window.visualViewport?.height || window.innerHeight;
+    const scrollContainer = this.wrapper.closest(".modal-content");
+    const containerRect = scrollContainer?.getBoundingClientRect();
+    const untereGrenze = Math.min(viewportHoehe, containerRect?.bottom || viewportHoehe);
+    const obereGrenze = Math.max(0, containerRect?.top || 0);
+    const platzUnten = Math.max(0, untereGrenze - rect.bottom - 8);
+    const platzOben = Math.max(0, rect.top - obereGrenze - 8);
+    const benoetigt = Math.min(220, Math.max(48, this.liste.scrollHeight));
+    const nachOben = platzUnten < benoetigt && platzOben > platzUnten;
+    const verfuegbar = nachOben ? platzOben : platzUnten;
+    this.liste.classList.toggle("opens-up", nachOben);
+    this.liste.style.maxHeight = `${Math.max(48, Math.min(220, verfuegbar - 4))}px`;
   }
 
   schliessen() { this.liste.hidden = true; }

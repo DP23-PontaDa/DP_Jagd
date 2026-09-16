@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v201";
+const CACHE_NAME = "dp-jagd-shell-v202";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -13,7 +13,7 @@ const APP_SHELL = [
   "./css/tagebuch.css?v=112",
   "./css/tagebuch-zusammenfassung.css?v=167",
   "./css/st-peter-mitterberg.css?v=114",
-  "./css/hashtag-input.css?v=115",
+  "./css/hashtag-input.css?v=116",
   "./js/app.js?v=90",
   "./js/config.js",
   "./js/auth.js?v=94",
@@ -44,7 +44,7 @@ const APP_SHELL = [
   "./js/components/orteKarte.js?v=118",
   "./js/components/orteAuswahl.js?v=108",
   "./js/services/hashtagService.js?v=115",
-  "./js/components/hashtagInput.js?v=115",
+  "./js/components/hashtagInput.js?v=116",
   "./js/components/detailMode.js?v=129",
   "./js/components/clientFilter.js",
   "./js/components/appFeedback.js",
