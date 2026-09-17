@@ -793,6 +793,27 @@ const AbschussplanWildgruppe = (() => {
         '.ap-matrix-input[data-planwert-type="end"]',
       ).forEach((input) => updateMatrixDirtyState(input, saveButton));
     }
+    if (istRotwild && window.RotwildFreigabeGrafik) {
+      const kahlwildPlanposition = klassen.find((klasse) =>
+        String(klasse.bezeichnung || "").trim().toLocaleLowerCase("de") === "kahlwild");
+      const hirschAPlanposition = klassen.find((klasse) =>
+        String(klasse.bezeichnung || "").trim().toLocaleLowerCase("de") === "hirsch a");
+      const hirschBPlanposition = klassen.find((klasse) =>
+        String(klasse.bezeichnung || "").trim().toLocaleLowerCase("de") === "hirsch b");
+      if (kahlwildPlanposition && hirschAPlanposition && hirschBPlanposition) {
+        const ausgewaehltesJahr = aktuellesJahr >= Number(planperiode.startjahr) && aktuellesJahr <= Number(planperiode.endjahr)
+          ? aktuellesJahr
+          : Number(planperiode.endjahr);
+        const grafikDaten = await AbschussplanService.getRotwildFreigabeDaten(
+          planperiode,
+          { kahlwild: kahlwildPlanposition.id, hirschA: hirschAPlanposition.id, hirschB: hirschBPlanposition.id },
+          ausgewaehltesJahr,
+        );
+        const grafik = document.createElement("section");
+        card.appendChild(grafik);
+        RotwildFreigabeGrafik.render(grafik, grafikDaten);
+      }
+    }
   }
 
   async function buildGroupPane(groupCode, containerId) {

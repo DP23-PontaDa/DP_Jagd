@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v202";
+const CACHE_NAME = "dp-jagd-shell-v212";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./assets/app-icon.svg?v=2",
   "./assets/apple-touch-icon.png?v=1",
   "./assets/rechnung-logo.png",
-  "./css/layout.css?v=206",
+  "./css/layout.css?v=216",
   "./css/sidebar.css?v=168",
   "./css/login.css",
   "./css/orte.css?v=160",
@@ -24,7 +24,7 @@ const APP_SHELL = [
   "./js/personen.js?v=122",
   "./js/abschussplan.js?v=129",
   "./js/freigaben.js?v=151",
-  "./js/abschussplanWildgruppe.js?v=137",
+  "./js/abschussplanWildgruppe.js?v=139",
   "./js/wildgruppen.js?v=88",
   "./js/stammdaten.js?v=149",
   "./js/abschussregeln.js?v=151",
@@ -52,8 +52,9 @@ const APP_SHELL = [
   "./js/components/epcQr.js",
   "./js/components/wildklasseColors.js",
   "./js/components/dashboardChartOptions.js?v=166",
+  "./js/components/rotwildFreigabeGrafik.js?v=9",
   "./js/components/invoiceStatus.js?v=155",
-  "./js/services/abschussplanService.js?v=137",
+  "./js/services/abschussplanService.js?v=142",
   "./js/services/abschussregelnService.js?v=151",
   "./js/services/freigabenService.js?v=151",
   "./js/services/dashboardService.js?v=161",

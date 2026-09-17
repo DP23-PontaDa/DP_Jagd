@@ -1790,6 +1790,207 @@ textarea.form-control {
   gap: 0.65rem;
   margin: 1rem 0;
 }
+
+.rotwild-freigabe {
+    margin-top: 24px;
+    padding: 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: #f8fafb;
+}
+
+.rotwild-freigabe > h3 {
+    margin: 0 0 12px;
+    color: var(--color-ink);
+    text-transform: uppercase;
+}
+
+.rotwild-freigabe-scroll {
+    max-width: 100%;
+    padding: 30px 2px 10px;
+    overflow-x: visible;
+    overflow-y: visible;
+}
+
+.rotwild-freigabe-strecke {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    min-width: 100%;
+    gap: 6px;
+}
+
+.rotwild-freigabe-stufe {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-rows: 38px minmax(0, 1fr);
+    min-width: 0;
+    height: 142px;
+    padding: 6px;
+    align-items: stretch;
+    gap: 5px;
+    overflow: visible;
+    border-radius: 10px;
+    background: #dfe4e6;
+    color: #5d686e;
+    text-align: center;
+}
+.rotwild-freigabe-stufe.erreicht.hirsch-a { background: #215f3b; color: #fff; }
+.rotwild-freigabe-stufe.erreicht.hirsch-b { background: #bfe4c8; color: #173f26; }
+.rotwild-freigabe-stufe.erreicht.hirsch-a.ist-erlegt { background: #729b81; color: #fff; }
+.rotwild-freigabe-stufe.erreicht.hirsch-b.ist-erlegt { background: #d6e2d8; color: #294c35; }
+
+.rotwild-freigabe-kahlwild { display: flex; min-width: 0; align-items: center; justify-content: center; gap: 3px; flex-wrap: nowrap; }
+.rotwild-freigabe-kahlwild > span {
+    position: relative;
+    display: inline-grid;
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    place-items: center;
+    border: 1px solid #aab3b8;
+    border-radius: 50%;
+    background: #fff;
+    color: #68747b;
+    font-size: .58rem;
+    font-weight: 800;
+}
+.rotwild-freigabe-stufe.hirsch-a .rotwild-freigabe-kahlwild > span { border-color: rgba(255, 255, 255, .48); background: rgba(255, 255, 255, .2); color: #fff; }
+.rotwild-freigabe-stufe.hirsch-b .rotwild-freigabe-kahlwild > span { border-color: #76aa87; background: rgba(255, 255, 255, .52); color: #173f26; }
+.rotwild-freigabe-stufe.zukuenftig .rotwild-freigabe-kahlwild > span { border-color: #b5bdc1; background: #edf0f1; color: #69747a; }
+.rotwild-freigabe-stufe .rotwild-freigabe-kahlwild > span.erreicht { border-color: #2d7d52; background: #388b62; color: #fff; }
+.rotwild-freigabe-kahlwild > span.ist-aktuell { box-shadow: 0 0 0 2px #183f2c; }
+.rotwild-freigabe-kahlwild em {
+    position: absolute;
+    bottom: calc(100% + 9px);
+    left: 50%;
+    width: max-content;
+    transform: translateX(-50%);
+    color: var(--color-primary);
+    font-size: .65rem;
+    font-style: normal;
+    font-weight: 800;
+}
+.rotwild-freigabe-kahlwild em::after { position: absolute; top: 100%; left: 50%; width: 2px; height: 8px; background: #183f2c; content: ""; }
+.rotwild-freigabe-hirsch {
+    display: grid;
+    min-width: 0;
+    padding: 2px;
+    place-content: center;
+}
+.rotwild-freigabe-hirsch > strong { z-index: 2; font-size: 2.35rem; line-height: 1; }
+.rotwild-freigabe-hirsch > small { z-index: 2; min-height: 1rem; margin-top: 7px; font-size: .82rem; font-weight: 800; }
+.rotwild-freigabe-stufe.ist-erlegt::before,
+.rotwild-freigabe-stufe.ist-erlegt::after {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+}
+.rotwild-freigabe-stufe.ist-erlegt::before { background: linear-gradient(to bottom right, transparent calc(50% - 1.5px), rgba(13, 20, 16, .72) calc(50% - 1.5px), rgba(13, 20, 16, .72) calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
+.rotwild-freigabe-stufe.ist-erlegt::after { background: linear-gradient(to bottom left, transparent calc(50% - 1.5px), rgba(13, 20, 16, .72) calc(50% - 1.5px), rgba(13, 20, 16, .72) calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
+.rotwild-freigabe-legende { display: flex; margin: 0 0 8px; align-items: center; flex-wrap: wrap; gap: 8px 16px; font-size: .8rem; }
+.rotwild-freigabe-legende > span { display: inline-flex; align-items: center; gap: 6px; }
+.rotwild-freigabe-legende i { display: inline-block; width: 22px; height: 16px; border: 2px solid #bcc5ca; border-radius: 4px; background: #edf0f2; }
+.rotwild-freigabe-legende i.hirsch-a { border-color: #215f3b; background: #215f3b; }
+.rotwild-freigabe-legende i.hirsch-b { border-color: #9acbaa; background: #bfe4c8; }
+.rotwild-freigabe-legende i.hirsch-a-erlegt,
+.rotwild-freigabe-legende i.hirsch-b-erlegt { position: relative; overflow: hidden; }
+.rotwild-freigabe-legende i.hirsch-a-erlegt { border-color: #729b81; background: #729b81; }
+.rotwild-freigabe-legende i.hirsch-b-erlegt { border-color: #bdcdbf; background: #d6e2d8; }
+.rotwild-freigabe-legende i.hirsch-a-erlegt::before,
+.rotwild-freigabe-legende i.hirsch-a-erlegt::after,
+.rotwild-freigabe-legende i.hirsch-b-erlegt::before,
+.rotwild-freigabe-legende i.hirsch-b-erlegt::after { position: absolute; top: 7px; left: -2px; width: 26px; height: 2px; background: #172026; content: ""; transform: rotate(35deg); }
+.rotwild-freigabe-legende i.hirsch-a-erlegt::after,
+.rotwild-freigabe-legende i.hirsch-b-erlegt::after { transform: rotate(-35deg); }
+.rotwild-freigabe-legende i.kahlwild-erreicht,
+.rotwild-freigabe-legende i.kahlwild-offen { width: 16px; height: 16px; border-radius: 50%; }
+.rotwild-freigabe-legende i.kahlwild-erreicht { border-color: #2d7d52; background: #388b62; }
+.rotwild-freigabe-legende i.kahlwild-offen { border-color: #b5bdc1; background: #edf0f1; }
+.rotwild-freigabe-status { display: grid; gap: 16px; margin: 20px 0 0; }
+.rotwild-statistik-bereich { display: grid; gap: 8px; }
+.rotwild-statistik-bereich > h4 { margin: 0; color: var(--color-ink); font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; }
+.rotwild-statistik-reihe { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.rotwild-statistik-karte {
+    display: grid;
+    min-width: 0;
+    min-height: 98px;
+    padding: 12px 14px;
+    align-content: space-between;
+    gap: 6px;
+    border: 1px solid #cbd8d1;
+    border-left: 5px solid #388b62;
+    border-radius: 9px;
+    background: #fff;
+}
+.rotwild-statistik-karte > span { color: #536269; font-size: .76rem; font-weight: 700; }
+.rotwild-statistik-karte > strong { color: #244c37; font-size: 1.35rem; line-height: 1.15; }
+.rotwild-statistik-karte > small { color: #536269; font-size: .72rem; font-weight: 700; }
+.rotwild-statistik-karte.hirsch-a { border-left-color: #215f3b; background: #edf4f0; }
+.rotwild-statistik-karte.hirsch-a > strong { color: #215f3b; }
+.rotwild-statistik-karte.hirsch-b { border-left-color: #91c4a1; background: #f2f8f3; }
+.rotwild-statistik-karte.hirsch-b > strong { color: #315c3e; }
+.rotwild-statistik-karte.kahlwild-stand { background: #e8f3ed; }
+.rotwild-statistik-karte.naechste-freigabe { border-left-color: #446779; background: #eef3f5; }
+.rotwild-statistik-karte.naechste-freigabe > strong { color: #294b5d; }
+.rotwild-statistik-karte.naechste-freigabe.hirsch-a { min-height: 152px; border-left-color: #215f3b; background: #e8f1eb; }
+.rotwild-statistik-karte.naechste-freigabe.hirsch-b { min-height: 152px; border-left-color: #91c4a1; background: #f2f8f3; }
+.rotwild-statistik-karte.naechste-freigabe > strong { text-transform: uppercase; }
+.rotwild-statistik-rest { display: grid; gap: 2px; padding-top: 8px; border-top: 1px solid rgba(42, 83, 58, .2); }
+.rotwild-statistik-rest > span { color: #536269; font-size: .72rem; font-weight: 700; }
+.rotwild-statistik-rest > strong { color: #244c37; font-size: 1.3rem; line-height: 1.1; }
+.rotwild-statistik-karte.hirsche-frei { min-height: 118px; border-left-color: #397752; background: #edf5f0; }
+.rotwild-statistik-karte.hirsche-frei > span { color: #294d38; letter-spacing: .04em; text-align: center; }
+.rotwild-statistik-frei-werte { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rotwild-statistik-frei-werte > div { display: grid; justify-items: center; gap: 4px; padding: 8px; border-radius: 7px; background: rgba(255, 255, 255, .72); }
+.rotwild-statistik-frei-werte span { color: #536269; font-size: .76rem; font-weight: 700; }
+.rotwild-statistik-frei-werte strong { color: #244c37; font-size: 1.35rem; }
+.rotwild-statistik-naechste { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+@media (min-width: 700px) {
+    .rotwild-freigabe-strecke { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 900px) {
+    .rotwild-freigabe-strecke { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1200px) {
+    .rotwild-freigabe-strecke { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+    .rotwild-freigabe { padding: 14px 10px; }
+    .rotwild-freigabe-strecke { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .rotwild-freigabe-stufe { grid-template-rows: 31px minmax(0, 1fr); height: 118px; padding: 7px 4px; gap: 3px; }
+    .rotwild-freigabe-kahlwild { gap: 3px; }
+    .rotwild-freigabe-kahlwild > span { width: 25px; height: 25px; font-size: .62rem; }
+    .rotwild-freigabe-hirsch { padding: 2px; }
+    .rotwild-freigabe-hirsch > strong { font-size: 1.8rem; }
+    .rotwild-freigabe-hirsch > small { font-size: .64rem; }
+    .rotwild-statistik-reihe { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .rotwild-statistik-naechste { gap: 8px; }
+    .rotwild-statistik-karte { min-height: 92px; padding: 10px; }
+}
+
+@media (max-width: 360px) {
+    .rotwild-statistik-reihe { grid-template-columns: 1fr; }
+    .rotwild-statistik-naechste { grid-template-columns: 1fr; }
+}
+
+@media print {
+    .rotwild-freigabe { break-inside: avoid; box-shadow: none; }
+    .rotwild-freigabe-scroll { padding-top: 24px; overflow: visible; }
+    .rotwild-freigabe-strecke { width: 100%; min-width: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm; }
+    .rotwild-freigabe-stufe { height: 28mm; padding: 2mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .rotwild-freigabe-kahlwild em { position: static; width: auto; transform: none; }
+    .rotwild-statistik-reihe { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm; }
+    .rotwild-statistik-naechste { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm; }
+    .rotwild-statistik-karte { min-height: 22mm; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
 .freigabe-hirsche-kopf > h2 {
   margin: 0;
   font-size: clamp(1.45rem, 3vw, 2rem);

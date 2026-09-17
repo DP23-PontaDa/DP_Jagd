@@ -806,6 +806,52 @@ const AbschussplanService = (() => {
     return statistik;
   }
 
+  async function getRotwildFreigabeDaten(planperiode, planpositionen, jahr) {
+    const [kahlwildMappings, hirschAMappings, hirschBMappings] = await Promise.all([
+      getPlanpositionWildklassen(planperiode.id, planpositionen.kahlwild),
+      getPlanpositionWildklassen(planperiode.id, planpositionen.hirschA),
+      getPlanpositionWildklassen(planperiode.id, planpositionen.hirschB),
+    ]);
+    const ids = (mappings) => [...new Set(mappings.map((mapping) => mapping.wildklasse_id).filter(Boolean))];
+    const kahlwildIds = ids(kahlwildMappings);
+    const hirschAIds = ids(hirschAMappings);
+    const hirschBIds = ids(hirschBMappings);
+    const alleIds = [...new Set([...kahlwildIds, ...hirschAIds, ...hirschBIds])];
+    if (!kahlwildIds.length || !alleIds.length) {
+      return { jahr: Number(jahr), aktuellesKahlwild: 0, kahlwildAbschussJahre: [], erlegteHirschAJahre: [], erlegteHirschBJahre: [] };
+    }
+    const bisJahr = Number(jahr);
+    const result = await db.from("abschuesse")
+      .select("datum,fallwild,wildklasse_id")
+      .in("wildklasse_id", alleIds)
+      .gte("datum", "2025-01-01")
+      .lt("datum", `${bisJahr + 1}-01-01`)
+      .order("datum", { ascending: true });
+    if (result.error) throw result.error;
+    let aktuellesKahlwild = 0;
+    const kahlwildAbschussJahre = [];
+    const erlegteHirschAJahre = [];
+    const erlegteHirschBJahre = [];
+    const kahlwildSet = new Set(kahlwildIds.map(String));
+    const hirschASet = new Set(hirschAIds.map(String));
+    const hirschBSet = new Set(hirschBIds.map(String));
+    (result.data || []).forEach((abschuss) => {
+      if (abschuss.fallwild === true) return;
+      const abschussJahr = Number(String(abschuss.datum || "").slice(0, 4));
+      if (!Number.isInteger(abschussJahr)) return;
+      const wildklasseId = String(abschuss.wildklasse_id);
+      if (kahlwildSet.has(wildklasseId)) {
+        aktuellesKahlwild += 1;
+        kahlwildAbschussJahre.push(abschussJahr);
+      }
+      if (abschussJahr >= 2025 && abschussJahr <= bisJahr) {
+        if (hirschASet.has(wildklasseId)) erlegteHirschAJahre.push(abschussJahr);
+        else if (hirschBSet.has(wildklasseId)) erlegteHirschBJahre.push(abschussJahr);
+      }
+    });
+    return { jahr: bisJahr, aktuellesKahlwild, kahlwildAbschussJahre, erlegteHirschAJahre, erlegteHirschBJahre };
+  }
+
   return {
     /* Planperioden */
 
@@ -848,5 +894,6 @@ const AbschussplanService = (() => {
     getPlanpositionWildklassen,
     saveInterneFreigabe,
     getHirschB1Statistik,
+    getRotwildFreigabeDaten,
   };
 })();
