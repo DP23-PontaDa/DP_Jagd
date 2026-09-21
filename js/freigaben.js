@@ -242,6 +242,11 @@ window.Freigaben = (() => {
   function istFixesFreigabedatum(regel) {
     return Boolean(String(regel?.frei_ab || "").trim());
   }
+  function istErfuellteVorziehungImJahr(wert, jahr) {
+    return (wert?.erfuellte_vorziehungen || []).some((eintrag) =>
+      eintrag?.regel?.regel_typ === "VORZIEHEN" &&
+      Number(String(eintrag?.abschuss?.datum || "").slice(0, 4)) === Number(jahr));
+  }
   function individuelleAbweichung(wert) {
     const typ = wert?.ausnahme?.regel_typ;
     return Boolean(typ && !["INITIAL", "SPERRE"].includes(typ) &&
@@ -496,9 +501,12 @@ window.Freigaben = (() => {
           const td = document.createElement("td"); td.className = "hirsch-jahreszelle nicht-frei";
           if (wert) {
             const istVorjahr = jahr === zentralesJahr - 1;
-            const istZieljahr = jahr === plan.zielJahr;
-            const zustand = istZieljahr ? plan.zielZustand : istVorjahr ? "historisch" : "nicht-frei";
-            const grund = istZieljahr && plan.bereitsVorherFrei
+            const vorziehungErfuellt = norm(name) === "hirsch b" && istErfuellteVorziehungImJahr(wert, jahr);
+            const istZieljahr = !vorziehungErfuellt && jahr === plan.zielJahr;
+            const zustand = vorziehungErfuellt ? "nicht-frei" : istZieljahr ? plan.zielZustand : istVorjahr ? "historisch" : "nicht-frei";
+            const grund = vorziehungErfuellt
+              ? `Vorziehung durch Abschuss ${jahr} erfüllt; nächste reguläre Freigabe ${plan.tatsaechlichesFreigabeJahr || "–"}`
+              : istZieljahr && plan.bereitsVorherFrei
               ? (plan.zielZustand === "kahlwild"
                 ? `Kahlwildpflicht nicht erfüllt (frei seit ${plan.tatsaechlichesFreigabeJahr})`
                 : `Frei seit ${plan.tatsaechlichesFreigabeJahr}`)
@@ -523,7 +531,8 @@ window.Freigaben = (() => {
                 .filter(Boolean).join("\n")
               : grund;
             td.className = `hirsch-jahreszelle ${zustand}`;
-            const zellentext = istZieljahr && plan.bereitsVorherFrei ? `seit ${plan.tatsaechlichesFreigabeJahr}`
+            const zellentext = vorziehungErfuellt ? ""
+              : istZieljahr && plan.bereitsVorherFrei ? `seit ${plan.tatsaechlichesFreigabeJahr}`
               : istVorjahr ? vorjahrAnzeige(wert, jahr)
               : freiAbOriginal ? `ab ${datumKurz(freiAbOriginal)}`
               : zustand === "nicht-frei" ? "" : String(jahr);

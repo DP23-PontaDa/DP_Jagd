@@ -893,6 +893,21 @@ textarea.form-control {
     color: var(--color-primary);
 }
 
+.abschuss-sonderabschuss-badge {
+    display: inline-block;
+    margin-left: 0.3rem;
+    padding: 0.08rem 0.35rem;
+    border: 1px solid #8a6d3b;
+    border-radius: 999px;
+    color: #6f531f;
+    background: #fff7df;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
 .abschuss-datum-tageszeit {
     display: grid;
     grid-column: 1 / -1;

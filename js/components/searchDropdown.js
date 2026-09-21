@@ -91,6 +91,7 @@ window.SearchDropdown = class SearchDropdown {
     this.options = options.map((option) => ({
       value: String(option.value ?? option.id ?? ""),
       label: String(option.label ?? option.bezeichnung ?? ""),
+      group: String(option.group || ""),
       data: option.data ?? option,
     }));
     this.filter("");
@@ -122,7 +123,16 @@ window.SearchDropdown = class SearchDropdown {
       return;
     }
 
+    let letzteGruppe = null;
     this.filteredOptions.forEach((option) => {
+      if (option.group && option.group !== letzteGruppe) {
+        const gruppe = document.createElement("li");
+        gruppe.className = "search-dropdown-group";
+        gruppe.textContent = option.group;
+        gruppe.setAttribute("role", "presentation");
+        this.list.appendChild(gruppe);
+        letzteGruppe = option.group;
+      }
       const item = document.createElement("li");
       item.className = "search-dropdown-option";
       item.dataset.value = option.value;
@@ -156,7 +166,8 @@ window.SearchDropdown = class SearchDropdown {
       event.preventDefault();
       if (this.list.hidden) this.open();
       const active = this.list.querySelector(".active");
-      const next = active ? active.nextElementSibling : this.list.firstElementChild;
+      let next = active ? active.nextElementSibling : this.list.firstElementChild;
+      while (next && !next.dataset.value) next = next.nextElementSibling;
       if (active) active.classList.remove("active");
       if (next && next.dataset.value) next.classList.add("active");
       return;
@@ -164,7 +175,8 @@ window.SearchDropdown = class SearchDropdown {
     if (event.key === "ArrowUp") {
       event.preventDefault();
       const active = this.list.querySelector(".active");
-      const previous = active && active.previousElementSibling;
+      let previous = active && active.previousElementSibling;
+      while (previous && !previous.dataset.value) previous = previous.previousElementSibling;
       if (active) active.classList.remove("active");
       if (previous && previous.dataset.value) previous.classList.add("active");
       return;

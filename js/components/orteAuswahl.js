@@ -13,6 +13,7 @@ class OrteAuswahl {
     this.dropdown.setOptions(this.orte.map((ort) => ({
       value: ort.id,
       label: OrteAuswahl.bezeichnung(ort),
+      group: OrteAuswahl.kategorie(ort),
       data: ort,
     })));
     return this.orte;
@@ -26,6 +27,17 @@ class OrteAuswahl {
       return [ort.name, ort.art].filter(Boolean).join(" - ");
     }
     return ort.name || "";
+  }
+
+  static typ(ort) {
+    if (ort?.ort_typ) return ort.ort_typ;
+    return ort?.reviereinrichtung === true ? "REVIEREINRICHTUNG" : "ABSCHUSSORT";
+  }
+
+  static kategorie(ort) {
+    const typ = OrteAuswahl.typ(ort);
+    return typ === "REVIEREINRICHTUNG" ? "Reviereinrichtungen"
+      : typ === "ABSCHUSSORT" ? "Abschussorte" : "Orte";
   }
 
   setValue(value, trigger = true) {

@@ -284,6 +284,13 @@ window.Abschuss = (() => {
         }
         const statusKlasse = spalte.klasse?.(abschuss);
         if (statusKlasse) cell.classList.add(statusKlasse);
+        if (spalte.label === "Wildklasse" && abschuss.sonderabschuss === true) {
+          const badge = document.createElement("span");
+          badge.className = "abschuss-sonderabschuss-badge";
+          badge.textContent = "Sonderabschuss";
+          badge.title = "Ohne personenbezogene Wirkung auf Freigaben und Kahlwildpflicht";
+          cell.append(" ", badge);
+        }
         row.appendChild(cell);
       });
       const actions = document.createElement("td");
@@ -558,6 +565,10 @@ window.Abschuss = (() => {
       bezeichnung === "hirsch b1";
     el("asInternerB1Gruppe").hidden = !istHirschB1;
     if (!istHirschB1) el("asInternerB1").checked = false;
+    const istHirsch = erfassungsmodus === "plan" &&
+      AbschussWirkung.istHirschWildklasse(option);
+    el("asSonderabschussGruppe").hidden = !istHirsch;
+    if (!istHirsch) el("asSonderabschuss").checked = false;
     regelabhaengigeFelderAktualisieren();
     freigabeZusatzinfoVorschlagen();
   }
@@ -719,6 +730,7 @@ window.Abschuss = (() => {
       el("asZusatzinfo").value = abschuss.zusatzinfo || "";
       el("asBemerkung").value = abschuss.bemerkung || "";
       el("asFallwild").checked = abschuss.fallwild === true;
+      el("asSonderabschuss").checked = abschuss.sonderabschuss === true;
       wildgruppeDropdown.setValue(abschuss.wildgruppe_id, false);
       const klassen =
         await wildklassenFuerModul(abschuss.wildgruppe_id);
@@ -750,6 +762,8 @@ window.Abschuss = (() => {
       "asZahlungseingang", "asZusatzinfo", "asBemerkung", "asProtokoll"]
       .forEach((id) => { el(id).value = ""; });
     el("asFallwild").checked = false;
+    el("asSonderabschuss").checked = false;
+    el("asSonderabschussGruppe").hidden = true;
     el("asInternerB1").checked = false;
     el("asInternerB1Gruppe").hidden = true;
     el("asGeweihgewichtGruppe").hidden = true;
@@ -850,6 +864,8 @@ window.Abschuss = (() => {
       zusatzinfo: el("asZusatzinfo").value.trim() || null,
       bemerkung: el("asBemerkung").value.trim() || null,
       fallwild: el("asFallwild").checked,
+      sonderabschuss: !el("asSonderabschussGruppe").hidden &&
+        el("asSonderabschuss").checked,
       interner_hirsch_b1: !el("asInternerB1Gruppe").hidden &&
         el("asInternerB1").checked,
       untersuchungsprotokoll_nr: el("asProtokoll").value.trim() || null,

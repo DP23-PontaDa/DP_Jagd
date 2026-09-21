@@ -12,7 +12,7 @@ const AbschussService = (() => {
       db.from("abschuesse").select(`
         id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, geweihgewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
-        zusatzinfo, bemerkung, fallwild, interner_hirsch_b1,
+        zusatzinfo, bemerkung, fallwild, sonderabschuss, interner_hirsch_b1,
         untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
         jaeger:personen (id, vorname, nachname),
         wildgruppen (id, bezeichnung, rechnung_moeglich),

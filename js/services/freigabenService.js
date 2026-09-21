@@ -75,7 +75,9 @@ const FreigabenService = (() => {
     for (let jahr = startjahr; jahr <= Number(bisJahr); jahr += 1) {
       const jahresabschuesse = relevante.filter((abschuss) => Number(String(abschuss.datum).slice(0, 4)) === jahr);
       const uebertrag = offenePflichten.reduce((summe, pflicht) => summe + Number(pflicht.offen || 0), 0);
-      const hirschAbschuesse = jahresabschuesse.filter((abschuss) => regelMap.has(String(abschuss.wildklasse_id)));
+      const hirschAbschuesse = jahresabschuesse.filter((abschuss) =>
+        regelMap.has(String(abschuss.wildklasse_id)) &&
+        AbschussWirkung.istFreigabewirksamerHirschabschuss(abschuss));
       const neuePflichten = hirschAbschuesse.map((abschuss) => {
         const klasse = klasseMap.get(String(abschuss.wildklasse_id));
         const regeln = regelMap.get(String(klasse?.id || abschuss.wildklasse_id)) || [];
@@ -189,7 +191,7 @@ const FreigabenService = (() => {
       db.from("abschussregeln").select("*").eq("aktiv",true).not("jaeger_id","is",null),
       db.from("allgemeine_abschussregeln").select("*").eq("aktiv",true)
         .order("prioritaet",{ascending:false}),
-      db.from("abschuesse").select("id,datum,jaeger_id,wildklasse_id,fallwild,zusatzinfo,interner_hirsch_b1,geweihgewicht").eq("fallwild",false).lte("datum",`${jahr}-12-31`).order("datum",{ascending:false}),
+      db.from("abschuesse").select("id,datum,jaeger_id,wildklasse_id,fallwild,sonderabschuss,zusatzinfo,interner_hirsch_b1,geweihgewicht").eq("fallwild",false).lte("datum",`${jahr}-12-31`).order("datum",{ascending:false}),
       planKontext(), WildklassenService.getKahlwildpflichtRegeln(),
     ]);
     const geladeneRegeln=check(regelnResult);
@@ -213,7 +215,9 @@ const FreigabenService = (() => {
     const kahlwildVerlaufJeJaeger=new Map();
     basis.jaeger.forEach((jaeger)=>basis.klassen.forEach((klasse)=>{
       const personAbschuesse=basis.abschuesse.filter((a)=>String(a.jaeger_id)===String(jaeger.id)&&String(a.datum)<=`${jahr}-12-31`);
-      const alleKlassenAbschuesse=personAbschuesse.filter((a)=>String(a.wildklasse_id)===String(klasse.id));
+      const alleKlassenAbschuesse=personAbschuesse.filter((a)=>
+        String(a.wildklasse_id)===String(klasse.id)&&
+        AbschussWirkung.istFreigabewirksamerHirschabschuss(a));
       const allePassendenRegeln=basis.regeln.filter((r)=>String(r.jaeger_id)===String(jaeger.id)&&String(r.wildklasse_id)===String(klasse.id));
       const initialRegel=allePassendenRegeln.filter((r)=>r.regel_typ==="INITIAL"&&regelDatum(r))
         .sort((a,b)=>String(regelDatum(b)).localeCompare(String(regelDatum(a))))[0]||null;
@@ -239,7 +243,8 @@ const FreigabenService = (() => {
           ? (initialRegel.bemerkung ? `Initial - ${initialRegel.bemerkung}` : "Initial")
           : "Keine frühere Erlegung";
       const relevanteHirschAbschuesse=personAbschuesse.filter((abschuss)=>
-        kahlwildRegelMap.has(String(abschuss.wildklasse_id)));
+        kahlwildRegelMap.has(String(abschuss.wildklasse_id))&&
+        AbschussWirkung.istFreigabewirksamerHirschabschuss(abschuss));
       const jaegerSchluessel=String(jaeger.id);
       if(!kahlwildVerlaufJeJaeger.has(jaegerSchluessel)){
         kahlwildVerlaufJeJaeger.set(jaegerSchluessel,
@@ -255,7 +260,14 @@ const FreigabenService = (() => {
       const kahlwildGrund=`Kahlwildpflicht nicht erfüllt (${kahlwild} von ${erforderlich} Stück erfüllt)`;
       if (kahlwildBlockiert) grund=kahlwildGrund;
 
-      const passendeRegeln=allePassendenRegeln.filter((r)=>!['INITIAL','SPERRE'].includes(r.regel_typ)&&(!r.freigabejahr||Number(r.freigabejahr)===Number(jahr)));
+      const erfuellteVorziehungen=allePassendenRegeln
+        .filter((r)=>r.regel_typ==="VORZIEHEN")
+        .map((regel)=>({regel,abschuss:AbschussregelnService.findeErfuellendenVorziehungsAbschuss(regel,alleKlassenAbschuesse)}))
+        .filter((eintrag)=>Boolean(eintrag.abschuss));
+      const passendeRegeln=allePassendenRegeln.filter((r)=>
+        !['INITIAL','SPERRE'].includes(r.regel_typ)&&
+        (!r.freigabejahr||Number(r.freigabejahr)===Number(jahr))&&
+        !erfuellteVorziehungen.some((eintrag)=>String(eintrag.regel.id)===String(r.id)));
       const aktiveSperre=allePassendenRegeln.filter((r)=>r.regel_typ==="SPERRE"&&regelDatum(r)&&regelDatum(r)>heuteIso)
         .sort((a,b)=>String(regelDatum(b)).localeCompare(String(regelDatum(a))))[0]||null;
       const individuell=aktiveSperre||passendeRegeln
@@ -367,6 +379,7 @@ const FreigabenService = (() => {
         status:frei?"FREI":"NICHT FREI",grund,stehzeit,nicht_passend:nichtPassend,regel:null,ausnahme:individuell,initial_regel:initialRegel,
         zeitliche_freigabe_ab:finalAb,zeitlich_frei:zeitlichFrei,
         allgemeine_regel:allgemeineRegel,
+        erfuellte_vorziehungen:erfuellteVorziehungen,
         regel_hinweis:allgemeinePruefung.fehlendesFeld === "geweihgewicht"
           ? "Geweihgewicht fehlt – historische Sonderregel konnte nicht geprüft werden."
           : null,
@@ -401,7 +414,8 @@ const FreigabenService = (() => {
         jaeger,
         jahr:Number(jahr),
         hirsche:jahresabschuesse.filter((abschuss) =>
-          regelMap.has(String(abschuss.wildklasse_id))).length,
+          regelMap.has(String(abschuss.wildklasse_id)) &&
+          AbschussWirkung.istFreigabewirksamerHirschabschuss(abschuss)).length,
         kahlwild:Number(snapshot.kahlwild_abschuesse || 0),
         ...snapshot,
         jahresverlauf:verlauf,

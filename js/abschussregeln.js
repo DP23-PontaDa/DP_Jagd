@@ -42,8 +42,9 @@ window.Abschussregeln = (() => {
       !jaegerId || String(regel.jaeger_id) === String(jaegerId));
     gefiltert.forEach((regel) => {
       const tr = document.createElement("tr");
-      [regel.nr, `${regel.jaeger?.vorname || ""} ${regel.jaeger?.nachname || ""}`.trim(), regel.wildklasse?.bezeichnung || "", typName(regel.regel_typ), datumAnzeigen(regel.frei_ab), regel.freigabejahr || "–", regel.bemerkung || "", regel.aktiv ? "Ja" : "Nein"]
-        .forEach((wert, index) => { const td = document.createElement("td"); td.dataset.label = ["Nr.","Jäger","Wildklasse","Regel","Frei ab","Freigabejahr","Bemerkung","Aktiv"][index]; td.textContent = wert; tr.append(td); });
+      const status = regel.erfuellt ? `Erfüllt (${String(regel.erfuellt_durch?.datum || "").slice(0, 4)})` : regel.aktiv ? "Aktiv" : "Inaktiv";
+      [regel.nr, `${regel.jaeger?.vorname || ""} ${regel.jaeger?.nachname || ""}`.trim(), regel.wildklasse?.bezeichnung || "", typName(regel.regel_typ), datumAnzeigen(regel.frei_ab), regel.freigabejahr || "–", regel.bemerkung || "", status]
+        .forEach((wert, index) => { const td = document.createElement("td"); td.dataset.label = ["Nr.","Jäger","Wildklasse","Regel","Frei ab","Freigabejahr","Bemerkung","Status"][index]; td.textContent = wert; tr.append(td); });
       const aktion = document.createElement("td"); aktion.className = "action-cell"; aktion.dataset.label = "Aktionen";
       const edit = document.createElement("button"); edit.className = "action-btn edit-btn"; edit.title = "Bearbeiten"; edit.hidden = !BerechtigungService.darf("abschussregeln", "Bearbeiten"); edit.onclick = () => bearbeiten(regel);
       const del = document.createElement("button"); del.className = "action-btn delete-btn"; del.title = "Löschen"; del.hidden = !BerechtigungService.darf("abschussregeln", "Löschen"); del.onclick = () => entfernen(regel);

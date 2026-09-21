@@ -14,16 +14,16 @@ const OrteService = (() => {
 
   async function orteLaden() {
     const { data, error } = await db.from("orte")
-      .select("id,nr,name,art,info,latitude,longitude,reviereinrichtung")
-      .order("nr", { ascending: true });
+      .select("id,nr,name,art,info,latitude,longitude,reviereinrichtung,ort_typ")
+      .order("ort_typ", { ascending: true }).order("nr", { ascending: true });
     if (error) throw fehler(error, "Orte konnten nicht geladen werden.");
     return data || [];
   }
 
   async function auswahlLaden() {
     const { data, error } = await db.from("orte")
-      .select("id,nr,name,art,latitude,longitude,reviereinrichtung")
-      .order("nr", { ascending: true });
+      .select("id,nr,name,art,latitude,longitude,reviereinrichtung,ort_typ")
+      .order("ort_typ", { ascending: true }).order("name", { ascending: true });
     if (error) throw fehler(error, "Orte-Auswahl konnte nicht geladen werden.");
     return data || [];
   }
@@ -49,8 +49,10 @@ const OrteService = (() => {
     return data;
   }
 
-  async function naechsteNummer(reviereinrichtung) {
-    const istReviereinrichtung = reviereinrichtung === true;
+  async function naechsteNummer(typ) {
+    const ortTyp = typ === true ? "REVIEREINRICHTUNG" : typ === false
+      ? "ABSCHUSSORT" : String(typ || "ABSCHUSSORT");
+    const istReviereinrichtung = ortTyp === "REVIEREINRICHTUNG";
     const startnummer = istReviereinrichtung ? 1 : 501;
     const { data, error } = await db.from("orte").select("nr")
       .eq("reviereinrichtung", istReviereinrichtung)
@@ -69,6 +71,8 @@ const OrteService = (() => {
       Number.isFinite(Number(daten.latitude));
     const hatLongitude = daten.longitude !== null && daten.longitude !== "" &&
       Number.isFinite(Number(daten.longitude));
+    const ortTyp = String(daten.ort_typ ||
+      (daten.reviereinrichtung ? "REVIEREINRICHTUNG" : "ABSCHUSSORT"));
     return {
       nr: Number(daten.nr),
       name: String(daten.name || "").trim(),
@@ -76,7 +80,8 @@ const OrteService = (() => {
       info: String(daten.info || "").trim() || null,
       latitude: hatLatitude ? Number(daten.latitude) : null,
       longitude: hatLongitude ? Number(daten.longitude) : null,
-      reviereinrichtung: daten.reviereinrichtung === true,
+      reviereinrichtung: ortTyp === "REVIEREINRICHTUNG",
+      ort_typ: ortTyp,
     };
   }
 
@@ -110,6 +115,7 @@ const OrteService = (() => {
     const { data, error } = await db.from("orte").update({
       nr,
       reviereinrichtung: true,
+      ort_typ: "REVIEREINRICHTUNG",
       art,
     }).eq("id", id).eq("reviereinrichtung", false).select("id,nr,reviereinrichtung,art").maybeSingle();
     if (error?.code === "23505") {
@@ -238,6 +244,19 @@ const OrteService = (() => {
   }
 
   async function ortLoeschen(id) {
+    const verwendungen = await Promise.all([
+      ["abschuesse", "ort_id"], ["nachsuchen", "ort_id"],
+      ["fehlschuesse", "ort_id"], ["probeschuesse", "ort_id"],
+      ["tagebuch_dp", "ort_id"], ["st_peter_mitterberg", "ort_id"],
+    ].map(async ([tabelle, feld]) => {
+      const result = await db.from(tabelle).select("id", { count: "exact", head: true }).eq(feld, id);
+      if (result.error) throw fehler(result.error, "Die Verwendung des Ortes konnte nicht geprüft werden.");
+      return Number(result.count || 0);
+    }));
+    const anzahlVerwendungen = verwendungen.reduce((summe, anzahl) => summe + anzahl, 0);
+    if (anzahlVerwendungen > 0) {
+      throw new Error(`Der Ort wird noch in ${anzahlVerwendungen} Datensatz/Datensätzen verwendet und kann nicht gelöscht werden.`);
+    }
     const bilder = await bilderLaden(id);
     const { error } = await db.from("orte").delete().eq("id", id);
     if (error) throw fehler(error, "Ort konnte nicht gelöscht werden.");

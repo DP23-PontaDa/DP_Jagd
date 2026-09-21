@@ -44,7 +44,7 @@ const ImportExportService = (() => {
       .select(`
         id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, gewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
-        zusatzinfo, bemerkung, fallwild, untersuchungsprotokoll_nr,
+        zusatzinfo, bemerkung, fallwild, sonderabschuss, untersuchungsprotokoll_nr,
         jaeger:personen (id, vorname, nachname),
         wildgruppen (id, bezeichnung),
         wildklassen (id, bezeichnung, wildgruppe_id),
@@ -118,6 +118,7 @@ const ImportExportService = (() => {
       "Wildhändler": abschuss.wildhaendler?.bezeichnung || "",
       Zahlungseingang: abschuss.zahlungseingang || "",
       Fallwild: abschuss.fallwild ? "Ja" : "Nein",
+      Sonderabschuss: abschuss.sonderabschuss ? "Ja" : "Nein",
       Zusatzinfo: abschuss.zusatzinfo || "",
       Bemerkung: abschuss.bemerkung || "",
       Untersuchungsprotokoll: abschuss.untersuchungsprotokoll_nr || "",
@@ -140,7 +141,7 @@ const ImportExportService = (() => {
       db.from("abschuesse").select(`
         id, nr, jahr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id,
         gewicht, preis_pro_kg, wildhaendler_id, zahlungseingang,
-        fallwild, zusatzinfo, bemerkung, untersuchungsprotokoll_nr
+        fallwild, sonderabschuss, zusatzinfo, bemerkung, untersuchungsprotokoll_nr
       `),
     ]);
 
@@ -193,6 +194,7 @@ const ImportExportService = (() => {
     wildhaendler_id: "Wildhändler",
     zahlungseingang: "Zahlungseingang",
     fallwild: "Fallwild",
+    sonderabschuss: "Sonderabschuss",
     zusatzinfo: "Zusatzinfo",
     bemerkung: "Bemerkung",
     untersuchungsprotokoll_nr: "Untersuchungsprotokoll",
@@ -245,6 +247,17 @@ const ImportExportService = (() => {
           : ["nein", "false", "0"].includes(fallwildText)
             ? false
             : null;
+      const sonderabschussText = normalisieren(daten.Sonderabschuss);
+      const hatSonderabschussSpalte = Object.prototype.hasOwnProperty.call(
+        daten, "Sonderabschuss",
+      );
+      const sonderabschuss = !hatSonderabschussSpalte || !sonderabschussText
+        ? false
+        : ["ja", "true", "1", "x"].includes(sonderabschussText)
+          ? true
+          : ["nein", "false", "0"].includes(sonderabschussText)
+            ? false
+            : null;
       const tageszeitText = normalisieren(daten["Früh/Abend"])
         .replace(/ü/g, "ue");
       const hatTageszeitSpalte = Object.prototype.hasOwnProperty.call(daten, "Früh/Abend");
@@ -260,6 +273,10 @@ const ImportExportService = (() => {
         fehlerHinzufuegen(fehler, zeile, "Datum", "Gültiges Datum erforderlich.");
       if (fallwild === null)
         fehlerHinzufuegen(fehler, zeile, "Fallwild", "Erlaubt sind Ja oder Nein.");
+      if (sonderabschuss === null)
+        fehlerHinzufuegen(
+          fehler, zeile, "Sonderabschuss", "Erlaubt sind Ja oder Nein.",
+        );
       if (tageszeitText && !tageszeit)
         fehlerHinzufuegen(
           fehler, zeile, "Früh/Abend",
@@ -298,6 +315,13 @@ const ImportExportService = (() => {
           spalte: "Wildklasse",
           beschreibung: "Wildklasse ist deaktiviert.",
         });
+      if (sonderabschuss === true && wildklasse &&
+          !AbschussWirkung.istHirschWildklasse(wildklasse)) {
+        fehlerHinzufuegen(
+          fehler, zeile, "Sonderabschuss",
+          "Sonderabschuss darf nur bei einer Hirsch-Wildklasse verwendet werden.",
+        );
+      }
 
       const vornameExcel = String(daten["Jäger Vorname"] ?? daten.Vorname ?? "");
       const nachnameExcel = String(daten["Jäger Nachname"] ?? daten.Nachname ?? "");
@@ -448,6 +472,7 @@ const ImportExportService = (() => {
         wildhaendler_id: fallwild ? null : wildhaendler?.id || null,
         zahlungseingang: zahlungseingang || null,
         fallwild: fallwild === true,
+        sonderabschuss: sonderabschuss === true,
         zusatzinfo: String(daten.Zusatzinfo || "").trim() || null,
         bemerkung: String(daten.Bemerkung || "").trim() || null,
         untersuchungsprotokoll_nr:
