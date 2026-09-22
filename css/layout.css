@@ -908,6 +908,17 @@ textarea.form-control {
     vertical-align: middle;
 }
 
+.search-dropdown-group {
+    padding: 0.45rem 0.7rem 0.25rem;
+    color: #5f6b72;
+    background: #f3f5f6;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    pointer-events: none;
+}
+
 .abschuss-datum-tageszeit {
     display: grid;
     grid-column: 1 / -1;

@@ -7,7 +7,8 @@ window.ImportExport = (() => {
   const ABSCHUSS_SPALTEN = [
     "Nr", "Datum", "Früh/Abend", "Jäger", "Wildgruppe", "Wildklasse", "Gewicht",
     "Preis/kg", "Gesamtpreis", "Wildhändler", "Zahlungseingang",
-    "Fallwild", "Zusatzinfo", "Bemerkung", "Untersuchungsprotokoll",
+    "Fallwild", "Sonderabschuss", "Ort-ID", "Ort", "Ort-Kategorie",
+    "Zusatzinfo", "Bemerkung", "Untersuchungsprotokoll",
   ];
   const MITGLIED_SPALTEN = [
     "Mitgliedsnummer", "Vorname", "Nachname", "KJ-Nr", "Adresse", "PLZ",
@@ -20,8 +21,8 @@ window.ImportExport = (() => {
   const ALLGEMEINE_REGEL_SPALTEN = ["Nr.", "Wildgruppe", "Wildklasse", "Gültig von", "Gültig bis", "Bedingung", "Operator", "Grenzwert", "Einheit", "Stehzeit Jahre", "Bezeichnung", "Bemerkung", "Aktiv"];
   const WILDKLASSEN_SPALTEN = ["Wildgruppe", "Wildklasse", "Kürzel", "Gültig ab", "Stück pro Hirsch"];
   const JOURNAL_KATEGORIEN_SPALTEN = ["Nr", "Kategorie", "Farbe", "Aktiv"];
-  const TAGEBUCH_DP_SPALTEN = ["ID", "Datum", "Uhrzeit", "Art-ID", "Art", "Titel", "Ort-ID", "Ort", "Ort (Freitext)", "Beschreibung", "Personen", "Abschuss-ID", "Hashtags"];
-  const ST_PETER_SPALTEN = ["ID", "Datum", "Uhrzeit", "Kategorie-ID", "Kategorie", "Titel", "Ort-ID", "Ort", "Ort (Freitext)", "Beschreibung", "Personen", "Hashtags"];
+  const TAGEBUCH_DP_SPALTEN = ["ID", "Datum", "Uhrzeit", "Art-ID", "Art", "Titel", "Ort-ID", "Ort", "Ort-Kategorie", "Beschreibung", "Personen", "Abschuss-ID", "Hashtags"];
+  const ST_PETER_SPALTEN = ["ID", "Datum", "Uhrzeit", "Kategorie-ID", "Kategorie", "Titel", "Ort-ID", "Ort", "Ort-Kategorie", "Beschreibung", "Personen", "Hashtags"];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
@@ -168,8 +169,8 @@ window.ImportExport = (() => {
   function journalKategorienRechteAnwenden(){const lesen=BerechtigungService.darf("journal-kategorien","Lesen"),bearbeiten=BerechtigungService.darf("journal-kategorien","Bearbeiten");element("ieJournalKategorienTitel").hidden=!lesen&&!bearbeiten;element("ieJournalKategorienBereich").hidden=!lesen&&!bearbeiten;element("ieJournalKategorienDateiAuswaehlen").hidden=!bearbeiten;element("ieJournalKategorienVorlage").hidden=!lesen;element("ieJournalKategorienExport").hidden=!lesen;}
 
   const journalImportKonfiguration = {
-    "tagebuch-dp": { prefix: "ieTagebuchDp", recht: "tagebuch-dp", blatt: "Tagebuch DP", dateiname: "Tagebuch_DP", spalten: TAGEBUCH_DP_SPALTEN, beispiel: { ID:"", Datum:"2026-09-05", Uhrzeit:"06:30", "Art-ID":"", Art:"Ansitz", Titel:"Beispiel", "Ort-ID":"", Ort:"", "Ort (Freitext)":"", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", "Abschuss-ID":"", Hashtags:"#hirsch, #ansitz" } },
-    "st-peter": { prefix: "ieStPeter", recht: "st-peter-mitterberg", blatt: "St. Peter-Mitterberg", dateiname: "St_Peter_Mitterberg", spalten: ST_PETER_SPALTEN, beispiel: { ID:"", Datum:"2026-03-21", Uhrzeit:"18:30", "Kategorie-ID":"", Kategorie:"Sitzung", Titel:"Beispielsitzung", "Ort-ID":"", Ort:"", "Ort (Freitext)":"", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", Hashtags:"#sitzung, #planung" } },
+    "tagebuch-dp": { prefix: "ieTagebuchDp", recht: "tagebuch-dp", blatt: "Tagebuch DP", dateiname: "Tagebuch_DP", spalten: TAGEBUCH_DP_SPALTEN, beispiel: { ID:"", Datum:"2026-09-05", Uhrzeit:"06:30", "Art-ID":"", Art:"Ansitz", Titel:"Beispiel", "Ort-ID":"", Ort:"Parkplatz Nord", "Ort-Kategorie":"Ort", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", "Abschuss-ID":"", Hashtags:"#hirsch, #ansitz" } },
+    "st-peter": { prefix: "ieStPeter", recht: "st-peter-mitterberg", blatt: "St. Peter-Mitterberg", dateiname: "St_Peter_Mitterberg", spalten: ST_PETER_SPALTEN, beispiel: { ID:"", Datum:"2026-03-21", Uhrzeit:"18:30", "Kategorie-ID":"", Kategorie:"Sitzung", Titel:"Beispielsitzung", "Ort-ID":"", Ort:"Gasthaus", "Ort-Kategorie":"Ort", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", Hashtags:"#sitzung, #planung" } },
   };
   function journalImportInit(typ) {
     const cfg=journalImportKonfiguration[typ], e=(suffix)=>element(cfg.prefix+suffix);
@@ -394,8 +395,7 @@ window.ImportExport = (() => {
     try {
       status.textContent = "Orte werden geladen …";
       const orte = await OrteService.orteLaden();
-      const reviereinrichtung = element("ieOrteExportTyp").value === "true";
-      OrteService.orteExportieren(orte, reviereinrichtung);
+      OrteService.orteExportieren(orte, element("ieOrteExportTyp").value);
       status.textContent = "Excel-Export wurde erstellt.";
     } catch (error) {
       status.textContent = error.message;

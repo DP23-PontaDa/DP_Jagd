@@ -20,7 +20,7 @@ window.TagebuchDp = (() => {
   }
   function ortName(row) {
     const ort = relation(row.ort_stammdaten);
-    return [row.ort_freitext, ort ? OrteAuswahl.bezeichnung(ort) : ""].filter(Boolean).join(" / ");
+    return ort ? OrteAuswahl.bezeichnung(ort) : (row.ort_freitext || "");
   }
   function bilderFuer(id) { return bilder.filter((bild) => String(bild.tagebuch_id) === String(id)); }
   function hashtagsFuer(row) {
@@ -162,7 +162,7 @@ window.TagebuchDp = (() => {
     const jetzt = lokaleJetztWerte();
     artOptionen();
     el("tbDatum").value = jetzt.datum; el("tbUhrzeit").value = jetzt.zeit;
-    el("tbArt").value = ""; el("tbTitel").value = ""; el("tbOrtFreitext").value = "";
+    el("tbArt").value = ""; el("tbTitel").value = "";
     el("tbBeschreibung").value = ""; el("tbWeiterePersonen").value = ""; el("tbAbschuss").value = "";
     hashtagInput.clear();
     ortAuswahl.clear(); bilderRendern(); modalModus(false); el("tbModalTitel").textContent = "Neuer Tagebucheintrag"; oeffnen();
@@ -172,7 +172,7 @@ window.TagebuchDp = (() => {
     aktuell = row; neueBilder = []; artOptionen(row.art_id);
     el("tbDatum").value = row.datum; el("tbUhrzeit").value = zeitAnzeige(row.uhrzeit);
     el("tbArt").value = row.art_id; el("tbTitel").value = row.titel || "";
-    el("tbOrtFreitext").value = row.ort_freitext || ""; el("tbBeschreibung").value = row.beschreibung || "";
+    el("tbBeschreibung").value = row.beschreibung || "";
     hashtagInput.setTags(hashtagsFuer(row).map((tag) => tag.bezeichnung));
     el("tbWeiterePersonen").value = row.weitere_personen || ""; el("tbAbschuss").value = row.abschuss_id || "";
     ortAuswahl.setValue(row.ort_id, false); bilderRendern(); modalModus(nurLesen);
@@ -231,7 +231,7 @@ window.TagebuchDp = (() => {
   async function speichern() {
     const daten = {
       datum: el("tbDatum").value, uhrzeit: el("tbUhrzeit").value, art_id: el("tbArt").value,
-      titel: el("tbTitel").value, ort_freitext: el("tbOrtFreitext").value,
+      titel: el("tbTitel").value,
       beschreibung: el("tbBeschreibung").value, weitere_personen: el("tbWeiterePersonen").value,
       ort_id: ortAuswahl.getValue(), abschuss_id: el("tbAbschuss").value || null,
     };

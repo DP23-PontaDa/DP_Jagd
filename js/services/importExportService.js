@@ -42,13 +42,14 @@ const ImportExportService = (() => {
     const { data, error } = await db
       .from("abschuesse")
       .select(`
-        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, gewicht,
+        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung, fallwild, sonderabschuss, untersuchungsprotokoll_nr,
         jaeger:personen (id, vorname, nachname),
         wildgruppen (id, bezeichnung),
         wildklassen (id, bezeichnung, wildgruppe_id),
-        wildhaendler (id, bezeichnung)
+        wildhaendler (id, bezeichnung),
+        erlegungsort:orte (id, name, ort_typ, reviereinrichtung)
       `)
       .order("datum", { ascending: false })
       .order("nr", { ascending: false });
@@ -119,6 +120,10 @@ const ImportExportService = (() => {
       Zahlungseingang: abschuss.zahlungseingang || "",
       Fallwild: abschuss.fallwild ? "Ja" : "Nein",
       Sonderabschuss: abschuss.sonderabschuss ? "Ja" : "Nein",
+      "Ort-ID": abschuss.ort_id || "",
+      Ort: abschuss.erlegungsort?.name || "",
+      "Ort-Kategorie": abschuss.erlegungsort
+        ? OrteAuswahl.kategorie(abschuss.erlegungsort) : "",
       Zusatzinfo: abschuss.zusatzinfo || "",
       Bemerkung: abschuss.bemerkung || "",
       Untersuchungsprotokoll: abschuss.untersuchungsprotokoll_nr || "",
@@ -131,6 +136,7 @@ const ImportExportService = (() => {
       wildklassenResult,
       jaeger,
       wildhaendlerResult,
+      orteResult,
       abschuesseResult,
     ] = await Promise.all([
       db.from("wildgruppen").select("id, code, bezeichnung, aktiv"),
@@ -138,8 +144,9 @@ const ImportExportService = (() => {
         .select("id, code, bezeichnung, wildgruppe_id, aktiv"),
       AbschussService.getAuswaehlbareAbschussJaeger(),
       db.from("wildhaendler").select("id, code, bezeichnung, aktiv"),
+      db.from("orte").select("id,name,ort_typ,reviereinrichtung"),
       db.from("abschuesse").select(`
-        id, nr, jahr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id,
+        id, nr, jahr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id,
         gewicht, preis_pro_kg, wildhaendler_id, zahlungseingang,
         fallwild, sonderabschuss, zusatzinfo, bemerkung, untersuchungsprotokoll_nr
       `),
@@ -149,6 +156,7 @@ const ImportExportService = (() => {
       wildgruppenResult,
       wildklassenResult,
       wildhaendlerResult,
+      orteResult,
       abschuesseResult,
     ].find((result) => result.error);
     if (fehler) throw fehler.error;
@@ -158,6 +166,7 @@ const ImportExportService = (() => {
       wildklassen: wildklassenResult.data || [],
       jaeger: jaeger || [],
       wildhaendler: wildhaendlerResult.data || [],
+      orte: orteResult.data || [],
       bestehendeAbschuesse: abschuesseResult.data || [],
     };
   }
@@ -189,6 +198,7 @@ const ImportExportService = (() => {
     jaeger_id: "Jäger",
     wildgruppe_id: "Wildgruppe",
     wildklasse_id: "Wildklasse",
+    ort_id: "Ort-ID",
     gewicht: "Gewicht",
     preis_pro_kg: "Preis/kg",
     wildhaendler_id: "Wildhändler",
@@ -231,6 +241,7 @@ const ImportExportService = (() => {
       referenzen.wildhaendler,
       (eintrag) => eintrag.bezeichnung,
     );
+    const ortIndex = indexNachName(referenzen.orte || [], (eintrag) => eintrag.name);
 
     zeilen.forEach((daten, index) => {
       const zeile = index + 2;
@@ -263,6 +274,21 @@ const ImportExportService = (() => {
       const hatTageszeitSpalte = Object.prototype.hasOwnProperty.call(daten, "Früh/Abend");
       const tageszeit = tageszeitText === "frueh" ? "frueh"
         : tageszeitText === "abend" ? "abend" : null;
+      const ortIdExcel = String(daten["Ort-ID"] || "").trim();
+      const ortNameExcel = String(daten.Ort || "").trim();
+      let ort = null;
+      if (ortIdExcel) {
+        ort = (referenzen.orte || []).find((eintrag) => String(eintrag.id) === ortIdExcel) || null;
+      } else if (ortNameExcel) {
+        ort = eindeutigerTreffer(ortIndex, ortNameExcel);
+      }
+      if ((ortIdExcel || ortNameExcel) && !ort) {
+        fehlerHinzufuegen(
+          fehler, zeile, ortIdExcel ? "Ort-ID" : "Ort",
+          ortIdExcel ? `Ort-ID ${ortIdExcel} wurde nicht gefunden.`
+            : `Ort '${ortNameExcel}' wurde nicht gefunden oder ist nicht eindeutig.`,
+        );
+      }
 
       if (nr !== null && (!Number.isInteger(nr) || nr <= 0))
         fehlerHinzufuegen(
@@ -467,6 +493,7 @@ const ImportExportService = (() => {
         jaeger_id: person?.id || null,
         wildgruppe_id: wildgruppe?.id || null,
         wildklasse_id: wildklasse?.id || null,
+        ort_id: ort?.id || null,
         gewicht,
         preis_pro_kg: preis,
         wildhaendler_id: fallwild ? null : wildhaendler?.id || null,
@@ -1143,20 +1170,20 @@ const ImportExportService = (() => {
     return { fehler: treffer.length ? `${bezeichnung} „${name}“ ist nicht eindeutig.` : `${bezeichnung} „${name}“ wurde nicht gefunden.` };
   }
   async function getTagebuchDpImportReferenzen() {
-    const [eintraege, arten, orte, abschuesse] = await Promise.all([TagebuchDpService.laden(), db.from("tagebuch_arten").select("id,bezeichnung"), db.from("orte").select("id,name"), db.from("abschuesse").select("id,nr")]);
+    const [eintraege, arten, orte, abschuesse] = await Promise.all([TagebuchDpService.laden(), db.from("tagebuch_arten").select("id,bezeichnung"), db.from("orte").select("id,name,ort_typ,reviereinrichtung"), db.from("abschuesse").select("id,nr")]);
     for (const result of [arten, orte, abschuesse]) if (result.error) throw result.error;
     return { eintraege, arten: arten.data || [], orte: orte.data || [], abschuesse: abschuesse.data || [] };
   }
   async function getStPeterImportReferenzen() {
-    const [eintraege, kategorien, orte] = await Promise.all([StPeterMitterbergService.laden(), db.from("journal_kategorien").select("id,bezeichnung"), db.from("orte").select("id,name")]);
+    const [eintraege, kategorien, orte] = await Promise.all([StPeterMitterbergService.laden(), db.from("journal_kategorien").select("id,bezeichnung"), db.from("orte").select("id,name,ort_typ,reviereinrichtung")]);
     for (const result of [kategorien, orte]) if (result.error) throw result.error;
     return { eintraege, kategorien: kategorien.data || [], orte: orte.data || [] };
   }
   function exportTagebuchDpZeilen(eintraege) {
-    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Art-ID": row.art_id, Art: row.art?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort (Freitext)": row.ort_freitext || "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", "Abschuss-ID": row.abschuss_id || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
+    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Art-ID": row.art_id, Art: row.art?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort-Kategorie": row.ort_stammdaten ? OrteAuswahl.kategorie(row.ort_stammdaten) : "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", "Abschuss-ID": row.abschuss_id || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
   }
   function exportStPeterZeilen(eintraege) {
-    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Kategorie-ID": row.kategorie_id, Kategorie: row.kategorie?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort (Freitext)": row.ort_freitext || "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
+    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Kategorie-ID": row.kategorie_id, Kategorie: row.kategorie?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort-Kategorie": row.ort_stammdaten ? OrteAuswahl.kategorie(row.ort_stammdaten) : "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
   }
   function journalZeilenValidieren(zeilen, refs, modus, typ) {
     const istDp = typ === "tagebuch-dp", vorhandene = new Map(refs.eintraege.map((row) => [String(row.id), row]));
@@ -1175,7 +1202,7 @@ const ImportExportService = (() => {
       let aktion = bestehend ? "Änderung" : "Neu";
       if (modus === "nur-neu" && bestehend) { aktion = "Unverändert"; warnungen.push("Bestehender Datensatz wird im Modus ‚Nur neue‘ übersprungen."); }
       if (modus === "nur-aktualisieren" && !bestehend) { aktion = "Unverändert"; warnungen.push("Neuer Datensatz wird im Modus ‚Nur Aktualisieren‘ übersprungen."); }
-      const payload = { datum, uhrzeit: uhrzeit || null, titel, ort_id: ort.wert || null, ort_freitext: String(daten["Ort (Freitext)"] || "").trim() || null, beschreibung: String(daten.Beschreibung || "").trim() || null, weitere_personen: String(daten.Personen || "").trim() || null };
+      const payload = { datum, uhrzeit: uhrzeit || null, titel, ort_id: ort.wert || null, beschreibung: String(daten.Beschreibung || "").trim() || null, weitere_personen: String(daten.Personen || "").trim() || null };
       if (istDp) { payload.art_id = haupt.wert; payload.abschuss_id = abschussId; } else payload.kategorie_id = haupt.wert;
       if (bestehend && !fehler.length) {
         const felder = Object.keys(payload), bisherigeTags = journalHashtags(bestehend).map(normalisieren).sort(), neueTags = hashtags.map(normalisieren).sort();

@@ -2,7 +2,7 @@ window.Orte = (() => {
   const el = (id) => document.getElementById(id);
   let orte = [];
   let bilder = [];
-  let aktiveEinrichtungen = true;
+  let aktiverOrtTyp = "REVIEREINRICHTUNG";
   let aktiveAnsicht = "einrichtungen";
   let aktuellerOrt = null;
   let vorhandeneBilder = [];
@@ -17,17 +17,20 @@ window.Orte = (() => {
   let uebersichtKarte = null;
   let einrichtungenLayer = null;
   let abschussorteLayer = null;
+  let orteLayer = null;
   const KARTEN_FALLBACK = { map_lat: 47.3, map_lng: 13.7, map_zoom: 8 };
   const ORT_DETAIL_ZOOM = 17;
 
   function istZahl(value) { return value !== null && value !== "" && Number.isFinite(Number(value)); }
 
   async function init() {
-    el("orteTabEinrichtungen").addEventListener("click", () => tabOeffnen(true));
-    el("orteTabAbschussorte").addEventListener("click", () => tabOeffnen(false));
+    el("orteTabEinrichtungen").addEventListener("click", () => tabOeffnen("REVIEREINRICHTUNG"));
+    el("orteTabAbschussorte").addEventListener("click", () => tabOeffnen("ABSCHUSSORT"));
+    el("orteTabOrte").addEventListener("click", () => tabOeffnen("ORT"));
     el("orteTabKarte").addEventListener("click", kartenansichtOeffnen);
     el("orteFilterEinrichtungen").addEventListener("change", kartenfilterAnwenden);
     el("orteFilterAbschussorte").addEventListener("change", kartenfilterAnwenden);
+    el("orteFilterOrte").addEventListener("change", kartenfilterAnwenden);
     el("orteSuche").addEventListener("input", renderTabelle);
     el("orteNeu").addEventListener("click", neuerOrt);
     el("orteKartenEinstellungen").addEventListener("click", kartenEinstellungenOeffnen);
@@ -74,11 +77,12 @@ window.Orte = (() => {
     }
   }
 
-  function tabOeffnen(einrichtungen) {
-    aktiveAnsicht = einrichtungen ? "einrichtungen" : "abschussorte";
-    aktiveEinrichtungen = einrichtungen;
-    el("orteTabEinrichtungen").classList.toggle("active", einrichtungen);
-    el("orteTabAbschussorte").classList.toggle("active", !einrichtungen);
+  function tabOeffnen(ortTyp) {
+    aktiveAnsicht = ortTyp.toLocaleLowerCase("de");
+    aktiverOrtTyp = ortTyp;
+    el("orteTabEinrichtungen").classList.toggle("active", ortTyp === "REVIEREINRICHTUNG");
+    el("orteTabAbschussorte").classList.toggle("active", ortTyp === "ABSCHUSSORT");
+    el("orteTabOrte").classList.toggle("active", ortTyp === "ORT");
     el("orteTabKarte").classList.remove("active");
     el("orteKartenUebersicht").hidden = true;
     el("orteTabelleWrap").hidden = false;
@@ -91,6 +95,7 @@ window.Orte = (() => {
     aktiveAnsicht = "karte";
     el("orteTabEinrichtungen").classList.remove("active");
     el("orteTabAbschussorte").classList.remove("active");
+    el("orteTabOrte").classList.remove("active");
     el("orteTabKarte").classList.add("active");
     el("orteSuche").closest(".action-bar").hidden = true;
     el("orteLeer").hidden = true;
@@ -137,6 +142,9 @@ window.Orte = (() => {
     legende.onAdd = () => {
       const element = L.DomUtil.create("div", "orte-map-legend");
       element.innerHTML = '<div><span class="orte-map-legend-symbol einrichtung">⌂</span>Reviereinrichtung</div><div><span class="orte-map-legend-symbol abschussort">⊙</span>Abschussort</div>';
+      const allgemein = document.createElement("div");
+      allgemein.textContent = "● Ort";
+      element.appendChild(allgemein);
       L.DomEvent.disableClickPropagation(element);
       return element;
     };
@@ -148,20 +156,23 @@ window.Orte = (() => {
     const container = el("orteUebersichtKarte");
     if (uebersichtKarte && uebersichtKarte.getContainer() !== container) {
       uebersichtKarte.remove();
-      uebersichtKarte = null; einrichtungenLayer = null; abschussorteLayer = null;
+      uebersichtKarte = null; einrichtungenLayer = null; abschussorteLayer = null; orteLayer = null;
     }
     if (!uebersichtKarte) {
       uebersichtKarte = OrteKarte.karteAnlegen(container, uebersichtStart());
-      einrichtungenLayer = L.layerGroup(); abschussorteLayer = L.layerGroup();
+      einrichtungenLayer = L.layerGroup(); abschussorteLayer = L.layerGroup(); orteLayer = L.layerGroup();
       legendeHinzufuegen();
     }
-    einrichtungenLayer.clearLayers(); abschussorteLayer.clearLayers();
+    einrichtungenLayer.clearLayers(); abschussorteLayer.clearLayers(); orteLayer.clearLayers();
     let ohnePosition = 0;
     orte.forEach((ort) => {
       if (!istZahl(ort.latitude) || !istZahl(ort.longitude)) { ohnePosition += 1; return; }
+      const ortTyp = OrteAuswahl.typ(ort);
+      const zielLayer = ortTyp === "REVIEREINRICHTUNG" ? einrichtungenLayer
+        : ortTyp === "ABSCHUSSORT" ? abschussorteLayer : orteLayer;
       L.marker([Number(ort.latitude), Number(ort.longitude)], { icon: markerIcon(ort.reviereinrichtung) })
         .bindPopup(popupInhalt(ort), { maxWidth: 270 })
-        .addTo(ort.reviereinrichtung ? einrichtungenLayer : abschussorteLayer);
+        .addTo(zielLayer);
     });
     el("orteOhnePosition").textContent = ohnePosition === 1
       ? "1 Ort ohne gespeicherte Position" : `${ohnePosition} Orte ohne gespeicherte Position`;
@@ -177,6 +188,7 @@ window.Orte = (() => {
     const layerStatus = [
       [einrichtungenLayer, el("orteFilterEinrichtungen").checked],
       [abschussorteLayer, el("orteFilterAbschussorte").checked],
+      [orteLayer, el("orteFilterOrte").checked],
     ];
     layerStatus.forEach(([layer, sichtbar]) => {
       if (sichtbar && !uebersichtKarte.hasLayer(layer)) layer.addTo(uebersichtKarte);
@@ -186,7 +198,7 @@ window.Orte = (() => {
 
   function gefilterteOrte() {
     const suche = el("orteSuche").value.trim().toLocaleLowerCase("de");
-    return orte.filter((ort) => ort.reviereinrichtung === aktiveEinrichtungen)
+    return orte.filter((ort) => OrteAuswahl.typ(ort) === aktiverOrtTyp)
       .filter((ort) => !suche || [ort.nr, ort.name, ort.art, ort.info]
         .join(" ").toLocaleLowerCase("de").includes(suche));
   }
@@ -201,18 +213,19 @@ window.Orte = (() => {
   function renderTabelle() {
     if (aktiveAnsicht === "karte") { kartenuebersichtRendern(); return; }
     const liste = gefilterteOrte();
-    const kopf = aktiveEinrichtungen
-      ? ["Nr.", "Name", "Art", "Info", "Reviereinrichtung", "Latitude", "Longitude", "Position / Karte", "Bilder", "Aktionen"]
-      : ["Nr.", "Name", "Info", "Reviereinrichtung", "Latitude", "Longitude", "Position / Karte", "Bilder", "Aktionen"];
+    const istEinrichtung = aktiverOrtTyp === "REVIEREINRICHTUNG";
+    const kopf = istEinrichtung
+      ? ["Nr.", "Name", "Art", "Info", "Kategorie", "Latitude", "Longitude", "Position / Karte", "Bilder", "Aktionen"]
+      : ["Nr.", "Name", "Info", "Kategorie", "Latitude", "Longitude", "Position / Karte", "Bilder", "Aktionen"];
     el("orteKopf").innerHTML = `<tr>${kopf.map((wert) => `<th>${wert}</th>`).join("")}</tr>`;
     const body = el("orteBody");
     body.innerHTML = "";
     liste.forEach((ort) => {
       const row = document.createElement("tr");
       row.append(zelle(ort.nr), zelle(ort.name));
-      if (aktiveEinrichtungen) row.append(zelle(ort.art));
+      if (istEinrichtung) row.append(zelle(ort.art));
       row.append(zelle(ort.info));
-      row.append(zelle(ort.reviereinrichtung ? "Ja" : "Nein"));
+      row.append(zelle(OrteAuswahl.kategorie(ort)));
       row.append(zelle(istZahl(ort.latitude) ? Number(ort.latitude).toFixed(6) : "–", "ap-number-column"));
       row.append(zelle(istZahl(ort.longitude) ? Number(ort.longitude).toFixed(6) : "–", "ap-number-column"));
       const position = zelle("");
@@ -301,8 +314,9 @@ window.Orte = (() => {
 
   async function neuerOrt() {
     try {
-      const nr = await OrteService.naechsteNummer(aktiveEinrichtungen);
-      await modalOeffnen({ nr, name: "", art: null, info: null, latitude: null, longitude: null, reviereinrichtung: aktiveEinrichtungen });
+      const nr = await OrteService.naechsteNummer(aktiverOrtTyp);
+      await modalOeffnen({ nr, name: "", art: null, info: null, latitude: null, longitude: null,
+        reviereinrichtung: aktiverOrtTyp === "REVIEREINRICHTUNG", ort_typ: aktiverOrtTyp });
     } catch (error) { AppFeedback.error(error.message); }
   }
 
@@ -321,7 +335,8 @@ window.Orte = (() => {
     el("orteArt").value = ort.art || "";
     el("orteInfo").value = ort.info || "";
     el("orteArtGruppe").hidden = nurKarte || !ort.reviereinrichtung;
-    el("orteAlsEinrichtung").hidden = nurKarte || !ort.id || ort.reviereinrichtung === true ||
+    el("orteAlsEinrichtung").hidden = nurKarte || !ort.id ||
+      OrteAuswahl.typ(ort) !== "ABSCHUSSORT" ||
       !BerechtigungService.darfSeite("orte", "Bearbeiten");
     el("orteBilder").value = "";
     el("orteModalFehler").hidden = true;
@@ -333,7 +348,7 @@ window.Orte = (() => {
   }
 
   async function umwandelnOeffnen() {
-    if (!aktuellerOrt?.id || aktuellerOrt.reviereinrichtung === true ||
+    if (!aktuellerOrt?.id || OrteAuswahl.typ(aktuellerOrt) !== "ABSCHUSSORT" ||
         !BerechtigungService.darfSeite("orte", "Bearbeiten")) return;
     el("orteAlsEinrichtung").disabled = true;
     try {
@@ -368,7 +383,7 @@ window.Orte = (() => {
   }
 
   async function umwandelnSpeichern() {
-    if (!aktuellerOrt?.id || aktuellerOrt.reviereinrichtung === true ||
+    if (!aktuellerOrt?.id || OrteAuswahl.typ(aktuellerOrt) !== "ABSCHUSSORT" ||
         !BerechtigungService.darfSeite("orte", "Bearbeiten")) {
       umwandelnSchliessen();
       return;
@@ -389,9 +404,10 @@ window.Orte = (() => {
       await OrteService.abschussortInReviereinrichtungUmwandeln(aktuellerOrt.id, neueNr, art);
       umwandelnSchliessen();
       modalSchliessen();
-      aktiveEinrichtungen = true;
+      aktiverOrtTyp = "REVIEREINRICHTUNG";
       el("orteTabEinrichtungen").classList.add("active");
       el("orteTabAbschussorte").classList.remove("active");
+      el("orteTabOrte").classList.remove("active");
       await laden();
       AppFeedback.success("Abschussort als Reviereinrichtung übernommen.");
     } catch (error) {
@@ -644,11 +660,12 @@ window.Orte = (() => {
   }
 
   async function speichern() {
-    const reviereinrichtung = aktuellerOrt ? aktuellerOrt.reviereinrichtung : aktiveEinrichtungen;
+    const ortTyp = aktuellerOrt ? OrteAuswahl.typ(aktuellerOrt) : aktiverOrtTyp;
+    const reviereinrichtung = ortTyp === "REVIEREINRICHTUNG";
     const daten = {
       nr: el("orteNr").value, name: el("orteName").value.trim(),
       art: reviereinrichtung ? el("orteArt").value : null,
-      info: el("orteInfo").value, latitude, longitude, reviereinrichtung,
+      info: el("orteInfo").value, latitude, longitude, reviereinrichtung, ort_typ: ortTyp,
     };
     if (!daten.name || (reviereinrichtung && !daten.art)) {
       el("orteModalFehler").textContent = reviereinrichtung

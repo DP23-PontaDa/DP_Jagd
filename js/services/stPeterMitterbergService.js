@@ -8,7 +8,7 @@ window.StPeterMitterbergService = (() => {
   function selectText() {
     return `id,datum,uhrzeit,kategorie_id,titel,ort_freitext,beschreibung,weitere_personen,ort_id,erstellt_am,geaendert_am,
       kategorie:journal_kategorien!st_peter_mitterberg_kategorie_id_fkey(id,nr,bezeichnung,farbe,aktiv),
-      ort_stammdaten:orte!st_peter_mitterberg_ort_id_fkey(id,name,art,reviereinrichtung,latitude,longitude),
+      ort_stammdaten:orte!st_peter_mitterberg_ort_id_fkey(id,name,art,reviereinrichtung,ort_typ,latitude,longitude),
       hashtags:st_peter_mitterberg_hashtags(hashtag_id,hashtag:journal_hashtags(id,bezeichnung,normalisiert))`;
   }
   async function laden() {
@@ -16,7 +16,7 @@ window.StPeterMitterbergService = (() => {
   }
   function payload(daten) {
     return { datum: daten.datum, uhrzeit: daten.uhrzeit || null, kategorie_id: daten.kategorie_id,
-      titel: daten.titel.trim(), ort_freitext: daten.ort_freitext?.trim() || null,
+      titel: daten.titel.trim(),
       beschreibung: daten.beschreibung?.trim() || null, weitere_personen: daten.weitere_personen?.trim() || null,
       ort_id: daten.ort_id || null };
   }

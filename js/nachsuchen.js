@@ -42,8 +42,7 @@ const Nachsuchen = (() => {
     el("nsWildgruppeGruppe").hidden = !config.wild;
     el("nsWildklasseGruppe").hidden = !config.wild;
     el("nsWildGefundenGruppe").hidden = !config.gefunden;
-    el("nsOrtAuswahlGruppe").hidden = typ !== "nachsuchen";
-    el("nsOrtFreitextGruppe").hidden = typ === "nachsuchen";
+    el("nsOrtAuswahlGruppe").hidden = false;
     el("nsWildklasseLabel").textContent = config.wildLabel;
     tabelleKonfigurieren();
 
@@ -81,7 +80,7 @@ const Nachsuchen = (() => {
       let index = 1;
       if (config.hundefuehrer) hundefuehrerDropdown.setOptions(personenOptionen(resultate[index++]));
       if (config.wild) wildgruppeDropdown.setOptions(resultate[index]);
-      if (typ === "nachsuchen") await ortDropdown.laden();
+      await ortDropdown.laden();
       await laden();
     } catch (error) {
       console.error(`${config.titel} konnte nicht initialisiert werden:`, error);
@@ -115,7 +114,8 @@ const Nachsuchen = (() => {
       );
     }
     basis.push(
-      { label: "Ort", wert: (row) => relation(row.ort_stammdaten)?.name || row.ort },
+      { label: "Ort", wert: (row) => relation(row.ort_stammdaten)
+        ? OrteAuswahl.bezeichnung(relation(row.ort_stammdaten)) : (row.ort || "") },
       { label: "Info", wert: (row) => row.info },
     );
     if (config.gefunden)
@@ -226,8 +226,7 @@ const Nachsuchen = (() => {
       wildklasseDropdown.setDisabled(false);
       wildklasseDropdown.setValue(row.wildklasse_id, false);
     }
-    if (typ === "nachsuchen") ortDropdown.setValue(row.ort_id, false);
-    else el("nsOrt").value = row.ort || "";
+    ortDropdown.setValue(row.ort_id, false);
     el("nsInfo").value = row.info || "";
     el("nsWildGefunden").checked = row.wild_gefunden === true;
     oeffnen();
@@ -237,10 +236,9 @@ const Nachsuchen = (() => {
     const daten = {
       nr: Number(el("nsNr").value), datum: el("nsDatum").value,
       jaeger_id: jaegerDropdown.getValue(),
-      ort: typ === "nachsuchen" ? null : el("nsOrt").value.trim() || null,
+      ort_id: ortDropdown.getValue(),
       info: el("nsInfo").value.trim() || null,
     };
-    if (typ === "nachsuchen") daten.ort_id = ortDropdown.getValue();
     if (config.hundefuehrer) daten.hundefuehrer_id = hundefuehrerDropdown.getValue();
     if (config.wild) {
       daten.wildgruppe_id = wildgruppeDropdown.getValue();
@@ -299,7 +297,7 @@ const Nachsuchen = (() => {
   }
 
   function formularLeeren() {
-    ["nsNr", "nsDatum", "nsOrt", "nsInfo"].forEach((id) => { el(id).value = ""; });
+    ["nsNr", "nsDatum", "nsInfo"].forEach((id) => { el(id).value = ""; });
     ortDropdown.clear();
     jaegerDropdown.clear(false);
     hundefuehrerDropdown.clear(false);

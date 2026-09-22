@@ -16,7 +16,7 @@ window.TagebuchDpService = (() => {
     return `id,benutzer_id,datum,uhrzeit,ort_freitext,art_id,titel,beschreibung,
       weitere_personen,ort_id,abschuss_id,erstellt_am,geaendert_am,
       art:tagebuch_arten!tagebuch_dp_art_id_fkey(id,nr,bezeichnung,aktiv),
-      ort_stammdaten:orte!tagebuch_dp_ort_id_fkey(id,name,art,reviereinrichtung,latitude,longitude),
+      ort_stammdaten:orte!tagebuch_dp_ort_id_fkey(id,name,art,reviereinrichtung,ort_typ,latitude,longitude),
       abschuss:abschuesse!tagebuch_dp_abschuss_id_fkey(id,nr,datum,
         wildgruppen(id,bezeichnung),wildklassen(id,bezeichnung)),
       hashtags:tagebuch_dp_hashtags(hashtag_id,hashtag:tagebuch_hashtags(id,bezeichnung,normalisiert))`;
@@ -52,7 +52,6 @@ window.TagebuchDpService = (() => {
     return {
       datum: daten.datum,
       uhrzeit: daten.uhrzeit || null,
-      ort_freitext: daten.ort_freitext?.trim() || null,
       art_id: daten.art_id,
       titel: daten.titel.trim(),
       beschreibung: daten.beschreibung?.trim() || null,

@@ -143,7 +143,7 @@
   <div class="ie-card-grid">
     <section id="ieOrteImportKarte" class="ap-overview-group">
       <h3>Import Orte</h3>
-      <p>Reviereinrichtungen und Abschussorte aus einer Excel-Datei prüfen und importieren.</p>
+      <p>Reviereinrichtungen, Abschussorte und allgemeine Orte aus einer Excel-Datei prüfen und importieren.</p>
       <div class="btn-group">
         <button id="ieOrteDateiAuswaehlen" class="btn btn-primary" type="button">Datei auswählen</button>
         <button id="ieOrteVorlage" class="btn btn-outline" type="button">Vorlage herunterladen</button>
@@ -156,8 +156,9 @@
       <div class="form-group">
         <label for="ieOrteExportTyp">Auswahl</label>
         <select id="ieOrteExportTyp" class="form-control">
-          <option value="true">Reviereinrichtungen</option>
-          <option value="false">Abschussorte</option>
+          <option value="REVIEREINRICHTUNG">Reviereinrichtungen</option>
+          <option value="ABSCHUSSORT">Abschussorte</option>
+          <option value="ORT">Orte</option>
         </select>
       </div>
       <button id="ieOrteExport" class="btn btn-primary" type="button">Excel exportieren</button>

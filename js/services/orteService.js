@@ -3,7 +3,7 @@ const OrteService = (() => {
   const BILDER_BUCKET = "orte";
   const BILD_TYPEN = new Set(["image/jpeg", "image/png", "image/webp"]);
   const MAX_BILDGROESSE = 10 * 1024 * 1024;
-  const IMPORT_SPALTEN = ["Nr.", "Name", "Info", "Reviereinrichtung", "Art", "Latitude", "Longitude"];
+  const IMPORT_SPALTEN = ["Nr.", "Name", "Kategorie", "Info", "Reviereinrichtung", "Art", "Latitude", "Longitude"];
   const ORT_ARTEN = new Set(["Bodensitz", "Hochsitz", "Sitzbank", "Natur"]);
 
   function fehler(error, fallback) {
@@ -25,7 +25,10 @@ const OrteService = (() => {
       .select("id,nr,name,art,latitude,longitude,reviereinrichtung,ort_typ")
       .order("ort_typ", { ascending: true }).order("name", { ascending: true });
     if (error) throw fehler(error, "Orte-Auswahl konnte nicht geladen werden.");
-    return data || [];
+    const reihenfolge = { REVIEREINRICHTUNG: 1, ABSCHUSSORT: 2, ORT: 3 };
+    return (data || []).sort((a, b) =>
+      (reihenfolge[OrteAuswahl.typ(a)] || 99) - (reihenfolge[OrteAuswahl.typ(b)] || 99) ||
+      String(a.name || "").localeCompare(String(b.name || ""), "de", { sensitivity: "base" }));
   }
 
   async function kartenEinstellungenLaden() {
@@ -275,6 +278,7 @@ const OrteService = (() => {
     return {
       "Nr.": ort.nr,
       Name: ort.name || "",
+      Kategorie: OrteAuswahl.kategorie(ort),
       Info: ort.info || "",
       Reviereinrichtung: ort.reviereinrichtung ? "Ja" : "Nein",
       Art: ort.reviereinrichtung ? ort.art || "" : "",
@@ -287,26 +291,30 @@ const OrteService = (() => {
     xlsxPruefen();
     const mappe = XLSX.utils.book_new();
     const blatt = XLSX.utils.json_to_sheet(zeilen, { header: IMPORT_SPALTEN });
-    blatt["!cols"] = [8, 28, 35, 20, 16, 16, 16].map((wch) => ({ wch }));
+    blatt["!cols"] = [8, 28, 20, 35, 20, 16, 16, 16].map((wch) => ({ wch }));
     XLSX.utils.book_append_sheet(mappe, blatt, blattname);
     XLSX.writeFile(mappe, dateiname);
   }
 
   function importVorlageErzeugen() {
     excelSchreiben([
-      { "Nr.": 1, Name: "Kirchengarten", Info: "", Reviereinrichtung: "Ja",
+      { "Nr.": 1, Name: "Kirchengarten", Kategorie: "Reviereinrichtung", Info: "", Reviereinrichtung: "Ja",
         Art: "Hochsitz", Latitude: "", Longitude: "" },
-      { "Nr.": 501, Name: "Waldwiese", Info: "", Reviereinrichtung: "Nein",
+      { "Nr.": 501, Name: "Waldwiese", Kategorie: "Abschussort", Info: "", Reviereinrichtung: "Nein",
+        Art: "", Latitude: "", Longitude: "" },
+      { "Nr.": 502, Name: "Parkplatz Nord", Kategorie: "Ort", Info: "", Reviereinrichtung: "Nein",
         Art: "", Latitude: "", Longitude: "" },
     ], "Orte", "vorlage-orte.xlsx");
   }
 
-  function orteExportieren(orte, reviereinrichtung) {
-    const typ = reviereinrichtung ? "reviereinrichtungen" : "abschussorte";
+  function orteExportieren(orte, ortTyp) {
+    const typ = ortTyp === "REVIEREINRICHTUNG" ? "reviereinrichtungen"
+      : ortTyp === "ABSCHUSSORT" ? "abschussorte" : "orte";
     const datum = new Date().toISOString().slice(0, 10);
     excelSchreiben((orte || []).filter((ort) =>
-      ort.reviereinrichtung === reviereinrichtung).map(excelZeile),
-    reviereinrichtung ? "Reviereinrichtungen" : "Abschussorte",
+      OrteAuswahl.typ(ort) === ortTyp).map(excelZeile),
+    ortTyp === "REVIEREINRICHTUNG" ? "Reviereinrichtungen"
+      : ortTyp === "ABSCHUSSORT" ? "Abschussorte" : "Orte",
     `${typ}-${datum}.xlsx`);
   }
 
@@ -346,14 +354,21 @@ const OrteService = (() => {
       const nr = Number(nrText);
       const name = String(roh.Name ?? "").trim();
       const info = String(roh.Info ?? "").trim();
-      const reviereinrichtung = jaNein(roh.Reviereinrichtung);
+      const kategorie = String(roh.Kategorie || "").trim().toLocaleLowerCase("de");
+      const ortTyp = kategorie === "reviereinrichtung" ? "REVIEREINRICHTUNG"
+        : kategorie === "abschussort" ? "ABSCHUSSORT"
+        : kategorie === "ort" ? "ORT" : null;
+      const reviereinrichtungAlt = jaNein(roh.Reviereinrichtung);
+      const reviereinrichtung = ortTyp ? ortTyp === "REVIEREINRICHTUNG" : reviereinrichtungAlt;
       const art = String(roh.Art ?? "").trim();
       const lat = optionaleZahl(roh.Latitude);
       const lng = optionaleZahl(roh.Longitude);
 
       if (!nrText || !Number.isInteger(nr) || nr <= 0) fehlerListe.push("Nr. muss eine positive ganze Zahl sein.");
       if (!name) fehlerListe.push("Name fehlt.");
-      if (reviereinrichtung === null) fehlerListe.push("Reviereinrichtung muss Ja oder Nein sein.");
+      if ((kategorie && !ortTyp) || (!ortTyp && reviereinrichtung === null)) {
+        fehlerListe.push("Kategorie muss Reviereinrichtung, Abschussort oder Ort sein.");
+      }
       if (reviereinrichtung === true) {
         if (Number.isInteger(nr) && (nr < 1 || nr > 500))
           fehlerListe.push(`Reviereinrichtung Nr. ${nr} ist ungültig. Erlaubt sind Nr. 1 bis 500.`);
@@ -377,12 +392,13 @@ const OrteService = (() => {
 
       return {
         zeile, nr: nrText, name,
-        typ: reviereinrichtung === true ? "Reviereinrichtung" :
+        typ: ortTyp === "ORT" ? "Ort" : reviereinrichtung === true ? "Reviereinrichtung" :
           reviereinrichtung === false ? "Abschussort" : "Unbekannt",
         ergebnis: fehlerListe.length ? "Fehler" : "OK",
         fehler: fehlerListe.map((text) => `Zeile ${zeile}: ${text}`),
         payload: fehlerListe.length ? null : payload({ nr, name, info, art,
-          latitude: lat.wert, longitude: lng.wert, reviereinrichtung }),
+          latitude: lat.wert, longitude: lng.wert, reviereinrichtung,
+          ort_typ: ortTyp || (reviereinrichtung ? "REVIEREINRICHTUNG" : "ABSCHUSSORT") }),
       };
     });
   }
