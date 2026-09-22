@@ -2017,6 +2017,75 @@ textarea.form-control {
     .rotwild-statistik-naechste { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm; }
     .rotwild-statistik-karte { min-height: 22mm; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
+
+/* Mehrseitiger persönlicher Jägerbericht. */
+.jaegerbericht-toolbar { align-items: flex-end; gap: 16px; }
+.jaegerbericht-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.jaegerbericht-controls label { display: grid; min-width: 180px; gap: 4px; font-weight: 700; }
+.jaegerbericht-scroll { max-width: 100%; overflow: auto; padding: 12px 0; }
+.jaegerbericht-pages { display: grid; gap: 24px; width: max-content; margin: 0 auto; }
+.jaegerbericht-sheet { position: relative; box-sizing: border-box; width: 210mm; height: 297mm; padding: 12mm 13mm 14mm; overflow: hidden; page: jaegerbericht; background: #fff; color: #263238; box-shadow: 0 2px 14px #0002; font-family: Arial, sans-serif; font-size: 8.5pt; }
+@page jaegerbericht { size: A4 portrait; margin: 0; }
+.jaegerbericht-head { display: flex; min-height: 16mm; align-items: flex-start; justify-content: space-between; padding-bottom: 3mm; border-bottom: 1px solid #9aa8a2; background: transparent; }
+.jaegerbericht-head > div { display: grid; gap: 1mm; }
+.jaegerbericht-head > span { text-align: right; }
+.jaegerbericht-head b { color: #1f5b43; font-size: 12pt; letter-spacing: .1em; }
+.jaegerbericht-head strong { font-size: 10pt; }
+.jaegerbericht-sheet > h2 { margin: 5mm 0 4mm; color: #243b32; font-size: 17pt; letter-spacing: .04em; }
+.jaegerbericht-content { display: grid; gap: 4mm; align-content: start; }
+.jaegerbericht-foot { position: absolute; right: 13mm; bottom: 6mm; left: 13mm; display: flex; justify-content: space-between; padding-top: 2mm; border-top: 1px solid #ccd5d1; color: #66746e; font-size: 7.5pt; }
+.jb-profile { padding: 8mm 5mm; border-radius: 2mm; background: #eef5f1; text-align: center; }
+.jb-profile h3 { margin: 0; color: #1f5b43; font-size: 23pt; }
+.jb-profile p { margin: 2mm 0 0; font-size: 11pt; }
+.jb-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+.jb-kpis > div { padding: 4mm 2mm; border: 1px solid #cad8d1; border-radius: 2mm; text-align: center; }
+.jb-kpis span,.jb-kpis small { display: block; color: #5f6d67; }
+.jb-kpis strong { display: inline-block; margin: 1mm 1mm 0 0; color: #203e32; font-size: 19pt; }
+.jb-status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.jb-status-grid:empty { display: none; }
+.jb-wildgruppen { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2mm; }
+.jb-wildgruppe { padding: 2.5mm; border: 1px solid #cad8d1; border-radius: 1.5mm; }
+.jb-wildgruppe > header { display: flex; justify-content: space-between; gap: 2mm; padding-bottom: 1mm; border-bottom: 1px solid #dbe4df; background: transparent; color: #234b3b; }
+.jb-wildgruppe > div { display: flex; flex-wrap: wrap; gap: 1mm 4mm; padding-top: 1.5mm; }
+.jb-wildgruppe > div span { white-space: nowrap; }
+.jb-headline { display: flex !important; flex-direction: row; align-items: baseline; gap: 3mm !important; }
+.jb-headline em { color: #8c9993; font-style: normal; }
+.jb-zeitraum { align-self: center; min-width: 190px; font-weight: 700; white-space: nowrap; }
+.jb-highlight { padding: 5mm; border: 1px solid #b9cec4; border-left: 4px solid #2f7257; border-radius: 2mm; }
+.jb-highlight h3,.jb-section h3 { margin: 0 0 2.5mm; color: #234b3b; font-size: 11pt; }
+.jb-highlight > strong,.jb-highlight > b,.jb-highlight > span { display: block; }
+.jb-highlight > b { margin: 1mm 0; font-size: 20pt; }
+.jb-highlight dl { display: grid; grid-template-columns: 1fr auto; gap: 2mm; margin: 0; }
+.jb-highlight dd { margin: 0; font-weight: 700; }
+.jb-section { min-width: 0; }
+.jb-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.jb-table th { padding: 2mm; border: 1px solid #aebdb6; background: #e5eee9; color: #203e32; text-align: left; font-size: 8pt; }
+.jb-table td { padding: 1.7mm 2mm; border: 1px solid #ccd5d1; overflow-wrap: anywhere; vertical-align: top; }
+.jb-empty,.jb-note { margin: 1mm 0; padding: 2.5mm 3mm; border-radius: 1.5mm; background: #f2f4f3; color: #65716c; }
+.jb-note { border-left: 3px solid #798b83; color: #36443e; }
+.jb-badge { display: inline-block; padding: .6mm 1.5mm; border-radius: 8mm; background: #f6d7ab; color: #8a4d00; font-size: 7pt; font-weight: 700; }
+.jaegerbericht-sheet .ok { color: #237246; font-weight: 700; }
+.jaegerbericht-sheet .offen { color: #a52828; font-weight: 700; }
+
+@media (max-width: 768px) {
+  .jaegerbericht-toolbar { align-items: stretch; }
+  .jaegerbericht-controls { display: grid; grid-template-columns: 1fr 1fr; }
+  .jaegerbericht-controls label { min-width: 0; }
+  .jaegerbericht-controls .a4-zoom-toolbar { grid-column: 1 / -1; justify-self: center; }
+  .jaegerbericht-pages { margin: 0; }
+}
+
+@media print {
+  body:has(.jaegerbericht-page) #app > main > header,
+  body:has(.jaegerbericht-page) #sidebar,
+  body:has(.jaegerbericht-page) .jaegerbericht-toolbar,
+  body:has(.jaegerbericht-page) #jbStatus { display: none !important; }
+  body:has(.jaegerbericht-page) #app-content { margin: 0 !important; padding: 0 !important; }
+  .jaegerbericht-scroll { overflow: visible; padding: 0; }
+  .jaegerbericht-pages { display: block; width: auto; }
+  .jaegerbericht-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+  .jaegerbericht-sheet:last-child { break-after: auto; page-break-after: auto; }
+}
 .freigabe-hirsche-kopf > h2 {
   margin: 0;
   font-size: clamp(1.45rem, 3vw, 2rem);

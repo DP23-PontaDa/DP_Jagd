@@ -8,7 +8,7 @@ const BerechtigungService = (() => {
     "haar-federwild": "haar-federwild", rechnungen: "rechnungen", "jagd-jahr": "rechnungen",
     nachsuchen: "nachsuchen", fehlschuesse: "fehlschuesse",
     probeschuesse: "probeschuesse", abschussplan: "abschussplan",
-    freigaben: "abschussplan-freigaben",
+    freigaben: "abschussplan-freigaben", "jaeger-bericht": "abschussplan-freigaben",
     wildgruppen: "wildgruppen", orte: "wildgruppen", stammdaten: "wildklassen",
     "tagebuch-dp": "tagebuch-dp", "tagebuch-zusammenfassung": "tagebuch-dp-zusammenfassung",
     "dp-jahr": "tagebuch-dp",

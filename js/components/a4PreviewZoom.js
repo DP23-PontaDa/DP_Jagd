@@ -34,8 +34,8 @@ window.A4PreviewZoom = (() => {
     pages.classList.add("a4-zoom-canvas");
 
     const toolbar = toolbarErstellen();
-    const controls = scroll.closest(".jagdjahr-page, .key-dates-page")
-      ?.querySelector(".jagdjahr-controls, .key-dates-controls");
+    const controls = scroll.closest(".jagdjahr-page, .key-dates-page, .jaegerbericht-page")
+      ?.querySelector(".jagdjahr-controls, .key-dates-controls, .jaegerbericht-controls");
     const pdfButton = controls?.querySelector('[id$="Pdf"]');
     if (controls) controls.insertBefore(toolbar, pdfButton || null);
     else scroll.before(toolbar);

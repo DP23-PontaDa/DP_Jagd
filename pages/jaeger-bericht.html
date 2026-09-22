@@ -1,0 +1,27 @@
+<section class="jaegerbericht-page">
+  <div class="page-title-row jaegerbericht-toolbar">
+    <div>
+      <h1>Jägerdatenblatt</h1>
+      <p class="page-subtitle">Persönliche Jägerdaten als mehrseitige A4-Auswertung</p>
+    </div>
+    <div class="jaegerbericht-controls">
+      <label for="jbJaeger">Jäger
+        <select id="jbJaeger" class="form-control"><option value="">Jäger auswählen</option></select>
+      </label>
+      <label for="jbVonJahr">Von Jahr
+        <select id="jbVonJahr" class="form-control"></select>
+      </label>
+      <label for="jbBisJahr">Bis Jahr
+        <select id="jbBisJahr" class="form-control"></select>
+      </label>
+      <output id="jbZeitraum" class="jb-zeitraum">Berichtszeitraum: –</output>
+      <button id="jbAnzeigen" class="btn btn-primary" type="button">Bericht anzeigen</button>
+      <button id="jbPdf" class="btn btn-secondary" type="button" disabled>PDF</button>
+      <button id="jbDrucken" class="btn btn-secondary" type="button" disabled>Drucken</button>
+    </div>
+  </div>
+  <p id="jbStatus" class="form-message">Bitte einen Jäger auswählen.</p>
+  <div class="jaegerbericht-scroll">
+    <div id="jbSeiten" class="jaegerbericht-pages"></div>
+  </div>
+</section>

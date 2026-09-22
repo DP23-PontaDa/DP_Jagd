@@ -30,6 +30,7 @@ const Router = {
     "import-export": "pages/import-export.html",
     abschussplan: "pages/abschussplan.html",
     freigaben: "pages/freigaben.html",
+    "jaeger-bericht": "pages/jaeger-bericht.html",
     wildgruppen: "pages/wildgruppen.html",
     orte: "pages/orte.html",
     "tagebuch-dp": "pages/tagebuch-dp.html",
@@ -174,6 +175,11 @@ const Router = {
     if (page === "freigaben" && window.Freigaben &&
         typeof window.Freigaben.init === "function") {
       window.Freigaben.init();
+    }
+
+    if (page === "jaeger-bericht" && window.JaegerBericht &&
+        typeof window.JaegerBericht.init === "function") {
+      window.JaegerBericht.init();
     }
 
     if (
