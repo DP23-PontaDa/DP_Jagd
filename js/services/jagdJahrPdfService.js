@@ -91,9 +91,50 @@ const JagdJahrPdfService = (() => {
       : reject(new Error("PDF-Seite konnte nicht erzeugt werden.")), "image/jpeg", 0.94));
   }
 
+  function hirschSeiteZeichnen(seite) {
+    const canvas=document.createElement("canvas");canvas.width=A4_BREITE;canvas.height=A4_HOEHE;
+    const ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.textAlign="center";ctx.fillStyle="#243342";ctx.font="bold 38px Arial";ctx.fillText(seite.titel||"HIRSCHABSCHÜSSE",620,58);
+    ctx.font="bold 27px Arial";ctx.fillText(String(seite.jahr),620,96);ctx.font="19px Arial";ctx.fillText(seite.untertitel||"",620,128);
+    const anzahl=(seite.a||[]).length+(seite.b||[]).length+(seite.weitere||[]).length;
+    if(!anzahl){ctx.fillStyle="#65737b";ctx.font="24px Arial";ctx.fillText(seite.leertext||"Keine Hirschabschüsse vorhanden.",620,300);return canvasBlob(canvas);}
+    const links=55,abstand=45,spaltenBreite=(A4_BREITE-links*2-abstand)/2,oben=175;
+    const maxHaupt=Math.max((seite.a||[]).length,(seite.b||[]).length,1);
+    const hatWeitere=(seite.weitere||[]).length>0;
+    const hauptHoehe=hatWeitere?Math.min(760,Math.max(360,maxHaupt*31+100)):A4_HOEHE-oben-65;
+    const zeilenHoehe=Math.max(20,Math.min(31,(hauptHoehe-80)/maxHaupt));
+    function text(text,x,y,maxBreite,align="left",font="18px Arial",farbe="#18232a"){
+      ctx.textAlign=align;ctx.font=font;ctx.fillStyle=farbe;ctx.fillText(String(text??""),x,y,maxBreite);
+    }
+    function bereich(titel,liste,x,y,breite,maxHoehe){
+      text(titel,x,y,breite,"left","bold 27px Arial","#243342");ctx.strokeStyle="#5e6b74";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+12);ctx.lineTo(x+breite,y+12);ctx.stroke();
+      const c1=x+8,c2=x+82,c3=x+190,c4=x+breite-60,c5=x+breite-15;
+      text("Klasse",c1,y+42,65,"left","bold 13px Arial","#71808a");text("Datum",c2,y+42,90,"left","bold 13px Arial","#71808a");text("Jäger",c3,y+42,breite-270,"left","bold 13px Arial","#71808a");text("Alter",c4,y+42,55,"right","bold 13px Arial","#71808a");
+      const rowH=Math.max(18,Math.min(zeilenHoehe,(maxHoehe-65)/Math.max(liste.length,1)));
+      liste.forEach((item,index)=>{const ry=y+67+index*rowH,farbe=item.fallwild?"#b96100":"#18232a";ctx.strokeStyle="#d9dddf";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,ry+6);ctx.lineTo(x+breite,ry+6);ctx.stroke();
+        const dat=item.datum?`${item.datum.slice(8,10)}.${item.datum.slice(5,7)}.`:"–";
+        text(item.klasse,c1,ry,60,"left","bold 18px Arial","#243342");text(dat,c2,ry,95,"left","17px Arial",farbe);text(item.jaeger,c3,ry,breite-285,"left","17px Arial",farbe);text(item.alter==null?"–":`${item.alter} J.`,c4,ry,60,"right","bold 17px Arial",farbe);
+        const status=[item.sonderabschuss?"S":"",item.fallwild?"F":""].filter(Boolean).join("/");if(status)text(status,c5,ry,35,"center","bold 13px Arial","#8a5b18");});
+      if(liste.length)text(`${liste.length} Stk.`,x+breite,y+Math.min(maxHoehe-4,72+liste.length*rowH),100,"right","14px Arial","#596770");
+      else text("Keine Einträge vorhanden.",x+8,y+78,breite-16,"left","16px Arial","#65737b");
+    }
+    bereich(seite.linksTitel||"HIRSCH A",seite.a||[],links,oben,spaltenBreite,hauptHoehe);
+    bereich(seite.rechtsTitel||"HIRSCH B",seite.b||[],links+spaltenBreite+abstand,oben,spaltenBreite,hauptHoehe);
+    if(hatWeitere){const y=oben+hauptHoehe+35;bereich("WEITERE HIRSCHE",seite.weitere||[],links,y,A4_BREITE-links*2,A4_HOEHE-y-45);}
+    return canvasBlob(canvas);
+  }
+
+  function canvasBlob(canvas) {
+    return new Promise((resolve,reject)=>canvas.toBlob(async(blob)=>blob
+      ?resolve(new Uint8Array(await blob.arrayBuffer()))
+      :reject(new Error("PDF-Seite konnte nicht erzeugt werden.")),"image/jpeg",.94));
+  }
+
   async function erstellen(jahr, seiten, optionen = {}) {
     const bilder = [];
-    for (const seite of seiten) bilder.push(await seiteZeichnen(jahr, seite.untertitel, seite.monate, seite.eintraege, optionen));
+    for (const seite of seiten) bilder.push(seite.typ==="hirsche"
+      ?await hirschSeiteZeichnen(seite)
+      :await seiteZeichnen(jahr, seite.untertitel, seite.monate, seite.eintraege, optionen));
     return jpegPdf(bilder);
   }
 

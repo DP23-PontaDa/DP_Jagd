@@ -42,7 +42,7 @@ const ImportExportService = (() => {
     const { data, error } = await db
       .from("abschuesse")
       .select(`
-        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht,
+        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, alter,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung, fallwild, sonderabschuss, untersuchungsprotokoll_nr,
         jaeger:personen (id, vorname, nachname),
@@ -113,6 +113,7 @@ const ImportExportService = (() => {
       "Jäger": vollname(abschuss.jaeger || {}),
       Wildgruppe: abschuss.wildgruppen?.bezeichnung || "",
       Wildklasse: abschuss.wildklassen?.bezeichnung || "",
+      Alter: abschuss.alter ?? "",
       Gewicht: abschuss.gewicht ?? "",
       "Preis/kg": abschuss.preis_pro_kg ?? "",
       Gesamtpreis: abschuss.gesamtpreis ?? 0,
@@ -147,7 +148,7 @@ const ImportExportService = (() => {
       db.from("orte").select("id,name,ort_typ,reviereinrichtung"),
       db.from("abschuesse").select(`
         id, nr, jahr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id,
-        gewicht, preis_pro_kg, wildhaendler_id, zahlungseingang,
+        gewicht, alter, preis_pro_kg, wildhaendler_id, zahlungseingang,
         fallwild, sonderabschuss, zusatzinfo, bemerkung, untersuchungsprotokoll_nr
       `),
     ]);
@@ -198,6 +199,7 @@ const ImportExportService = (() => {
     jaeger_id: "Jäger",
     wildgruppe_id: "Wildgruppe",
     wildklasse_id: "Wildklasse",
+    alter: "Alter",
     ort_id: "Ort-ID",
     gewicht: "Gewicht",
     preis_pro_kg: "Preis/kg",
@@ -349,6 +351,24 @@ const ImportExportService = (() => {
         );
       }
 
+      const alterText = String(daten.Alter ?? "").trim();
+      const alter = alterText === "" ? null : Number(alterText);
+      const alterRelevant = Boolean(wildklasse && AbschussAlter.istRelevant(wildklasse));
+      if (alter !== null && !Number.isInteger(alter)) {
+        fehlerHinzufuegen(
+          fehler, zeile, "Alter", "Bitte eine ganze Zahl eingeben.",
+        );
+      } else if (alter !== null && alter < 0) {
+        fehlerHinzufuegen(
+          fehler, zeile, "Alter", "Das Alter muss 0 oder größer sein.",
+        );
+      } else if (alter !== null && !alterRelevant) {
+        fehlerHinzufuegen(
+          fehler, zeile, "Alter",
+          "Das Alter darf für diese Wildklasse nicht erfasst werden.",
+        );
+      }
+
       const vornameExcel = String(daten["Jäger Vorname"] ?? daten.Vorname ?? "");
       const nachnameExcel = String(daten["Jäger Nachname"] ?? daten.Nachname ?? "");
       const jaegerExcel = String(daten["Jäger"] ?? "").trim() ||
@@ -493,6 +513,7 @@ const ImportExportService = (() => {
         jaeger_id: person?.id || null,
         wildgruppe_id: wildgruppe?.id || null,
         wildklasse_id: wildklasse?.id || null,
+        alter: alterRelevant ? alter : null,
         ort_id: ort?.id || null,
         gewicht,
         preis_pro_kg: preis,

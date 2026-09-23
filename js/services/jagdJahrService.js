@@ -21,10 +21,10 @@ const JagdJahrService = (() => {
     const von = `${jahr}-01-01`;
     const bis = `${jahr}-12-31`;
     return pruefen(await db.from("abschuesse").select(`
-      id,nr,datum,tageszeit,fallwild,
+      id,nr,datum,tageszeit,fallwild,sonderabschuss,alter,
       jaeger:personen(id,vorname,nachname),
       wildgruppe:wildgruppen(id,bezeichnung),
-      wildklasse:wildklassen(id,bezeichnung,kuerzel),
+      wildklasse:wildklassen(id,code,bezeichnung,kuerzel),
       erlegungsort:orte(id,name,art,reviereinrichtung)
     `).gte("datum", von).lte("datum", bis).order("datum").order("nr"),
     "Abschüsse des Jagdjahres konnten nicht geladen werden.");

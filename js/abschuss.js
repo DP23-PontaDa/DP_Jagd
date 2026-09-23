@@ -569,6 +569,7 @@ window.Abschuss = (() => {
       AbschussWirkung.istHirschWildklasse(option);
     el("asSonderabschussGruppe").hidden = !istHirsch;
     if (!istHirsch) el("asSonderabschuss").checked = false;
+    el("asAlterGruppe").hidden = !AbschussAlter.istRelevant(option);
     regelabhaengigeFelderAktualisieren();
     freigabeZusatzinfoVorschlagen();
   }
@@ -724,6 +725,7 @@ window.Abschuss = (() => {
       jaegerDropdown.setValue(abschuss.jaeger_id, false);
       el("asGewicht").value = abschuss.gewicht ?? "";
       el("asGeweihgewicht").value = abschuss.geweihgewicht ?? "";
+      el("asAlter").value = abschuss.alter ?? "";
       el("asPreis").value = abschuss.preis_pro_kg ?? "";
       el("asGesamtpreis").value = abschuss.gesamtpreis ?? "0.00";
       el("asZahlungseingang").value = abschuss.zahlungseingang || "";
@@ -758,7 +760,7 @@ window.Abschuss = (() => {
 
   function formularLeeren() {
     el("asRechnung").hidden = true;
-    ["asNr", "asDatum", "asTageszeit", "asGewicht", "asGeweihgewicht", "asPreis", "asGesamtpreis",
+    ["asNr", "asDatum", "asTageszeit", "asGewicht", "asGeweihgewicht", "asAlter", "asPreis", "asGesamtpreis",
       "asZahlungseingang", "asZusatzinfo", "asBemerkung", "asProtokoll"]
       .forEach((id) => { el(id).value = ""; });
     el("asFallwild").checked = false;
@@ -767,6 +769,7 @@ window.Abschuss = (() => {
     el("asInternerB1").checked = false;
     el("asInternerB1Gruppe").hidden = true;
     el("asGeweihgewichtGruppe").hidden = true;
+    el("asAlterGruppe").hidden = true;
     jaegerDropdown.clear(false);
     wildgruppeDropdown.clear(false);
     wildklasseDropdown.clear(false);
@@ -834,6 +837,10 @@ window.Abschuss = (() => {
     if (daten.geweihgewicht !== null &&
         (!Number.isFinite(daten.geweihgewicht) || daten.geweihgewicht <= 0))
       return meldung("Bitte ein gültiges Geweihgewicht größer als 0 eingeben.", el("asGeweihgewicht"));
+    if (daten.alter !== null && !Number.isInteger(daten.alter))
+      return meldung("Bitte eine ganze Zahl eingeben.", el("asAlter"));
+    if (daten.alter !== null && daten.alter < 0)
+      return meldung("Das Alter muss 0 oder größer sein.", el("asAlter"));
     if (!el("asProtokollGruppe").hidden &&
         !daten.untersuchungsprotokoll_nr)
       return meldung("Bitte die Untersuchungsprotokoll Nr eingeben.", el("asProtokoll"));
@@ -857,6 +864,9 @@ window.Abschuss = (() => {
       geweihgewicht: el("asGeweihgewichtGruppe").hidden
         ? (aktuell?.geweihgewicht ?? null)
         : el("asGeweihgewicht").value === "" ? null : Number(el("asGeweihgewicht").value),
+      alter: el("asAlterGruppe").hidden || el("asAlter").value === ""
+        ? null
+        : Number(el("asAlter").value),
       preis_pro_kg: preisText === "" ? null : Number(preisText),
       gesamtpreis: Number(el("asGesamtpreis").value || 0),
       wildhaendler_id: wildhaendlerDropdown.getValue() || null,

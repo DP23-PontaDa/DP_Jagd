@@ -53,16 +53,18 @@ window.JaegerBericht = (() => {
 
   function abschussSeite() {
     const statistik = tabelle(jahresSpalten(), jahresStatistikRows().slice(0,8));
-    const details=tabelle(["Datum","Wildgruppe","Wildklasse","Ort","Gewicht","Status"],abschussDetailRows().slice(0,14),"Keine Abschüsse im Berichtszeitraum.");
+    const details=tabelle(abschussDetailSpalten(),abschussDetailRows().slice(0,14),"Keine Abschüsse im Berichtszeitraum.");
     return seite("ABSCHÜSSE", `${abschnitt("Abschüsse pro Jahr",statistik)}${abschnitt("Detaillierte Abschüsse",details)}`);
   }
   function jahresGruppen(){return daten.wildgruppenStatistik.map((row)=>row.wildgruppe);}
   function jahresSpalten(){return["Jahr","Kahlwild","Hirsch A","Hirsch B/B1",...jahresGruppen(),"Fallwild"];}
   function jahresStatistikRows(){return daten.jahresWildgruppen.map((row)=>[row.jahr,row.kahlwild,row.hirschA,row.hirschB,...jahresGruppen().map((gruppe)=>row.gruppen[gruppe]||0),row.fallwild]);}
-  function abschussDetailRows(){return daten.abschuesse.map((row)=>[datum(row.datum),esc(wildgruppe(row)),esc(wildklasse(row)),esc(ort(row)),row.gewicht!=null?`${Number(row.gewicht).toLocaleString("de-AT")} kg`:"–",row.sonderabschuss?'<span class="jb-badge">Sonderabschuss</span>':row.fallwild?'<span class="jb-badge">Fallwild</span>':"normal"]);}
+  function hatAltersWildklasse(){return daten.abschuesse.some((row)=>AbschussAlter.istRelevant(row));}
+  function abschussDetailSpalten(){return["Datum","Wildgruppe","Wildklasse",...(hatAltersWildklasse()?["Alter"]:[]),"Ort","Gewicht","Status"];}
+  function abschussDetailRows(){const mitAlter=hatAltersWildklasse();return daten.abschuesse.map((row)=>[datum(row.datum),esc(wildgruppe(row)),esc(wildklasse(row)),...(mitAlter?[AbschussAlter.istRelevant(row)&&row.alter!=null?`${Number(row.alter)} Jahre`:"–"]:[]),esc(ort(row)),row.gewicht!=null?`${Number(row.gewicht).toLocaleString("de-AT")} kg`:"–",row.sonderabschuss?'<span class="jb-badge">Sonderabschuss</span>':row.fallwild?'<span class="jb-badge">Fallwild</span>':"normal"]);}
   function abschussFortsetzungen() {
     return [...fortsetzungsSeiten("ABSCHÜSSE","Abschüsse pro Jahr",jahresSpalten(),jahresStatistikRows(),8),
-      ...fortsetzungsSeiten("ABSCHÜSSE","Detaillierte Abschüsse",["Datum","Wildgruppe","Wildklasse","Ort","Gewicht","Status"],abschussDetailRows(),14)];
+      ...fortsetzungsSeiten("ABSCHÜSSE","Detaillierte Abschüsse",abschussDetailSpalten(),abschussDetailRows(),14)];
   }
 
   function freigabenSeite() {

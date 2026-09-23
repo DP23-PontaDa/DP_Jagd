@@ -5,7 +5,7 @@
 
 window.ImportExport = (() => {
   const ABSCHUSS_SPALTEN = [
-    "Nr", "Datum", "Früh/Abend", "Jäger", "Wildgruppe", "Wildklasse", "Gewicht",
+    "Nr", "Datum", "Früh/Abend", "Jäger", "Wildgruppe", "Wildklasse", "Alter", "Gewicht",
     "Preis/kg", "Gesamtpreis", "Wildhändler", "Zahlungseingang",
     "Fallwild", "Sonderabschuss", "Ort-ID", "Ort", "Ort-Kategorie",
     "Zusatzinfo", "Bemerkung", "Untersuchungsprotokoll",
@@ -545,7 +545,8 @@ window.ImportExport = (() => {
         "Früh/Abend": "Früh",
         "Jäger": "Max Mustermann",
         Wildgruppe: "Rehwild",
-        Wildklasse: "Bock I",
+        Wildklasse: "Rehbock A",
+        Alter: 4,
         Gewicht: 18.5,
         "Preis/kg": 4.5,
         Gesamtpreis: 83.25,
@@ -782,7 +783,7 @@ window.ImportExport = (() => {
         zeile["Jäger Nachname"] = roh["Jäger Nachname"] ?? roh.Nachname ?? "";
         zeile.Datum = datumNormalisieren(zeile.Datum);
         zeile.Zahlungseingang = datumNormalisieren(zeile.Zahlungseingang);
-        ["Nr", "Gewicht", "Preis/kg", "Gesamtpreis"].forEach((spalte) => {
+        ["Nr", "Alter", "Gewicht", "Preis/kg", "Gesamtpreis"].forEach((spalte) => {
           zeile[spalte] = nummerNormalisieren(zeile[spalte]);
         });
       }
