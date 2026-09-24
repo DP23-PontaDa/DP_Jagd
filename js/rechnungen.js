@@ -10,7 +10,9 @@ window.Rechnungen = (() => {
   let zahlungDatensatzTyp = null;
 
   async function init() {
-    personDropdown = new SearchDropdown(el("rePerson"), { placeholder: "Person suchen" });
+    personDropdown = new SearchDropdown(el("rePerson"), {
+      placeholder: "Person suchen", minChars: 2, maxResults: 10, prioritizeMatches: true,
+    });
     el("reNeu").addEventListener("click", () => oeffneEditor());
     el("reSpeichern").addEventListener("click", () => speichern());
     el("reSpeichernDrucken").addEventListener("click", speichernUndDrucken);
@@ -46,11 +48,7 @@ window.Rechnungen = (() => {
       rechnungen = liste;
       kleinAbschuesse = kleinListe;
       jahresfilterAktualisieren();
-      personDropdown.setOptions(personen.map((person) => ({
-        value: person.id,
-        label: `${person.vorname || ""} ${person.nachname || ""}`.trim(),
-        data: person,
-      })));
+      personDropdown.setOptions(PersonenAutocompleteService.optionen(personen));
       rendern();
       el("reSeitenFehler").hidden = true;
     } catch (error) {

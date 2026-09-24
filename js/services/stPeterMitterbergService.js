@@ -6,7 +6,7 @@ window.StPeterMitterbergService = (() => {
 
   function pruefen(result, text) { if (result.error) { console.error(text, result.error); throw new Error(result.error.message || text); } return result.data; }
   function selectText() {
-    return `id,datum,uhrzeit,kategorie_id,titel,ort_freitext,beschreibung,weitere_personen,ort_id,erstellt_am,geaendert_am,
+    return `id,datum,uhrzeit,kategorie_id,titel,ort_freitext,beschreibung,weitere_personen,ort_id,key_dates,erstellt_am,geaendert_am,
       kategorie:journal_kategorien!st_peter_mitterberg_kategorie_id_fkey(id,nr,bezeichnung,farbe,aktiv),
       ort_stammdaten:orte!st_peter_mitterberg_ort_id_fkey(id,name,art,reviereinrichtung,ort_typ,latitude,longitude),
       hashtags:st_peter_mitterberg_hashtags(hashtag_id,hashtag:journal_hashtags(id,bezeichnung,normalisiert))`;
@@ -18,7 +18,7 @@ window.StPeterMitterbergService = (() => {
     return { datum: daten.datum, uhrzeit: daten.uhrzeit || null, kategorie_id: daten.kategorie_id,
       titel: daten.titel.trim(),
       beschreibung: daten.beschreibung?.trim() || null, weitere_personen: daten.weitere_personen?.trim() || null,
-      ort_id: daten.ort_id || null };
+      ort_id: daten.ort_id || null, key_dates: daten.key_dates === false ? false : true };
   }
   async function hashtagsErsetzen(id, hashtags) {
     pruefen(await db.from("st_peter_mitterberg_hashtags").delete().eq("journal_id", id), "Hashtag-Zuordnungen konnten nicht aktualisiert werden.");

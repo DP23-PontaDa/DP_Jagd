@@ -1204,7 +1204,7 @@ const ImportExportService = (() => {
     return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Art-ID": row.art_id, Art: row.art?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort-Kategorie": row.ort_stammdaten ? OrteAuswahl.kategorie(row.ort_stammdaten) : "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", "Abschuss-ID": row.abschuss_id || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
   }
   function exportStPeterZeilen(eintraege) {
-    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Kategorie-ID": row.kategorie_id, Kategorie: row.kategorie?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort-Kategorie": row.ort_stammdaten ? OrteAuswahl.kategorie(row.ort_stammdaten) : "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", ") }));
+    return (eintraege || []).map((row) => ({ ID: row.id, Datum: row.datum, Uhrzeit: row.uhrzeit || "", "Kategorie-ID": row.kategorie_id, Kategorie: row.kategorie?.bezeichnung || "", Titel: row.titel, "Ort-ID": row.ort_id || "", Ort: row.ort_stammdaten?.name || "", "Ort-Kategorie": row.ort_stammdaten ? OrteAuswahl.kategorie(row.ort_stammdaten) : "", Beschreibung: row.beschreibung || "", Personen: row.weitere_personen || "", Hashtags: journalHashtags(row).map((tag) => `#${tag}`).join(", "), "Key Dates": row.key_dates === false ? "Nein" : "Ja" }));
   }
   function journalZeilenValidieren(zeilen, refs, modus, typ) {
     const istDp = typ === "tagebuch-dp", vorhandene = new Map(refs.eintraege.map((row) => [String(row.id), row]));
@@ -1223,7 +1223,7 @@ const ImportExportService = (() => {
       let aktion = bestehend ? "Änderung" : "Neu";
       if (modus === "nur-neu" && bestehend) { aktion = "Unverändert"; warnungen.push("Bestehender Datensatz wird im Modus ‚Nur neue‘ übersprungen."); }
       if (modus === "nur-aktualisieren" && !bestehend) { aktion = "Unverändert"; warnungen.push("Neuer Datensatz wird im Modus ‚Nur Aktualisieren‘ übersprungen."); }
-      const payload = { datum, uhrzeit: uhrzeit || null, titel, ort_id: ort.wert || null, beschreibung: String(daten.Beschreibung || "").trim() || null, weitere_personen: String(daten.Personen || "").trim() || null };
+      const payload = { datum, uhrzeit: uhrzeit || null, titel, ort_id: ort.wert || null, beschreibung: String(daten.Beschreibung || "").trim() || null, weitere_personen: String(daten.Personen || "").trim() || null, key_dates: boolWert(daten["Key Dates"]) ?? true };
       if (istDp) { payload.art_id = haupt.wert; payload.abschuss_id = abschussId; } else payload.kategorie_id = haupt.wert;
       if (bestehend && !fehler.length) {
         const felder = Object.keys(payload), bisherigeTags = journalHashtags(bestehend).map(normalisieren).sort(), neueTags = hashtags.map(normalisieren).sort();

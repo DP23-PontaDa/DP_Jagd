@@ -106,21 +106,26 @@ const JagdJahrPdfService = (() => {
     function text(text,x,y,maxBreite,align="left",font="18px Arial",farbe="#18232a"){
       ctx.textAlign=align;ctx.font=font;ctx.fillStyle=farbe;ctx.fillText(String(text??""),x,y,maxBreite);
     }
-    function bereich(titel,liste,x,y,breite,maxHoehe){
+    function bereich(titel,liste,x,y,breite,maxHoehe,optionen={}){
       text(titel,x,y,breite,"left","bold 27px Arial","#243342");ctx.strokeStyle="#5e6b74";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+12);ctx.lineTo(x+breite,y+12);ctx.stroke();
-      const c1=x+8,c2=x+82,c3=x+190,c4=x+breite-60,c5=x+breite-15;
-      text("Klasse",c1,y+42,65,"left","bold 13px Arial","#71808a");text("Datum",c2,y+42,90,"left","bold 13px Arial","#71808a");text("Jäger",c3,y+42,breite-270,"left","bold 13px Arial","#71808a");text("Alter",c4,y+42,55,"right","bold 13px Arial","#71808a");
-      const rowH=Math.max(18,Math.min(zeilenHoehe,(maxHoehe-65)/Math.max(liste.length,1)));
-      liste.forEach((item,index)=>{const ry=y+67+index*rowH,farbe=item.fallwild?"#b96100":"#18232a";ctx.strokeStyle="#d9dddf";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,ry+6);ctx.lineTo(x+breite,ry+6);ctx.stroke();
-        const dat=item.datum?`${item.datum.slice(8,10)}.${item.datum.slice(5,7)}.`:"–";
-        text(item.klasse,c1,ry,60,"left","bold 18px Arial","#243342");text(dat,c2,ry,95,"left","17px Arial",farbe);text(item.jaeger,c3,ry,breite-285,"left","17px Arial",farbe);text(item.alter==null?"–":`${item.alter} J.`,c4,ry,60,"right","bold 17px Arial",farbe);
-        const status=[item.sonderabschuss?"S":"",item.fallwild?"F":""].filter(Boolean).join("/");if(status)text(status,c5,ry,35,"center","bold 13px Arial","#8a5b18");});
-      if(liste.length)text(`${liste.length} Stk.`,x+breite,y+Math.min(maxHoehe-4,72+liste.length*rowH),100,"right","14px Arial","#596770");
+      const erweitert=optionen.getrennteSummen===true;
+      const c1=x+8,c2=optionen.ohneKlasse?c1:(erweitert?x+72:x+82),c3=optionen.ohneKlasse?x+125:(erweitert?x+172:x+190),c4=x+breite-58,c5=x+breite-13;
+      const kopfY=erweitert?y+62:y+42,zeilenStart=erweitert?y+94:y+67;
+      if(!optionen.ohneKlasse)text("Klasse",c1,kopfY,58,"left","bold 13px Arial","#71808a");text("Datum",c2,kopfY,82,"left","bold 13px Arial","#71808a");text("Jäger",c3,kopfY,c4-c3-15,"left","bold 13px Arial","#71808a");text("Alter",c4,kopfY,58,"right","bold 13px Arial","#71808a");
+      const rowH=Math.max(18,Math.min(zeilenHoehe,(maxHoehe-(erweitert?90:65))/Math.max(liste.length,1)));
+      liste.forEach((item,index)=>{const ry=zeilenStart+index*rowH,farbe=item.fallwild?"#b96100":"#18232a";ctx.strokeStyle="#d9dddf";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,ry+6);ctx.lineTo(x+breite,ry+6);ctx.stroke();
+        const dat=item.datum?`${item.datum.slice(8,10)}.${item.datum.slice(5,7)}${optionen.datumOhneEndpunkt?"":"."}`:"–";
+        if(!optionen.ohneKlasse)text(item.klasse,c1,ry,55,"left","bold 18px Arial","#243342");text(dat,c2,ry,82,"left","17px Arial",farbe);text(item.jaeger,c3,ry,c4-c3-14,"left","17px Arial",farbe);text(item.alter==null?"–":`${item.alter} J.`,c4,ry,58,"right","bold 17px Arial",farbe);
+        const status=[item.sonderabschuss?"S":"",item.fallwild?"FW":""].filter(Boolean).join("/");if(status)text(status,c5,ry,35,"center","bold 13px Arial","#8a5b18");});
+      if(liste.length&&optionen.getrennteSummen){const regulaer=liste.filter((item)=>item.fallwild!==true).length,fallwild=liste.filter((item)=>item.fallwild===true).length;
+        const sumY=y+Math.min(maxHoehe-28,92+liste.length*rowH);text(`Abschuss: ${regulaer} Stk.`,x+breite,sumY,210,"right","14px Arial","#596770");text(`Fallwild: ${fallwild} Stk.`,x+breite,sumY+21,210,"right","14px Arial","#596770");
+      }else if(liste.length)text(`${liste.length} Stk.`,x+breite,y+Math.min(maxHoehe-4,87+liste.length*rowH),100,"right","14px Arial","#596770");
       else text("Keine Einträge vorhanden.",x+8,y+78,breite-16,"left","16px Arial","#65737b");
     }
-    bereich(seite.linksTitel||"HIRSCH A",seite.a||[],links,oben,spaltenBreite,hauptHoehe);
-    bereich(seite.rechtsTitel||"HIRSCH B",seite.b||[],links+spaltenBreite+abstand,oben,spaltenBreite,hauptHoehe);
-    if(hatWeitere){const y=oben+hauptHoehe+35;bereich("WEITERE HIRSCHE",seite.weitere||[],links,y,A4_BREITE-links*2,A4_HOEHE-y-45);}
+    const istHirschLayout=seite.layout==="hirsch";
+    bereich(seite.linksTitel||"HIRSCH A",seite.a||[],links,oben,spaltenBreite,hauptHoehe,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});
+    bereich(seite.rechtsTitel||"HIRSCH B",seite.b||[],links+spaltenBreite+abstand,oben,spaltenBreite,hauptHoehe,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});
+    if(hatWeitere){const y=oben+hauptHoehe+35;bereich("WEITERE HIRSCHE",seite.weitere||[],links,y,A4_BREITE-links*2,A4_HOEHE-y-45,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});}
     return canvasBlob(canvas);
   }
 

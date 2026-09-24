@@ -22,7 +22,7 @@ window.ImportExport = (() => {
   const WILDKLASSEN_SPALTEN = ["Wildgruppe", "Wildklasse", "Kürzel", "Gültig ab", "Stück pro Hirsch"];
   const JOURNAL_KATEGORIEN_SPALTEN = ["Nr", "Kategorie", "Farbe", "Aktiv"];
   const TAGEBUCH_DP_SPALTEN = ["ID", "Datum", "Uhrzeit", "Art-ID", "Art", "Titel", "Ort-ID", "Ort", "Ort-Kategorie", "Beschreibung", "Personen", "Abschuss-ID", "Hashtags"];
-  const ST_PETER_SPALTEN = ["ID", "Datum", "Uhrzeit", "Kategorie-ID", "Kategorie", "Titel", "Ort-ID", "Ort", "Ort-Kategorie", "Beschreibung", "Personen", "Hashtags"];
+  const ST_PETER_SPALTEN = ["ID", "Datum", "Uhrzeit", "Kategorie-ID", "Kategorie", "Titel", "Ort-ID", "Ort", "Ort-Kategorie", "Beschreibung", "Personen", "Hashtags", "Key Dates"];
   let importTyp = "abschuesse";
   let datei = null;
   let zeilen = [];
@@ -170,7 +170,7 @@ window.ImportExport = (() => {
 
   const journalImportKonfiguration = {
     "tagebuch-dp": { prefix: "ieTagebuchDp", recht: "tagebuch-dp", blatt: "Tagebuch DP", dateiname: "Tagebuch_DP", spalten: TAGEBUCH_DP_SPALTEN, beispiel: { ID:"", Datum:"2026-09-05", Uhrzeit:"06:30", "Art-ID":"", Art:"Ansitz", Titel:"Beispiel", "Ort-ID":"", Ort:"Parkplatz Nord", "Ort-Kategorie":"Ort", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", "Abschuss-ID":"", Hashtags:"#hirsch, #ansitz" } },
-    "st-peter": { prefix: "ieStPeter", recht: "st-peter-mitterberg", blatt: "St. Peter-Mitterberg", dateiname: "St_Peter_Mitterberg", spalten: ST_PETER_SPALTEN, beispiel: { ID:"", Datum:"2026-03-21", Uhrzeit:"18:30", "Kategorie-ID":"", Kategorie:"Sitzung", Titel:"Beispielsitzung", "Ort-ID":"", Ort:"Gasthaus", "Ort-Kategorie":"Ort", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", Hashtags:"#sitzung, #planung" } },
+    "st-peter": { prefix: "ieStPeter", recht: "st-peter-mitterberg", blatt: "St. Peter-Mitterberg", dateiname: "St_Peter_Mitterberg", spalten: ST_PETER_SPALTEN, beispiel: { ID:"", Datum:"2026-03-21", Uhrzeit:"18:30", "Kategorie-ID":"", Kategorie:"Sitzung", Titel:"Beispielsitzung", "Ort-ID":"", Ort:"Gasthaus", "Ort-Kategorie":"Ort", Beschreibung:"Beispielbeschreibung", Personen:"Person A, Person B", Hashtags:"#sitzung, #planung", "Key Dates":"Ja" } },
   };
   function journalImportInit(typ) {
     const cfg=journalImportKonfiguration[typ], e=(suffix)=>element(cfg.prefix+suffix);

@@ -1,5 +1,5 @@
 window.Abschussregeln = (() => {
-  const el = (id) => document.getElementById(id); let rows = []; let aktuell = null;
+  const el = (id) => document.getElementById(id); let rows = []; let aktuell = null; let jaegerDropdown;
   const typName = (typ) => AbschussregelnService.REGELTYPEN.find((wert) => wert[0] === typ)?.[1] || typ;
   const datumAnzeigen = (datum) => {
     if (!datum) return "–";
@@ -9,15 +9,17 @@ window.Abschussregeln = (() => {
   async function init() {
     el("arNeu").onclick = neu; el("arSpeichern").onclick = speichern; el("arAbbrechen").onclick = schliessen; el("arClose").onclick = schliessen;
     el("arJaegerFilter").onchange = rendern;
+    jaegerDropdown = new SearchDropdown(el("arJaeger"), {
+      placeholder: "Mitglied suchen", minChars: 2, maxResults: 10, prioritizeMatches: true,
+    });
     el("arTyp").innerHTML = "";
-    el("arJaeger").innerHTML = "";
     el("arJaegerFilter").innerHTML = '<option value="">Alle Jäger</option>';
     AbschussregelnService.REGELTYPEN.forEach(([wert, name]) => el("arTyp").add(new Option(name, wert)));
     const [klassen, jaeger] = await Promise.all([WildklassenService.getAktivePlanWildklassen(), AbschussregelnService.jaegerLaden()]);
     wildklassenOptionenFuellen(el("arWildklasse"), klassen);
+    jaegerDropdown.setOptions(PersonenAutocompleteService.optionen(jaeger));
     jaeger.forEach((person) => {
       const name = `${person.vorname} ${person.nachname}`.trim();
-      el("arJaeger").add(new Option(name, person.id));
       el("arJaegerFilter").add(new Option(name, person.id));
     });
     el("arNeu").hidden = !BerechtigungService.darf("abschussregeln", "Bearbeiten"); await laden();
@@ -58,24 +60,25 @@ window.Abschussregeln = (() => {
   }
   async function neu() {
     aktuell = null; el("arTitel").textContent = "Neue Abschussregel"; el("arNr").value = await AbschussregelnService.naechsteNr();
+    jaegerDropdown.clear(false);
     el("arFreiAb").value = ""; el("arFreigabejahr").value = new Date().getFullYear(); el("arBemerkung").value = ""; el("arAktiv").checked = true; oeffnen();
   }
   function bearbeiten(regel) {
-    aktuell = regel; el("arTitel").textContent = "Abschussregel bearbeiten"; el("arNr").value = regel.nr; el("arJaeger").value = regel.jaeger_id;
+    aktuell = regel; el("arTitel").textContent = "Abschussregel bearbeiten"; el("arNr").value = regel.nr; jaegerDropdown.setValue(regel.jaeger_id, false);
     el("arWildklasse").value = regel.wildklasse_id; el("arTyp").value = regel.regel_typ; el("arFreiAb").value = regel.frei_ab || "";
     el("arFreigabejahr").value = regel.freigabejahr || ""; el("arBemerkung").value = regel.bemerkung || ""; el("arAktiv").checked = regel.aktiv; oeffnen();
   }
   function oeffnen() { el("arModal").style.display = "block"; } function schliessen() { el("arModal").style.display = "none"; }
   async function speichern() {
     const freiAbInput = el("arFreiAb").value.trim();
-    const daten = { nr: Number(el("arNr").value), jaeger_id: el("arJaeger").value, wildklasse_id: el("arWildklasse").value, regel_typ: el("arTyp").value,
+    const daten = { nr: Number(el("arNr").value), jaeger_id: jaegerDropdown.getValue(), wildklasse_id: el("arWildklasse").value, regel_typ: el("arTyp").value,
       frei_ab: freiAbInput || null,
       freigabejahr: el("arFreigabejahr").value ? Number(el("arFreigabejahr").value) : null, bemerkung: el("arBemerkung").value.trim() || null,
       aktiv: el("arAktiv").checked, gueltig_ab: null, regel_wert: null, geaendert_am: new Date().toISOString() };
     if (!daten.nr || !daten.jaeger_id || !daten.wildklasse_id || !daten.regel_typ || !daten.freigabejahr) return AppFeedback.error("Nr., Jäger, Wildklasse, Regel und Freigabejahr sind erforderlich.");
     if (daten.frei_ab && Number(daten.frei_ab.slice(0, 4)) !== daten.freigabejahr) return AppFeedback.error(`Das Datum Frei ab muss innerhalb des Freigabejahres ${daten.freigabejahr} liegen.`);
     console.debug("[ABSCHUSSREGEL SAVE]", {
-      Jaeger: el("arJaeger").selectedOptions[0]?.textContent || daten.jaeger_id,
+      Jaeger: jaegerDropdown.getLabel() || daten.jaeger_id,
       Wildklasse: el("arWildklasse").selectedOptions[0]?.textContent || daten.wildklasse_id,
       Freigabejahr: daten.freigabejahr,
       "Frei-ab-Input": freiAbInput,

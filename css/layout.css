@@ -3737,10 +3737,17 @@ textarea.form-control {
 .jagdjahr-hirsch-bereich { min-width: 0; }
 .jagdjahr-hirsch-bereich.is-wide { grid-column: 1 / -1; }
 .jagdjahr-hirsch-bereich h3 { margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 1.5px solid #5e6b74; color: #243342; font-size: 15pt; letter-spacing: .06em; }
+.jagdjahr-hirsch-sheet.is-hirsch-layout .jagdjahr-hirsch-bereich h3 { margin-bottom: 7mm; padding-bottom: 3mm; }
 .jagdjahr-hirsch-columns,
 .jagdjahr-hirsch-row { display: grid; grid-template-columns: 13mm 19mm minmax(0, 1fr) 16mm 8mm; align-items: center; column-gap: 2mm; }
 .jagdjahr-hirsch-columns { padding: 0 1.5mm 1.5mm; color: #71808a; font-size: 7.5pt; font-weight: 400; }
+.jagdjahr-hirsch-sheet.is-hirsch-layout .jagdjahr-hirsch-columns,
+.jagdjahr-hirsch-sheet.is-hirsch-layout .jagdjahr-hirsch-row:not(.ohne-klasse) { grid-template-columns: 11mm 18mm minmax(0, 1fr) 16mm 8mm; }
+.jagdjahr-hirsch-sheet.is-hirsch-layout .jagdjahr-hirsch-columns { padding-bottom: 2.5mm; }
+.jagdjahr-hirsch-bereich.ohne-klasse .jagdjahr-hirsch-columns,
+.jagdjahr-hirsch-row.ohne-klasse { grid-template-columns: 19mm minmax(0, 1fr) 16mm 8mm; }
 .jagdjahr-hirsch-columns b { font-weight: 600; }
+.jagdjahr-hirsch-columns b:nth-last-child(2) { text-align: right; }
 .jagdjahr-hirsch-list { display: grid; }
 .jagdjahr-hirsch-row { width: 100%; min-width: 0; min-height: 6.1mm; padding: 1.1mm 1.5mm; border: 0; border-bottom: 1px solid #d9dddf; background: transparent; color: #18232a; font: inherit; text-align: left; cursor: pointer; }
 .jagdjahr-hirsch-row:hover,
@@ -3748,10 +3755,12 @@ textarea.form-control {
 .jagdjahr-hirsch-row b { color: #243342; font-size: 10pt; }
 .jagdjahr-hirsch-row time { font-size: 9pt; white-space: nowrap; }
 .jagdjahr-hirsch-row span { min-width: 0; overflow: hidden; font-size: 9.5pt; text-overflow: ellipsis; white-space: nowrap; }
+.jagdjahr-hirsch-sheet.is-hirsch-layout .jagdjahr-hirsch-row span { text-overflow: clip; }
 .jagdjahr-hirsch-row em { font-size: 9pt; font-style: normal; font-weight: 700; text-align: right; white-space: nowrap; }
 .jagdjahr-hirsch-row small { color: #8a5b18; font-size: 7.5pt; font-weight: 700; text-align: center; }
 .jagdjahr-hirsch-row.is-fallwild { color: #b96100; }
 .jagdjahr-hirsch-summe { margin: 2mm 1.5mm 0; color: #596770; font-size: 8.5pt; text-align: right; }
+.jagdjahr-hirsch-sheet.is-hirsch-layout .jagdjahr-hirsch-summe { display: grid; justify-content: end; gap: 1mm; margin-top: 3mm; }
 .jagdjahr-hirsch-list-empty { margin: 5mm 1.5mm; color: #65737b; font-size: 9pt; }
 .jagdjahr-hirsch-empty { margin: 25mm auto 0; color: #65737b; font-size: 13pt; text-align: center; }
 .jagdjahr-hirsch-grid.is-dense { gap: 5mm; }
@@ -3791,6 +3800,10 @@ textarea.form-control {
 .key-dates-toolbar { align-items: flex-end; gap: 16px; }
 .key-dates-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
 .key-dates-controls > label { display: grid; gap: 4px; font-weight: 700; }
+.key-dates-view-toggle { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.key-dates-view-toggle .btn { min-width: 150px; }
+.checkbox-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.checkbox-inline input { margin: 0; }
 .key-dates-scroll { max-width: 100%; overflow-x: auto; padding: 12px 0; }
 .key-dates-pages { display: grid; gap: 24px; justify-content: center; }
 .key-dates-sheet { box-sizing: border-box; width: 210mm; height: 297mm; padding: 10mm; overflow: hidden; background: #fff; box-shadow: 0 2px 14px #0002; }
@@ -3815,6 +3828,8 @@ textarea.form-control {
     .key-dates-toolbar { align-items: stretch; }
     .key-dates-controls { display: grid; grid-template-columns: 1fr 1fr; }
     .key-dates-controls > label { grid-column: 1 / -1; }
+    .key-dates-view-toggle { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
+    .key-dates-view-toggle .btn { min-width: 0; }
     .key-dates-pages { width: max-content; justify-content: start; }
     .key-dates-sheet { flex: none; box-shadow: 0 1px 7px #0002; }
 }

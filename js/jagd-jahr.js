@@ -84,7 +84,7 @@ window.JagdJahr = (() => {
   }
   function abschussListenSeitenDaten() {
     const hirsche=hirschGruppen(hirschEintraege(jahr)),rehboecke=rehbockEintraege();
-    return [{typ:"hirsche",titel:"HIRSCHABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"HIRSCH A",rechtsTitel:"HIRSCH B",...hirsche},
+    return [{typ:"hirsche",layout:"hirsch",titel:"HIRSCHABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"HIRSCH A",rechtsTitel:"HIRSCH B",...hirsche},
       {typ:"hirsche",titel:"REHBOCK-ABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"REHBOCK A",rechtsTitel:"REHBOCK B",
         leertext:"Keine Rehbock-Abschüsse vorhanden.",a:rehboecke.filter((x)=>x.klasse==="A"),b:rehboecke.filter((x)=>x.klasse==="B"),weitere:[]}];
   }
@@ -123,31 +123,36 @@ window.JagdJahr = (() => {
     const tbody=document.createElement("tbody");
     for(let tag=1;tag<=31;tag+=1){const tr=document.createElement("tr");monatsListe.forEach((m)=>{const td=document.createElement("td");const gueltig=tag<=new Date(m.jahr,m.monat+1,0).getDate();if(!gueltig){td.className="is-invalid";tr.appendChild(td);return;}td.innerHTML=`<span class="jagdjahr-tag">${tag}</span>`;const box=document.createElement("div"),items=map.get(`${m.jahr}-${m.monat+1}-${tag}`)||[],namenAnzahl=items.filter((item)=>item.vorname).length;box.className=`jagdjahr-eintraege${namenAnzahl?" has-names":""}${namenAnzahl>=2?" has-multiple-names":""}${items.length>3?" is-dense":""}${items.length>6?" is-very-dense":""}`;abschussRaster(box,items);td.appendChild(box);tr.appendChild(td);});tbody.appendChild(tr);}table.appendChild(tbody);section.appendChild(table);return section;
   }
-  function hirschZeile(item) {
-    const button=document.createElement("button");button.type="button";button.className=`jagdjahr-hirsch-row${item.fallwild?" is-fallwild":""}`;button.dataset.id=item.id;
-    const datum=item.datum?`${item.datum.slice(8,10)}.${item.datum.slice(5,7)}.`:"–";
-    const status=[item.sonderabschuss?"S":"",item.fallwild?"F":""].filter(Boolean).join("/");
+  function hirschZeile(item,optionen={}) {
+    const button=document.createElement("button");button.type="button";button.className=`jagdjahr-hirsch-row${optionen.ohneKlasse?" ohne-klasse":""}${item.fallwild?" is-fallwild":""}`;button.dataset.id=item.id;
+    const datum=item.datum?`${item.datum.slice(8,10)}.${item.datum.slice(5,7)}${optionen.datumOhneEndpunkt?"":"."}`:"–";
+    const status=[item.sonderabschuss?"S":"",item.fallwild?"FW":""].filter(Boolean).join("/");
     button.title=[item.jaeger,item.sonderabschuss?"Sonderabschuss":"",item.fallwild?"Fallwild":""].filter(Boolean).join(" · ");
-    button.innerHTML=`<b>${escapeHtml(item.klasse)}</b><time>${escapeHtml(datum)}</time><span>${escapeHtml(item.jaeger)}</span><em>${item.alter==null?"–":`${item.alter} J.`}</em>${status?`<small>${status}</small>`:""}`;
+    button.innerHTML=`${optionen.ohneKlasse?"":`<b>${escapeHtml(item.klasse)}</b>`}<time>${escapeHtml(datum)}</time><span>${escapeHtml(item.jaeger)}</span><em>${item.alter==null?"–":`${item.alter} J.`}</em>${status?`<small>${status}</small>`:""}`;
     return button;
   }
-  function hirschBereich(titel,liste) {
-    const section=document.createElement("section");section.className="jagdjahr-hirsch-bereich";
-    section.innerHTML=`<h3>${titel}</h3><div class="jagdjahr-hirsch-columns"><b>Klasse</b><b>Datum</b><b>Jäger</b><b>Alter</b><b></b></div>`;
+  function hirschBereich(titel,liste,optionen={}) {
+    const section=document.createElement("section");section.className=`jagdjahr-hirsch-bereich${optionen.ohneKlasse?" ohne-klasse":""}`;
+    section.innerHTML=`<h3>${titel}</h3><div class="jagdjahr-hirsch-columns">${optionen.ohneKlasse?"":"<b>Klasse</b>"}<b>Datum</b><b>Jäger</b><b>Alter</b><b></b></div>`;
     const rows=document.createElement("div");rows.className="jagdjahr-hirsch-list";
-    liste.forEach((item)=>rows.appendChild(hirschZeile(item)));section.appendChild(rows);
+    liste.forEach((item)=>rows.appendChild(hirschZeile(item,optionen)));section.appendChild(rows);
     if(!liste.length){const leer=document.createElement("p");leer.className="jagdjahr-hirsch-list-empty";leer.textContent="Keine Einträge vorhanden.";section.appendChild(leer);}
-    if(liste.length){const summe=document.createElement("p");summe.className="jagdjahr-hirsch-summe";summe.textContent=`${liste.length} Stk.`;section.appendChild(summe);}
+    if(liste.length){const summe=document.createElement("div");summe.className="jagdjahr-hirsch-summe";
+      if(optionen.getrennteSummen){const regulaer=liste.filter((item)=>item.fallwild!==true).length,fallwild=liste.filter((item)=>item.fallwild===true).length;
+        summe.innerHTML=`<span>Abschuss: <b>${regulaer} Stk.</b></span><span>Fallwild: <b>${fallwild} Stk.</b></span>`;
+      }else summe.textContent=`${liste.length} Stk.`;section.appendChild(summe);}
     return section;
   }
   function hirschSeite(seitenDaten) {
-    const section=document.createElement("section");section.className="jagdjahr-sheet jagdjahr-hirsch-sheet";
+    const section=document.createElement("section");section.className=`jagdjahr-sheet jagdjahr-hirsch-sheet${seitenDaten.layout==="hirsch"?" is-hirsch-layout":""}`;
     section.innerHTML=`<header><h2>${escapeHtml(seitenDaten.titel||"HIRSCHABSCHÜSSE")}</h2><strong>${seitenDaten.jahr}</strong><p>${escapeHtml(seitenDaten.untertitel||"")}</p></header>`;
     const anzahl=seitenDaten.a.length+seitenDaten.b.length+seitenDaten.weitere.length;
     if(!anzahl){const leer=document.createElement("p");leer.className="jagdjahr-hirsch-empty";leer.textContent=seitenDaten.leertext||"Keine Hirschabschüsse vorhanden.";section.appendChild(leer);return section;}
     const grid=document.createElement("div");grid.className=`jagdjahr-hirsch-grid${Math.max(seitenDaten.a.length,seitenDaten.b.length)>36?" is-dense":""}`;
-    grid.append(hirschBereich(seitenDaten.linksTitel||"HIRSCH A",seitenDaten.a),hirschBereich(seitenDaten.rechtsTitel||"HIRSCH B",seitenDaten.b));
-    if(seitenDaten.weitere.length){const weitere=hirschBereich("WEITERE HIRSCHE",seitenDaten.weitere);weitere.classList.add("is-wide");grid.appendChild(weitere);}
+    const istHirschLayout=seitenDaten.layout==="hirsch";
+    grid.append(hirschBereich(seitenDaten.linksTitel||"HIRSCH A",seitenDaten.a,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout}),
+      hirschBereich(seitenDaten.rechtsTitel||"HIRSCH B",seitenDaten.b,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout}));
+    if(seitenDaten.weitere.length){const weitere=hirschBereich("WEITERE HIRSCHE",seitenDaten.weitere,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});weitere.classList.add("is-wide");grid.appendChild(weitere);}
     section.appendChild(grid);return section;
   }
   function rendern(){const map=gruppiert(),seiten=el("jjSeiten");seiten.innerHTML="";seiten.append(seite("Mai bis Dezember",monate(MONATE_1),map),seite("Jänner bis April",monate(MONATE_2),map),...abschussListenSeitenDaten().map(hirschSeite));requestAnimationFrame(()=>namenEinpassen(seiten));}

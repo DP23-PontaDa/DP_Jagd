@@ -38,6 +38,9 @@ window.Abschuss = (() => {
 
     jaegerDropdown = new SearchDropdown(el("asJaeger"), {
       placeholder: "Jäger suchen",
+      minChars: 2,
+      maxResults: 10,
+      prioritizeMatches: true,
       onChange: freigabeZusatzinfoVorschlagen,
     });
     wildgruppeDropdown = new SearchDropdown(el("asWildgruppe"), {
@@ -157,13 +160,7 @@ window.Abschuss = (() => {
 
   async function ladeJaeger() {
       jaeger = await AbschussService.getAuswaehlbareAbschussJaeger();
-      jaegerDropdown.setOptions(
-        jaeger.map((person) => ({
-          value: person.id,
-          label: [person.vorname, person.nachname].filter(Boolean).join(" "),
-          data: person,
-        })),
-      );
+      jaegerDropdown.setOptions(PersonenAutocompleteService.optionen(jaeger));
   }
 
   async function ladeWildgruppen() {

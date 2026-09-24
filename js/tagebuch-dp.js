@@ -8,6 +8,7 @@ window.TagebuchDp = (() => {
   let neueBilder = [];
   let ortAuswahl = null;
   let hashtagInput = null;
+  let personenInput = null;
 
   function relation(value) { return Array.isArray(value) ? value[0] : value; }
   function escapeHtml(value) {
@@ -31,6 +32,7 @@ window.TagebuchDp = (() => {
   async function init() {
     ortAuswahl = new OrteAuswahl(el("tbOrt"), el("tbOrtInfo"), { placeholder: "Ort suchen" });
     hashtagInput = new HashtagInput(el("tbHashtags"), { placeholder: "Hashtag suchen oder neu eingeben" });
+    personenInput = new PersonAutocomplete(el("tbWeiterePersonen"), { placeholder: "Person suchen..." });
     ["tbSuche", "tbVon", "tbBis", "tbFilterArt", "tbFilterOrt"].forEach((id) =>
       el(id).addEventListener("input", rendern));
     el("tbNeu").addEventListener("click", neu);
@@ -50,7 +52,7 @@ window.TagebuchDp = (() => {
     el("tbFehler").hidden = true;
     try {
       [arten, abschuesse] = await Promise.all([
-        TagebuchartenService.laden(), TagebuchDpService.abschuesseLaden(), hashtagInput.laden(),
+        TagebuchartenService.laden(), TagebuchDpService.abschuesseLaden(), hashtagInput.laden(), personenInput.laden(),
       ]);
       await ortAuswahl.laden();
       optionenRendern();
@@ -163,7 +165,7 @@ window.TagebuchDp = (() => {
     artOptionen();
     el("tbDatum").value = jetzt.datum; el("tbUhrzeit").value = jetzt.zeit;
     el("tbArt").value = ""; el("tbTitel").value = "";
-    el("tbBeschreibung").value = ""; el("tbWeiterePersonen").value = ""; el("tbAbschuss").value = "";
+    el("tbBeschreibung").value = ""; personenInput.clear(); el("tbAbschuss").value = "";
     hashtagInput.clear();
     ortAuswahl.clear(); bilderRendern(); modalModus(false); el("tbModalTitel").textContent = "Neuer Tagebucheintrag"; oeffnen();
   }
@@ -174,7 +176,7 @@ window.TagebuchDp = (() => {
     el("tbArt").value = row.art_id; el("tbTitel").value = row.titel || "";
     el("tbBeschreibung").value = row.beschreibung || "";
     hashtagInput.setTags(hashtagsFuer(row).map((tag) => tag.bezeichnung));
-    el("tbWeiterePersonen").value = row.weitere_personen || ""; el("tbAbschuss").value = row.abschuss_id || "";
+    personenInput.setValue(row.weitere_personen || ""); el("tbAbschuss").value = row.abschuss_id || "";
     ortAuswahl.setValue(row.ort_id, false); bilderRendern(); modalModus(nurLesen);
     el("tbModalTitel").textContent = nurLesen ? row.titel : "Tagebucheintrag bearbeiten"; oeffnen();
   }
@@ -186,6 +188,7 @@ window.TagebuchDp = (() => {
     el("tbDetailEdit").hidden = !nurLesen; el("tbDetailDelete").hidden = !nurLesen;
     el("tbBilderVorschau").classList.toggle("is-readonly", nurLesen);
     hashtagInput.setDisabled(nurLesen);
+    personenInput.setDisabled(nurLesen);
     BerechtigungService.aktionsrechteAnwenden("tagebuch-dp", el("tbModal"));
   }
 
@@ -232,7 +235,7 @@ window.TagebuchDp = (() => {
     const daten = {
       datum: el("tbDatum").value, uhrzeit: el("tbUhrzeit").value, art_id: el("tbArt").value,
       titel: el("tbTitel").value,
-      beschreibung: el("tbBeschreibung").value, weitere_personen: el("tbWeiterePersonen").value,
+      beschreibung: el("tbBeschreibung").value, weitere_personen: personenInput.getValue(),
       ort_id: ortAuswahl.getValue(), abschuss_id: el("tbAbschuss").value || null,
     };
     if (!daten.datum || !daten.art_id || !daten.titel.trim()) {

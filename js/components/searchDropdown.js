@@ -8,6 +8,9 @@ window.SearchDropdown = class SearchDropdown {
     this.value = "";
     this.disabled = Boolean(options.disabled);
     this.placeholder = options.placeholder || "Auswählen oder suchen";
+    this.minChars = Math.max(0, Number(options.minChars) || 0);
+    this.maxResults = Math.max(0, Number(options.maxResults) || 0);
+    this.prioritizeMatches = Boolean(options.prioritizeMatches);
     this.onChange =
       typeof options.onChange === "function" ? options.onChange : () => {};
 
@@ -107,18 +110,36 @@ window.SearchDropdown = class SearchDropdown {
 
   filter(term) {
     const needle = String(term || "").trim().toLocaleLowerCase("de");
+    if (needle.length < this.minChars) {
+      this.filteredOptions = [];
+      this.renderOptions(needle);
+      return;
+    }
     this.filteredOptions = this.options.filter((option) =>
       option.label.toLocaleLowerCase("de").includes(needle),
     );
-    this.renderOptions();
+    if (this.prioritizeMatches && needle) {
+      const score = (option) => {
+        const label = option.label.toLocaleLowerCase("de");
+        if (label === needle) return 0;
+        if (label.startsWith(needle)) return 1;
+        if (label.split(/\s+/).some((teil) => teil.startsWith(needle))) return 2;
+        return 3;
+      };
+      this.filteredOptions.sort((a, b) => score(a) - score(b) || a.label.localeCompare(b.label, "de"));
+    }
+    if (this.maxResults) this.filteredOptions = this.filteredOptions.slice(0, this.maxResults);
+    this.renderOptions(needle);
   }
 
-  renderOptions() {
+  renderOptions(needle = String(this.input?.value || "").trim()) {
     this.list.innerHTML = "";
     if (!this.filteredOptions.length) {
       const empty = document.createElement("li");
       empty.className = "search-dropdown-empty";
-      empty.textContent = "Keine passenden Einträge";
+      empty.textContent = needle.length < this.minChars
+        ? `Mindestens ${this.minChars} Zeichen eingeben`
+        : "Keine passenden Einträge";
       this.list.appendChild(empty);
       return;
     }
@@ -182,7 +203,8 @@ window.SearchDropdown = class SearchDropdown {
       return;
     }
     if (event.key === "Enter") {
-      const active = this.list.querySelector(".active");
+      const active = this.list.querySelector(".active") ||
+        (this.filteredOptions.length === 1 ? this.list.querySelector("[data-value]") : null);
       if (active && active.dataset.value) {
         event.preventDefault();
         this.select(active.dataset.value);

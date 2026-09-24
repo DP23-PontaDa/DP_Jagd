@@ -945,6 +945,7 @@ function persSavePerson() {
   })
       .then(function(data) {
         persApplyData(data);
+        window.PersonenAutocompleteService?.invalidate();
         const gespeichert = persAllPersons.find(function(item) {
           if (person.originalPersonId) {
             return String(item.personId) === String(person.originalPersonId);
@@ -986,6 +987,7 @@ async function persDeletePersonConfirm(personId) {
   window.DPJagdApi.deletePerson(person.personId)
     .then(function(data) {
       persApplyData(data);
+      window.PersonenAutocompleteService?.invalidate();
       persClosePersonModal();
       AppFeedback.success('Datensatz gelöscht.');
     })

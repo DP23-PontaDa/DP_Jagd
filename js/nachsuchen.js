@@ -26,11 +26,7 @@ const Nachsuchen = (() => {
   const el = (id) => document.getElementById(id);
 
   function personenOptionen(rows) {
-    return rows.map((row) => ({
-      value: row.id,
-      label: [row.vorname, row.nachname].filter(Boolean).join(" "),
-      data: row,
-    }));
+    return PersonenAutocompleteService.optionen(rows);
   }
 
   async function init(modus = "nachsuchen") {
@@ -46,8 +42,9 @@ const Nachsuchen = (() => {
     el("nsWildklasseLabel").textContent = config.wildLabel;
     tabelleKonfigurieren();
 
-    jaegerDropdown = new SearchDropdown(el("nsJaeger"), { placeholder: "Jäger suchen" });
-    hundefuehrerDropdown = new SearchDropdown(el("nsHundefuehrer"), { placeholder: "Hundeführer suchen" });
+    const personenSuche = { minChars: 2, maxResults: 10, prioritizeMatches: true };
+    jaegerDropdown = new SearchDropdown(el("nsJaeger"), { placeholder: "Jäger suchen", ...personenSuche });
+    hundefuehrerDropdown = new SearchDropdown(el("nsHundefuehrer"), { placeholder: "Hundeführer suchen", ...personenSuche });
     wildgruppeDropdown = new SearchDropdown(el("nsWildgruppe"), {
       placeholder: "Wildgruppe suchen", onChange: wildgruppeGeaendert,
     });

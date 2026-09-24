@@ -5,6 +5,7 @@ window.JaegerBericht = (() => {
   const datum = (value) => value ? new Intl.DateTimeFormat("de-AT").format(new Date(`${value}T12:00:00`)) : "–";
   const norm = (value) => String(value || "").trim().toLocaleLowerCase("de");
   let daten = null;
+  let jaegerDropdown = null;
 
   function zeitraumText(){return daten.vonJahr===daten.bisJahr?String(daten.vonJahr):`${daten.vonJahr} – ${daten.bisJahr}`;}
 
@@ -115,7 +116,7 @@ window.JaegerBericht = (() => {
   }
   function dateiname() { const clean=(value)=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,""); const zeitraum=daten.vonJahr===daten.bisJahr?daten.vonJahr:`${daten.vonJahr}-${daten.bisJahr}`;return `DP_Jagd_Jaegerdatenblatt_${clean(daten.jaeger.nachname)}_${clean(daten.jaeger.vorname)}_${zeitraum}.pdf`; }
   async function anzeigen() {
-    const jaegerId=el("jbJaeger").value; if(!jaegerId){AppFeedback.error("Bitte einen Jäger auswählen.");return;}
+    const jaegerId=jaegerDropdown.getValue(); if(!jaegerId){AppFeedback.error("Bitte einen Jäger auswählen.");return;}
     const von=Number(el("jbVonJahr").value),bis=Number(el("jbBisJahr").value);if(von>bis){AppFeedback.error("Das Startjahr darf nicht größer als das Endjahr sein.");return;}
     const button=el("jbAnzeigen"); button.disabled=true; el("jbStatus").hidden=false;el("jbStatus").textContent="Jägerdatenblatt wird geladen …";
     try { daten=await JaegerBerichtService.laden(jaegerId,von,bis);rendern();el("jbStatus").textContent="";el("jbStatus").hidden=true;el("jbPdf").disabled=false;el("jbDrucken").disabled=false; }
@@ -123,14 +124,18 @@ window.JaegerBericht = (() => {
   }
   async function pdf() { const button=el("jbPdf"),text=button.textContent;button.disabled=true;button.textContent="Erstellt …";try{const blob=await JaegerBerichtPdfService.erstellen(el("jbSeiten"));JaegerBerichtPdfService.speichern(blob,dateiname());}catch(error){console.error("Jägerdatenblatt PDF:",error);AppFeedback.error(error.message);}finally{button.disabled=false;button.textContent=text;} }
   async function init() {
+    const auswahlGeaendert=()=>{el("jbPdf").disabled=true;el("jbDrucken").disabled=true;daten=null;if(el("jbSeiten").children.length){el("jbStatus").hidden=false;el("jbStatus").textContent="Auswahl geändert – bitte Bericht erneut anzeigen.";}};
     A4PreviewZoom.create({scroll:document.querySelector(".jaegerbericht-scroll"),pages:el("jbSeiten"),sheetSelector:".jaegerbericht-sheet"});
+    jaegerDropdown = new SearchDropdown(el("jbJaeger"), {
+      placeholder: "Jäger suchen", minChars: 2, maxResults: 10, prioritizeMatches: true,
+      onChange: auswahlGeaendert,
+    });
     const [jaeger,jahre]=await Promise.all([JaegerBerichtService.jaegerLaden(),JaegerBerichtService.jahreLaden()]);
-    el("jbJaeger").innerHTML='<option value="">Jäger auswählen</option>'+jaeger.map((row)=>`<option value="${row.id}">${esc(`${row.vorname||""} ${row.nachname||""}`.trim())}</option>`).join("");
+    jaegerDropdown.setOptions(PersonenAutocompleteService.optionen(jaeger));
     const optionen=jahre.map((jahr)=>`<option value="${jahr}">${jahr}</option>`).join("");el("jbVonJahr").innerHTML=optionen;el("jbBisJahr").innerHTML=optionen;
     const aktuell=new Date().getFullYear();el("jbVonJahr").value=String(aktuell);el("jbBisJahr").value=String(aktuell);
-    const auswahlGeaendert=()=>{el("jbPdf").disabled=true;el("jbDrucken").disabled=true;daten=null;if(el("jbSeiten").children.length){el("jbStatus").hidden=false;el("jbStatus").textContent="Auswahl geändert – bitte Bericht erneut anzeigen.";}};
     const zeitraumAktualisieren=()=>{const von=Number(el("jbVonJahr").value),bis=Number(el("jbBisJahr").value);el("jbZeitraum").textContent=`Berichtszeitraum: ${von===bis?von:`${von} – ${bis}`}`;auswahlGeaendert();};
-    el("jbVonJahr").addEventListener("change",zeitraumAktualisieren);el("jbBisJahr").addEventListener("change",zeitraumAktualisieren);el("jbJaeger").addEventListener("change",auswahlGeaendert);zeitraumAktualisieren();
+    el("jbVonJahr").addEventListener("change",zeitraumAktualisieren);el("jbBisJahr").addEventListener("change",zeitraumAktualisieren);zeitraumAktualisieren();
     el("jbAnzeigen").addEventListener("click",anzeigen);el("jbPdf").addEventListener("click",pdf);el("jbDrucken").addEventListener("click",()=>window.print());
   }
   return {init};
