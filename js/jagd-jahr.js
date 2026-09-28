@@ -85,7 +85,7 @@ window.JagdJahr = (() => {
   function abschussListenSeitenDaten() {
     const hirsche=hirschGruppen(hirschEintraege(jahr)),rehboecke=rehbockEintraege();
     return [{typ:"hirsche",layout:"hirsch",titel:"HIRSCHABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"HIRSCH A",rechtsTitel:"HIRSCH B",...hirsche},
-      {typ:"hirsche",titel:"REHBOCK-ABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"REHBOCK A",rechtsTitel:"REHBOCK B",
+      {typ:"hirsche",titel:"REHBOCK-ABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"REHBOCK A",rechtsTitel:"REHBOCK B",getrennteSummen:true,
         leertext:"Keine Rehbock-Abschüsse vorhanden.",a:rehboecke.filter((x)=>x.klasse==="A"),b:rehboecke.filter((x)=>x.klasse==="B"),weitere:[]}];
   }
   function gruppiert() {
@@ -150,9 +150,10 @@ window.JagdJahr = (() => {
     if(!anzahl){const leer=document.createElement("p");leer.className="jagdjahr-hirsch-empty";leer.textContent=seitenDaten.leertext||"Keine Hirschabschüsse vorhanden.";section.appendChild(leer);return section;}
     const grid=document.createElement("div");grid.className=`jagdjahr-hirsch-grid${Math.max(seitenDaten.a.length,seitenDaten.b.length)>36?" is-dense":""}`;
     const istHirschLayout=seitenDaten.layout==="hirsch";
-    grid.append(hirschBereich(seitenDaten.linksTitel||"HIRSCH A",seitenDaten.a,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout}),
-      hirschBereich(seitenDaten.rechtsTitel||"HIRSCH B",seitenDaten.b,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout}));
-    if(seitenDaten.weitere.length){const weitere=hirschBereich("WEITERE HIRSCHE",seitenDaten.weitere,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});weitere.classList.add("is-wide");grid.appendChild(weitere);}
+    const getrennteSummen=seitenDaten.getrennteSummen===true||istHirschLayout;
+    grid.append(hirschBereich(seitenDaten.linksTitel||"HIRSCH A",seitenDaten.a,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen}),
+      hirschBereich(seitenDaten.rechtsTitel||"HIRSCH B",seitenDaten.b,{datumOhneEndpunkt:istHirschLayout,getrennteSummen}));
+    if(seitenDaten.weitere.length){const weitere=hirschBereich("WEITERE HIRSCHE",seitenDaten.weitere,{datumOhneEndpunkt:istHirschLayout,getrennteSummen});weitere.classList.add("is-wide");grid.appendChild(weitere);}
     section.appendChild(grid);return section;
   }
   function rendern(){const map=gruppiert(),seiten=el("jjSeiten");seiten.innerHTML="";seiten.append(seite("Mai bis Dezember",monate(MONATE_1),map),seite("Jänner bis April",monate(MONATE_2),map),...abschussListenSeitenDaten().map(hirschSeite));requestAnimationFrame(()=>namenEinpassen(seiten));}

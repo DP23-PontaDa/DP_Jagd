@@ -123,9 +123,10 @@ const JagdJahrPdfService = (() => {
       else text("Keine Einträge vorhanden.",x+8,y+78,breite-16,"left","16px Arial","#65737b");
     }
     const istHirschLayout=seite.layout==="hirsch";
-    bereich(seite.linksTitel||"HIRSCH A",seite.a||[],links,oben,spaltenBreite,hauptHoehe,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});
-    bereich(seite.rechtsTitel||"HIRSCH B",seite.b||[],links+spaltenBreite+abstand,oben,spaltenBreite,hauptHoehe,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});
-    if(hatWeitere){const y=oben+hauptHoehe+35;bereich("WEITERE HIRSCHE",seite.weitere||[],links,y,A4_BREITE-links*2,A4_HOEHE-y-45,{datumOhneEndpunkt:istHirschLayout,getrennteSummen:istHirschLayout});}
+    const getrennteSummen=seite.getrennteSummen===true||istHirschLayout;
+    bereich(seite.linksTitel||"HIRSCH A",seite.a||[],links,oben,spaltenBreite,hauptHoehe,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen});
+    bereich(seite.rechtsTitel||"HIRSCH B",seite.b||[],links+spaltenBreite+abstand,oben,spaltenBreite,hauptHoehe,{datumOhneEndpunkt:istHirschLayout,getrennteSummen});
+    if(hatWeitere){const y=oben+hauptHoehe+35;bereich("WEITERE HIRSCHE",seite.weitere||[],links,y,A4_BREITE-links*2,A4_HOEHE-y-45,{datumOhneEndpunkt:istHirschLayout,getrennteSummen});}
     return canvasBlob(canvas);
   }
 

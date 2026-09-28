@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v225";
+const CACHE_NAME = "dp-jagd-shell-v229";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./assets/app-icon.svg?v=2",
   "./assets/apple-touch-icon.png?v=1",
   "./assets/rechnung-logo.png",
-  "./css/layout.css?v=224",
+  "./css/layout.css?v=227",
   "./css/person-autocomplete.css?v=1",
   "./css/sidebar.css?v=168",
   "./css/login.css",
@@ -33,7 +33,7 @@ const APP_SHELL = [
   "./js/planpositionen.js",
   "./js/wildhaendler.js?v=154",
   "./js/abschuss.js?v=172",
-  "./js/jagd-jahr.js?v=13",
+  "./js/jagd-jahr.js?v=14",
   "./js/dp-jahr.js?v=4",
   "./js/rechnungen.js?v=160",
   "./js/rechnungsvorlage.js",
@@ -75,7 +75,7 @@ const APP_SHELL = [
   "./js/services/rechnungService.js?v=155",
   "./js/services/rechnungPrintService.js?v=88",
   "./js/services/jagdJahrService.js?v=4",
-  "./js/services/jagdJahrPdfService.js?v=12",
+  "./js/services/jagdJahrPdfService.js?v=13",
   "./js/services/rechnungsvorlageService.js",
   "./js/services/berechtigungService.js?v=174",
   "./js/services/benutzerverwaltungService.js?v=95",
