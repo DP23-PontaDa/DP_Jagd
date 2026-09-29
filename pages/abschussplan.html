@@ -4,7 +4,8 @@
   <div class="action-bar">
     <div class="pers-tabs">
       <button class="pers-tab-btn" data-recht-code="abschussplan-uebersicht" data-target="ap-overview">Übersicht</button>
-      <button class="pers-tab-btn" data-recht-code="abschussplan-rotwild" data-target="ap-rotwild">Rotwild</button>
+      <button class="pers-tab-btn" data-recht-code="abschussplan-rotwild" data-target="ap-rotwild">Abschussfreigabe Rotwild</button>
+      <button class="pers-tab-btn" data-recht-code="abschussplan-rotwild" data-target="ap-hirsch-a-verlauf">Hirsch A Freigabeverlauf</button>
       <button class="pers-tab-btn" data-recht-code="abschussplan-rehwild" data-target="ap-rehwild">Rehwild</button>
       <button class="pers-tab-btn" data-recht-code="abschussplan-gamswild" data-target="ap-gamswild">Gamswild</button>
       <button class="pers-tab-btn" data-recht-code="abschussplan-jahre" data-target="ap-jahre">Übersicht Jahre</button>
@@ -45,6 +46,21 @@
     </template>
 
     <div id="ap-rotwild" class="ap-pane" hidden></div>
+    <div id="ap-hirsch-a-verlauf" class="ap-pane" hidden>
+      <div class="action-bar hav-action-bar">
+        <div>
+          <h2>Hirsch A Freigabeverlauf</h2>
+          <p class="hav-hinweis">Zeitlicher Verlauf der freigabewirksamen Hirsch-A-Freigaben.</p>
+        </div>
+        <div class="hav-actions">
+          <label>Jahr <select id="havJahr" class="form-control"></select></label>
+          <button id="havPdf" class="btn btn-secondary" type="button">PDF</button>
+          <button id="havDrucken" class="btn btn-secondary" type="button">Drucken</button>
+        </div>
+      </div>
+      <div id="havFehler" class="load-error-box" hidden></div>
+      <div class="hav-scroll"><div id="havSeiten" class="jagdjahr-pages"></div></div>
+    </div>
     <div id="ap-rehwild" class="ap-pane" hidden></div>
     <div id="ap-gamswild" class="ap-pane" hidden></div>
 

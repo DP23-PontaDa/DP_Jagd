@@ -187,5 +187,43 @@ window.RotwildFreigabeGrafik = (() => {
     container.appendChild(status);
   }
 
-  return { REGEL_STARTJAHR, KAHLWILD_GUTHABEN_BIS_2024, MINDEST_KAHLWILD_ANZEIGE, berechnen, render };
+  // Gemeinsame zeitliche Ableitung für Grafik und Kalenderverlauf.
+  // Das feste 2025-Startguthaben und die A-B-B-Folge liegen damit an einer Stelle.
+  function hirschAFreigabeverlauf(jahr, freigabeEreignisse = []) {
+    if (Number(jahr) < REGEL_STARTJAHR) return { status: new Map(), freieA: 0 };
+    const start = `${REGEL_STARTJAHR}-05-01`, kalenderStart = `${jahr}-05-01`, jahresEnde = `${jahr}-12-31`;
+    const alle = [...freigabeEreignisse]
+      .filter((ereignis) => String(ereignis.datum || "") >= start && String(ereignis.datum || "") <= jahresEnde)
+      .sort((a, b) => String(a.datum).localeCompare(String(b.datum)) || Number(a.nr || 0) - Number(b.nr || 0));
+    const nachDatum = new Map();
+    alle.forEach((ereignis) => { const liste = nachDatum.get(ereignis.datum) || []; liste.push(ereignis); nachDatum.set(ereignis.datum, liste); });
+    let kahlwild = KAHLWILD_GUTHABEN_BIS_2024, freieA = 2;
+    const verarbeiten = (liste) => {
+      let aktion = null;
+      (liste || []).forEach((ereignis) => {
+        if (ereignis.typ === "KAHLWILD") {
+          kahlwild += 1;
+          if (FOLGE[Math.floor((kahlwild - 1) / SCHRITT) % FOLGE.length] === "Hirsch A") { freieA += 1; aktion = "frei"; }
+        } else if (ereignis.typ === "HIRSCH_A") {
+          freieA = Math.max(0, freieA - 1);
+          aktion = "erlegt";
+        }
+      });
+      return aktion;
+    };
+    alle.filter((ereignis) => String(ereignis.datum) < kalenderStart).forEach((ereignis) => verarbeiten([ereignis]));
+    const status = new Map();
+    for (let monat = 5; monat <= 12; monat += 1) {
+      const tage = new Date(Number(jahr), monat, 0).getDate();
+      for (let tag = 1; tag <= tage; tag += 1) {
+        const datum = `${jahr}-${String(monat).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+        const aktion = verarbeiten(nachDatum.get(datum));
+        if (aktion) status.set(datum, { art: aktion });
+        else if (freieA === 0) status.set(datum, { art: "offen" });
+      }
+    }
+    return { status, freieA };
+  }
+
+  return { REGEL_STARTJAHR, KAHLWILD_GUTHABEN_BIS_2024, MINDEST_KAHLWILD_ANZEIGE, berechnen, hirschAFreigabeverlauf, render };
 })();

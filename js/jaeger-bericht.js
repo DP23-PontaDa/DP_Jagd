@@ -46,7 +46,7 @@ window.JaegerBericht = (() => {
       if (ueberschrift) abschnittKopie.append(ueberschrift.cloneNode(true));
       const tabellenKopie = tabelleElement.cloneNode(false);
       [...tabelleElement.querySelectorAll(":scope > colgroup, :scope > thead")].forEach((teil) => tabellenKopie.append(teil.cloneNode(true)));
-      tabellenKopie.append(document.createElement("tbody")); abschnittKopie.append(tabellenKopie); folgeInhalt.append(abschnittKopie);
+      tabellenKopie.append(document.createElement("tbody")); abschnittKopie.append(tabellenKopie); folgeInhalt.prepend(abschnittKopie);
     }
     const tabellenKopie = abschnittKopie.querySelector("table");
     const zielBody = tabellenKopie.tBodies[0];
@@ -124,6 +124,8 @@ window.JaegerBericht = (() => {
           // Der Hirschbereich beginnt auf der aktuellen Seite und nur die überzähligen Zeilen folgen direkt.
         } else if (letzterBlock?.classList.contains("jb-rehbock-details") && zweiTabellenAufFolgeseiteVerschieben(letzterBlock, folgeseite)) {
           // Rehbock A und B bleiben kompakt; nur die überzähligen Zeilen gehen auf die Folgeseite.
+        } else if (letzterBlock?.classList.contains("jb-section") && letzterBlock.querySelector("table") && tabelleAufFolgeseiteVerschieben(aktuelleSeite, folgeseite)) {
+          // Tabellen bleiben auf der begonnenen Seite; nur überzählige Eintragsblöcke folgen direkt.
         } else if (inhalt.children.length > 1) {
           folgeseite.querySelector(".jaegerbericht-content").prepend(inhalt.lastElementChild);
         } else if (!tabelleAufFolgeseiteVerschieben(aktuelleSeite, folgeseite)) break;
@@ -196,14 +198,17 @@ window.JaegerBericht = (() => {
   }
   function rehwildSeite() {
     const rehwild = daten.auswertung.rehwild;
-    const bockA = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock A", "Alter", "Datum"], rehwild.rehbockADetails.slice(0, 14).map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
-    const bockB = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock B", "Datum"], rehwild.rehbockBDetails.slice(0, 14).map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fallwildHinweis(row), datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
+    const bockA = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock A", "Alter", "Datum"], rehwild.rehbockADetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
+    const bockB = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock B", "Datum"], rehwild.rehbockBDetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fallwildHinweis(row), datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
     return seite("REHWILD", `
       <div class="jb-stat-grid">${statistikKarte("Abschüsse", `${rehwild.gesamt} Stk.`)}${statistikKarte("Rehböcke", `${rehwild.rehbockA + rehwild.rehbockB} Stk.`, `A: ${rehwild.rehbockA} · B: ${rehwild.rehbockB}`)}${statistikKarte("Rehgeiß", `${rehwild.rehgeiss} Stk.`)}${statistikKarte("Rehkitz", `${rehwild.rehkitz} Stk.`)}</div>
       ${abschnitt("Rehwild nach Jahr", rehwildJahre(rehwild.jahre))}
       <div class="jb-report-two-columns jb-rehbock-details">${abschnitt("Rehbock A", bockA)}${abschnitt("Rehbock B", bockB)}</div>
-      ${daten.istVerein ? abschnitt("Rehwild nach Jäger", tabelle(["Jäger", "Anzahl"], daten.nachJaeger.rehwild.map((row) => [esc(row.jaeger), esc(`${row.anzahl} Stk.`)]))) : ""}
     `, "jb-wildseite jb-rehwild-seite");
+  }
+  function rehwildNachJaegerSeite() {
+    if (!daten.istVerein) return [];
+    return [seite("REHWILD – NACH JÄGER", abschnitt("Rehwild nach Jäger", tabelle(["Jäger", "Anzahl"], daten.nachJaeger.rehwild.map((row) => [esc(row.jaeger), esc(`${row.anzahl} Stk.`)]))), "jb-wildseite jb-rehwild-seite")];
   }
   function haarFederwildSeite() {
     const haarFeder = daten.auswertung.haarFederwild;
@@ -254,20 +259,22 @@ window.JaegerBericht = (() => {
   }
   function fallwildSeite() {
     const eintraege = daten.fallwild || [];
-    const jahresgruppen = fallwildJahresgruppen();
     const gruppen = fallwildGruppen();
-    const jahresuebersicht = jahresgruppen.length ? abschnitt("Fallwild nach Jahr", tabelle(["Jahr", "Wildgruppe", "Anzahl"], jahresgruppen.map((row) => [esc(row.jahr), esc(row.wildgruppe), esc(`${row.anzahl} Stk.`)]), "Keine Fallwild-Einträge im Berichtszeitraum.", "jb-fallwild-year-table")) : "";
     return seite("FALLWILD", `
       <p class="jb-page-period">Berichtszeitraum: ${esc(zeitraumText())}</p>
       <div class="jb-stat-grid jb-fallwild-stat-grid"><section class="jb-stat-card"><h3>Fallwild</h3><strong>${eintraege.length} Stk.</strong></section>${gruppen.map((gruppe) => statistikKarte(gruppe.bezeichnung, `${gruppe.anzahl} Stk.`)).join("")}</div>
-      ${abschnitt("Fallwild-Einträge", fallwildTabelle(eintraege.slice(0,6)))}
-      ${jahresuebersicht}
+      ${abschnitt("Fallwild-Einträge", fallwildTabelle(eintraege))}
     `, "jb-wildseite jb-fallwild-seite");
   }
   function fallwildFortsetzungen() {
-    const eintraege = daten.fallwild || [], seiten = [];
-    for (let index = 6; index < eintraege.length; index += 6) seiten.push(seite("FALLWILD – FORTSETZUNG", abschnitt("Fallwild-Einträge", fallwildTabelle(eintraege.slice(index, index + 6))), "jb-wildseite jb-fallwild-seite"));
-    return seiten;
+    const jahresgruppen = fallwildJahresgruppen();
+    if (!jahresgruppen.length) return [];
+    return [seite("FALLWILD – NACH JAHR", abschnitt("Fallwild nach Jahr", tabelle(
+      ["Jahr", "Wildgruppe", "Anzahl"],
+      jahresgruppen.map((row) => [esc(row.jahr), esc(row.wildgruppe), esc(`${row.anzahl} Stk.`)]),
+      "Keine Fallwild-Einträge im Berichtszeitraum.",
+      "jb-fallwild-year-table"
+    )), "jb-wildseite jb-fallwild-seite")];
   }
   function rotwildFortsetzungen() {
     const rotwild = daten.auswertung.rotwild, rehwild = daten.auswertung.rehwild;
@@ -281,15 +288,7 @@ window.JaegerBericht = (() => {
     const hirschZeilen = rotwild.hirschDetails.map((row) => [esc(row.klasse) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]);
     return fortsetzungsSeiten("ROTWILD", "Hirsche", ["Klasse", "Alter", "Datum"], hirschZeilen, 14, 14, "jb-date-table");
   }
-  function rehwildFortsetzungen() {
-    const rehwild = daten.auswertung.rehwild;
-    const a = rehwild.rehbockADetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]);
-    const b = rehwild.rehbockBDetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse), datum(row.datum)]);
-    return [
-      ...fortsetzungsSeiten("REHWILD", "Rehbock A", daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock A", "Alter", "Datum"], a, 14, 14, "jb-date-table"),
-      ...fortsetzungsSeiten("REHWILD", "Rehbock B", daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock B", "Datum"], b, 14, 14, "jb-date-table"),
-    ];
-  }
+  function rehwildFortsetzungen() { return []; }
 
   function freigabenSeite() {
     if (daten.istVerein) {
@@ -327,21 +326,19 @@ window.JaegerBericht = (() => {
     probe:daten.probeschuesse.map((row)=>daten.istVerein?[datum(row.datum),esc(`${relation(row.jaeger)?.vorname || ""} ${relation(row.jaeger)?.nachname || ""}`.trim()||"–"),esc(ort(row)),"Probeschuss",esc(row.info||"–")]:[datum(row.datum),esc(ort(row)),"Probeschuss",esc(row.info||"–")]),
     fehl:daten.fehlschuesse.map((row)=>daten.istVerein?[datum(row.datum),esc(`${relation(row.jaeger)?.vorname || ""} ${relation(row.jaeger)?.nachname || ""}`.trim()||"–"),esc(ort(row)),esc([wildgruppe(row),wildklasse(row)].filter((x)=>x!=="–").join(" – ")||"–"),esc(row.info||"–")]:[datum(row.datum),esc(ort(row)),esc([wildgruppe(row),wildklasse(row)].filter((x)=>x!=="–").join(" – ")||"–"),esc(row.info||"–")])};}
   function aktivitaetenSeiten() {
-    const rows = aktivitaetsRows(), seiten = [];
+    const rows = aktivitaetsRows(), bereiche = [];
     const nachsuchen = daten.nachsuchen;
-    for (let index = 0; index < nachsuchen.length; index += 7) {
-      seiten.push(seite(index ? "NACHSUCHEN – FORTSETZUNG" : "NACHSUCHEN", abschnitt("Nachsuchen", nachsuchenTabelle(nachsuchen.slice(index, index + 7)))));
-    }
-    const abschnittSeiten = (titel, spalten, zeilen) => {
-      for (let index = 0; index < zeilen.length; index += 8) seiten.push(seite(index ? `${titel} – FORTSETZUNG` : titel, abschnitt(titel, tabelle(spalten, zeilen.slice(index, index + 8), "Keine Einträge im Berichtszeitraum.", "jb-date-table"))));
+    if (nachsuchen.length) bereiche.push(abschnitt("Nachsuchen", nachsuchenTabelle(nachsuchen)));
+    const bereichHinzufuegen = (titel, spalten, zeilen) => {
+      if (zeilen.length) bereiche.push(abschnitt(titel, tabelle(spalten, zeilen, "Keine Einträge im Berichtszeitraum.", "jb-date-table")));
     };
-    abschnittSeiten("PROBESCHÜSSE", daten.istVerein ? ["Datum", "Jäger", "Ort", "Art", "Bemerkung"] : ["Datum", "Ort", "Art", "Bemerkung"], rows.probe);
-    abschnittSeiten("FEHLSCHÜSSE", daten.istVerein ? ["Datum", "Jäger", "Ort", "Wild", "Bemerkung"] : ["Datum", "Ort", "Wild", "Bemerkung"], rows.fehl);
-    return seiten;
+    bereichHinzufuegen("Probeschüsse", daten.istVerein ? ["Datum", "Jäger", "Ort", "Art", "Bemerkung"] : ["Datum", "Ort", "Art", "Bemerkung"], rows.probe);
+    bereichHinzufuegen("Fehlschüsse", daten.istVerein ? ["Datum", "Jäger", "Ort", "Wild", "Bemerkung"] : ["Datum", "Ort", "Wild", "Bemerkung"], rows.fehl);
+    return bereiche.length ? [seite("NACHSUCHEN & SCHÜSSE", bereiche.join(""))] : [];
   }
 
   function journalSeite() {
-    const stp = journalTabelle(journalEintraege().slice(0,6));
+    const stp = journalTabelle(journalEintraege());
     return seite("WEITERE AKTIVITÄTEN",abschnitt("St. Peter/Mitterberg",stp));
   }
   function journalEintraege(){return daten.stPeter.map((row)=>({datum:datum(row.datum),kategorie:relation(row.kategorie)?.bezeichnung||"–",titel:row.titel||"–",beschreibung:row.beschreibung||"",personen:row.weitere_personen||"–"}));}
@@ -349,17 +346,13 @@ window.JaegerBericht = (() => {
     if (!eintraege.length) return `<p class="jb-empty">Keine Einträge aus St. Peter/Mitterberg.</p>`;
     return `<table class="jb-table jb-journal-table"><colgroup><col><col><col><col></colgroup><thead><tr><th>Datum</th><th>Kategorie</th><th>Titel</th><th>Personen</th></tr></thead>${eintraege.map((eintrag) => `<tbody class="jb-journal-entry"><tr class="jb-journal-main"><td>${esc(eintrag.datum)}</td><td>${esc(eintrag.kategorie)}</td><td>${esc(eintrag.titel)}</td><td>${esc(eintrag.personen)}</td></tr>${eintrag.beschreibung.trim() ? `<tr class="jb-journal-description"><td></td><td colspan="3">${esc(eintrag.beschreibung)}</td></tr>` : ""}</tbody>`).join("")}</table>`;
   }
-  function journalFortsetzungen(){
-    const eintraege=journalEintraege(), seiten=[];
-    for(let index=6;index<eintraege.length;index+=6)seiten.push(seite("WEITERE AKTIVITÄTEN – FORTSETZUNG",abschnitt("St. Peter/Mitterberg",journalTabelle(eintraege.slice(index,index+6)))));
-    return seiten;
-  }
+  function journalFortsetzungen(){ return []; }
 
   function rendern() {
     const container = el("jbSeiten"); container.innerHTML = "";
     const seiten=[
       rotwildSeite(), ...rotwildFortsetzungen(),
-      rehwildSeite(), ...rehwildFortsetzungen(),
+      rehwildSeite(), ...rehwildFortsetzungen(), ...rehwildNachJaegerSeite(),
       haarFederwildSeite(),
       fallwildSeite(), ...fallwildFortsetzungen(),
       freigabenSeite(), ...freigabenFortsetzungen(),

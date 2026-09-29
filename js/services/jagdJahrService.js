@@ -30,5 +30,35 @@ const JagdJahrService = (() => {
     "Abschüsse des Jagdjahres konnten nicht geladen werden.");
   }
 
-  return { verfuegbareJahre, abschuesse };
+  function normal(wert) {
+    return String(wert || "").trim().toLocaleLowerCase("de");
+  }
+
+  async function hirschAFreigabeEreignisse(jahr) {
+    if (Number(jahr) < 2025 || !window.AbschussplanService) return [];
+    const planperiode = await AbschussplanService.getAktivePlanperiode();
+    if (!planperiode) return [];
+    const positionen = await AbschussplanService.getPlanperiodePlanpositionen(planperiode.id);
+    const finde = (bezeichnung) => positionen.find((position) => normal(position.bezeichnung) === bezeichnung && position.aktiv === true);
+    const kahlwild = finde("kahlwild");
+    const hirschA = finde("hirsch a");
+    const hirschB = finde("hirsch b");
+    if (!kahlwild || !hirschA || !hirschB) return [];
+    const daten = await AbschussplanService.getRotwildFreigabeDaten(
+      planperiode,
+      { kahlwild: kahlwild.id, hirschA: hirschA.id, hirschB: hirschB.id },
+      jahr,
+    );
+    return daten.freigabeEreignisse || [];
+  }
+
+  async function datenFuerJahr(jahr) {
+    const [jahresAbschuesse, freigabeEreignisse] = await Promise.all([
+      abschuesse(jahr),
+      hirschAFreigabeEreignisse(jahr),
+    ]);
+    return { abschuesse: jahresAbschuesse, freigabeEreignisse };
+  }
+
+  return { verfuegbareJahre, abschuesse, datenFuerJahr, hirschAFreigabeEreignisse };
 })();

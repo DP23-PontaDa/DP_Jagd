@@ -757,7 +757,30 @@ const AbschussplanService = (() => {
       .select("wildklasse_id,wildklasse_code,wildklasse_bezeichnung")
       .eq("planperiode_id", planperiodeId)
       .eq("planperiode_planposition_id", planpositionId);
-    return handle(result, "Fehler in getPlanpositionWildklassen") || [];
+    const snapshotMappings = handle(result, "Fehler in getPlanpositionWildklassen") || [];
+    if (snapshotMappings.length) return snapshotMappings;
+
+    // Ältere Planperioden besitzen vereinzelt noch keinen vollständigen
+    // Snapshot. In diesem Fall ist die zentrale Stammdatenzuordnung der
+    // fachlich identische, lesende Fallback – keine eigene Kategorie-Logik.
+    const snapshotResult = await db.from(TABLE.PLANPERIODE_PLANPOSITIONEN)
+      .select("planposition_id")
+      .eq("id", planpositionId)
+      .eq("planperiode_id", planperiodeId)
+      .maybeSingle();
+    if (snapshotResult.error || !snapshotResult.data?.planposition_id) {
+      if (snapshotResult.error) throw snapshotResult.error;
+      return [];
+    }
+    const basisResult = await db.from(TABLE.PLANPOSITION_MAPPING)
+      .select("wildklasse_id,wildklassen(code,bezeichnung)")
+      .eq("planposition_id", snapshotResult.data.planposition_id);
+    if (basisResult.error) throw basisResult.error;
+    return (basisResult.data || []).map((mapping) => ({
+      wildklasse_id: mapping.wildklasse_id,
+      wildklasse_code: mapping.wildklassen?.code || null,
+      wildklasse_bezeichnung: mapping.wildklassen?.bezeichnung || null,
+    }));
   }
 
   async function saveInterneFreigabe(daten) {
@@ -818,11 +841,11 @@ const AbschussplanService = (() => {
     const hirschBIds = ids(hirschBMappings);
     const alleIds = [...new Set([...kahlwildIds, ...hirschAIds, ...hirschBIds])];
     if (!kahlwildIds.length || !alleIds.length) {
-      return { jahr: Number(jahr), aktuellesKahlwild: 0, kahlwildAbschussJahre: [], erlegteHirschAJahre: [], erlegteHirschBJahre: [] };
+      return { jahr: Number(jahr), aktuellesKahlwild: 0, kahlwildAbschussJahre: [], erlegteHirschAJahre: [], erlegteHirschBJahre: [], freigabeEreignisse: [] };
     }
     const bisJahr = Number(jahr);
     const result = await db.from("abschuesse")
-      .select("datum,fallwild,wildklasse_id")
+      .select("id,nr,datum,fallwild,sonderabschuss,wildklasse_id")
       .in("wildklasse_id", alleIds)
       .gte("datum", "2025-01-01")
       .lt("datum", `${bisJahr + 1}-01-01`)
@@ -832,6 +855,7 @@ const AbschussplanService = (() => {
     const kahlwildAbschussJahre = [];
     const erlegteHirschAJahre = [];
     const erlegteHirschBJahre = [];
+    const freigabeEreignisse = [];
     const kahlwildSet = new Set(kahlwildIds.map(String));
     const hirschASet = new Set(hirschAIds.map(String));
     const hirschBSet = new Set(hirschBIds.map(String));
@@ -843,13 +867,20 @@ const AbschussplanService = (() => {
       if (kahlwildSet.has(wildklasseId)) {
         aktuellesKahlwild += 1;
         kahlwildAbschussJahre.push(abschussJahr);
+        freigabeEreignisse.push({ id: abschuss.id, nr: abschuss.nr, datum: abschuss.datum, typ: "KAHLWILD" });
       }
       if (abschussJahr >= 2025 && abschussJahr <= bisJahr) {
-        if (hirschASet.has(wildklasseId)) erlegteHirschAJahre.push(abschussJahr);
-        else if (hirschBSet.has(wildklasseId)) erlegteHirschBJahre.push(abschussJahr);
+        if (hirschASet.has(wildklasseId) && abschuss.sonderabschuss !== true) {
+          erlegteHirschAJahre.push(abschussJahr);
+          freigabeEreignisse.push({ id: abschuss.id, nr: abschuss.nr, datum: abschuss.datum, typ: "HIRSCH_A" });
+        } else if (hirschBSet.has(wildklasseId) && abschuss.sonderabschuss !== true) {
+          erlegteHirschBJahre.push(abschussJahr);
+          freigabeEreignisse.push({ id: abschuss.id, nr: abschuss.nr, datum: abschuss.datum, typ: "HIRSCH_B" });
+        }
       }
     });
-    return { jahr: bisJahr, aktuellesKahlwild, kahlwildAbschussJahre, erlegteHirschAJahre, erlegteHirschBJahre };
+    freigabeEreignisse.sort((a, b) => String(a.datum).localeCompare(String(b.datum)) || Number(a.nr || 0) - Number(b.nr || 0));
+    return { jahr: bisJahr, aktuellesKahlwild, kahlwildAbschussJahre, erlegteHirschAJahre, erlegteHirschBJahre, freigabeEreignisse };
   }
 
   return {

@@ -3753,6 +3753,22 @@ textarea.form-control {
 .jagdjahr-calendar tbody td::before { content: none !important; display: none !important; }
 .jagdjahr-calendar td.is-invalid { background: #f1f3f4; }
 .jagdjahr-tag { position: absolute; z-index: 2; top: 1px; left: 3px; color: #c0c5c9; font-size: 6.5pt; font-weight: 400; line-height: 1; }
+.hav-action-bar { align-items: flex-end; }
+.hav-hinweis { margin: 4px 0 0; color: var(--color-text-muted, #65716c); }
+.hav-actions { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.hav-actions label { display: grid; gap: 4px; font-weight: 700; }
+.hav-scroll { max-width: 100%; overflow-x: auto; padding: 12px 0; }
+.hirsch-a-verlauf-sheet > header { height: 37mm; }
+.hirsch-a-verlauf-sheet > header h2 { font-size: 16pt; }
+.hav-startinfo { margin-top: 3px; color: #365648; font-size: 8pt; font-weight: 700; }
+.hav-legende { display: flex; justify-content: center; gap: 10px; margin-top: 3px; color: #59656a; font-size: 6.5pt; line-height: 1; }
+.hav-legende span::before { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border: 1px solid #aeb9b3; vertical-align: -1px; content: ""; }
+.hav-legende .ist-frei::before { background: #dceee2; }.hav-legende .ist-erlegt::before { background: #e2e6e4; }.hav-legende .ist-offen::before { background: #f8dddd; }
+.hirsch-a-verlauf-sheet .hav-calendar { height: 240mm; }
+.hirsch-a-verlauf-sheet .hav-calendar tbody tr,.hirsch-a-verlauf-sheet .hav-calendar td { height: calc(232mm / 31); max-height: calc(232mm / 31); }
+.hav-calendar td.hav-status-frei { background: #dceee2; }.hav-calendar td.hav-status-erlegt { background: #e2e6e4; }.hav-calendar td.hav-status-offen { background: #f8dddd; }
+.hav-status-zeichen { position: absolute; z-index: 3; right: 2px; bottom: 1px; color: #234b3b; font-size: 7pt; font-weight: 800; line-height: 1; }
+.hav-status-erlegt .hav-status-zeichen { color: #59656a; }
 .jagdjahr-eintraege { position: absolute; inset: 1px 2px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; overflow: hidden; text-align: center; }
 .jagdjahr-eintragszeile { display: flex; flex: 0 1 auto; align-items: center; justify-content: center; gap: 2px; width: 100%; min-width: 0; overflow: hidden; }
 .jagdjahr-eintrag { display: grid; flex: 0 1 auto; place-items: center; align-content: center; box-sizing: border-box; min-width: 0; max-width: 100%; min-height: 0; padding: 0 1px; overflow: hidden; border: 0; background: transparent; color: #111; text-align: center; line-height: .95; cursor: pointer; }

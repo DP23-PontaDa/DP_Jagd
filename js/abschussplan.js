@@ -842,6 +842,7 @@
     if (BerechtigungService.darf("abschussplan-gamswild", "Lesen")) aufgaben.push(renderSpecies("Gamswild"));
     if (BerechtigungService.darf("abschussplan-jahre", "Lesen")) aufgaben.push(renderPlanperiodenTable());
     await Promise.all(aufgaben);
+    if (BerechtigungService.darf("abschussplan-rotwild", "Lesen") && window.HirschAFreigabeVerlauf) await HirschAFreigabeVerlauf.init();
   }
 
   async function init(initialPanel = "ap-overview") {
@@ -862,6 +863,7 @@
     const gueltigePanels = [
       "ap-overview",
       "ap-rotwild",
+      "ap-hirsch-a-verlauf",
       "ap-rehwild",
       "ap-gamswild",
       "ap-jahre",

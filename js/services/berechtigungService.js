@@ -31,6 +31,7 @@ const BerechtigungService = (() => {
   const abschussplanBereiche = {
     "ap-overview": "abschussplan-uebersicht",
     "ap-rotwild": "abschussplan-rotwild",
+    "ap-hirsch-a-verlauf": "abschussplan-rotwild",
     "ap-rehwild": "abschussplan-rehwild",
     "ap-gamswild": "abschussplan-gamswild",
     "ap-jahre": "abschussplan-jahre",

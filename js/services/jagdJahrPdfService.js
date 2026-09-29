@@ -34,6 +34,11 @@ const JagdJahrPdfService = (() => {
     ctx.textAlign = "center"; ctx.fillStyle = "#243342"; ctx.font = "bold 38px Arial"; ctx.fillText(optionen.titel || "JAGD JAHR", 620, 55);
     ctx.font = "bold 26px Arial"; ctx.fillText(String(jahr), 620, 91);
     ctx.font = "20px Arial"; ctx.fillText(untertitel, 620, 122);
+    if (optionen.freigabeStatus) {
+      const legende = [["#dceee2", "A wird frei"], ["#e2e6e4", "A erlegt"], ["#f8dddd", "kein A frei"]];
+      ctx.font = "11px Arial"; let legendeX = 455;
+      legende.forEach(([farbe, text]) => { ctx.fillStyle = farbe; ctx.fillRect(legendeX, 132, 9, 9); ctx.strokeStyle = "#aeb9b3"; ctx.strokeRect(legendeX, 132, 9, 9); ctx.fillStyle = "#59656a"; ctx.textAlign = "left"; ctx.fillText(text, legendeX + 13, 141); legendeX += text.length * 6.2 + 35; });
+    }
     const links = 35, oben = 150, rechts = 35, unten = 38;
     const breite = (canvas.width - links - rechts) / monate.length;
     const kopf = 38, hoehe = (canvas.height - oben - unten - kopf) / 31;
@@ -45,7 +50,10 @@ const JagdJahrPdfService = (() => {
       for (let tag = 1; tag <= 31; tag += 1) {
         const y = oben + kopf + (tag - 1) * hoehe;
         const gueltig = tag <= new Date(monat.jahr, monat.monat + 1, 0).getDate();
-        ctx.fillStyle = gueltig ? "#fff" : "#f2f3f4"; ctx.fillRect(x, y, breite, hoehe);
+        const datum = `${monat.jahr}-${String(monat.monat + 1).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+        const freigabe = optionen.freigabeStatus?.get(datum);
+        const hintergrund = freigabe?.art === "frei" ? "#dceee2" : freigabe?.art === "erlegt" ? "#e2e6e4" : freigabe?.art === "offen" ? "#f8dddd" : "#fff";
+        ctx.fillStyle = gueltig ? hintergrund : "#f2f3f4"; ctx.fillRect(x, y, breite, hoehe);
         ctx.strokeRect(x, y, breite, hoehe);
         if (!gueltig) continue;
         ctx.textAlign = "left"; ctx.fillStyle = "#c1c7cb"; ctx.font = "12px Arial"; ctx.fillText(String(tag), x + 4, y + 13);
@@ -84,6 +92,7 @@ const JagdJahrPdfService = (() => {
             ctx.fillText(`+${liste.length - max}`, x + breite - 3, y + hoehe - 3);
           }
         }
+        if (freigabe && freigabe.art !== "offen") { ctx.textAlign = "right"; ctx.fillStyle = freigabe.art === "frei" ? "#234b3b" : "#59656a"; ctx.font = "bold 12px Arial"; ctx.fillText("A", x + breite - 3, y + hoehe - 3); }
       }
     });
     return new Promise((resolve, reject) => canvas.toBlob(async (blob) => blob
@@ -140,7 +149,7 @@ const JagdJahrPdfService = (() => {
     const bilder = [];
     for (const seite of seiten) bilder.push(seite.typ==="hirsche"
       ?await hirschSeiteZeichnen(seite)
-      :await seiteZeichnen(jahr, seite.untertitel, seite.monate, seite.eintraege, optionen));
+      :await seiteZeichnen(jahr, seite.untertitel, seite.monate, seite.eintraege, { ...optionen, freigabeStatus: seite.freigabeStatus }));
     return jpegPdf(bilder);
   }
 
