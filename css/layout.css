@@ -2026,13 +2026,10 @@ textarea.form-control {
 .jaegerbericht-pages { display: grid; gap: 24px; width: max-content; margin: 0 auto; }
 .jaegerbericht-sheet { position: relative; box-sizing: border-box; width: 210mm; height: 297mm; padding: 12mm 13mm 14mm; overflow: hidden; page: jaegerbericht; background: #fff; color: #263238; box-shadow: 0 2px 14px #0002; font-family: Arial, sans-serif; font-size: 8.5pt; }
 @page jaegerbericht { size: A4 portrait; margin: 0; }
-.jaegerbericht-head { display: flex; min-height: 16mm; align-items: flex-start; justify-content: space-between; padding-bottom: 3mm; border-bottom: 1px solid #9aa8a2; background: transparent; }
-.jaegerbericht-head > div { display: grid; gap: 1mm; }
-.jaegerbericht-head > span { text-align: right; }
-.jaegerbericht-head b { color: #1f5b43; font-size: 12pt; letter-spacing: .1em; }
-.jaegerbericht-head strong { font-size: 10pt; }
 .jaegerbericht-sheet > h2 { margin: 5mm 0 4mm; color: #243b32; font-size: 17pt; letter-spacing: .04em; }
 .jaegerbericht-content { display: grid; gap: 4mm; align-content: start; }
+.jb-following-head { margin: 0; padding: 0 0 2mm; border-bottom: 1px solid #d6dfda; color: #52635b; font-size: 8pt; font-weight: 700; text-align: right; }
+.jb-following-head + h2 { margin-top: 4mm; }
 .jaegerbericht-foot { position: absolute; right: 13mm; bottom: 6mm; left: 13mm; display: flex; justify-content: space-between; padding-top: 2mm; border-top: 1px solid #ccd5d1; color: #66746e; font-size: 7.5pt; }
 .jb-profile { padding: 8mm 5mm; border-radius: 2mm; background: #eef5f1; text-align: center; }
 .jb-profile h3 { margin: 0; color: #1f5b43; font-size: 23pt; }
@@ -2060,12 +2057,90 @@ textarea.form-control {
 .jb-section { min-width: 0; }
 .jb-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .jb-table th { padding: 2mm; border: 1px solid #aebdb6; background: #e5eee9; color: #203e32; text-align: left; font-size: 8pt; }
-.jb-table td { padding: 1.7mm 2mm; border: 1px solid #ccd5d1; overflow-wrap: anywhere; vertical-align: top; }
+.jb-table td { padding: 1.7mm 2mm; border: 1px solid #ccd5d1; overflow-wrap: break-word; vertical-align: top; word-break: normal; }
+.jb-table thead { display: table-header-group; }
+.jb-table tr { break-inside: avoid; page-break-inside: avoid; }
+.jb-date-table th:first-child, .jb-date-table td:first-child { width: 20mm; min-width: 20mm; padding-right: 1.2mm; padding-left: 1.2mm; white-space: nowrap; }
+.jb-verein-hirsche .jb-date-table th:first-child, .jb-verein-hirsche .jb-date-table td:first-child { width: 21mm; min-width: 21mm; }
 .jb-empty,.jb-note { margin: 1mm 0; padding: 2.5mm 3mm; border-radius: 1.5mm; background: #f2f4f3; color: #65716c; }
 .jb-note { border-left: 3px solid #798b83; color: #36443e; }
 .jb-badge { display: inline-block; padding: .6mm 1.5mm; border-radius: 8mm; background: #f6d7ab; color: #8a4d00; font-size: 7pt; font-weight: 700; }
 .jaegerbericht-sheet .ok { color: #237246; font-weight: 700; }
 .jaegerbericht-sheet .offen { color: #a52828; font-weight: 700; }
+.jb-report-profile { display: grid; justify-content: start; gap: 1.5mm; padding: 0 0 3mm; border-bottom: 1px solid #d6dfda; }
+.jb-report-profile strong { color: #1f5b43; font-size: 21pt; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.jb-report-profile span { color: #52635b; font-size: 10pt; font-weight: 700; }
+.jb-report-page-title { margin: 1.5mm 0 1mm; color: #243b32; font-size: 17pt; letter-spacing: .04em; }
+.jb-page-period { margin: -1.5mm 0 2.5mm; color: #52635b; font-weight: 700; }
+.jb-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; }
+.jb-rehwild-seite .jb-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.jb-stat-card { min-width: 0; padding: 3.2mm; border: 1px solid #cad8d1; border-top: 3px solid #2f7257; border-radius: 1.5mm; background: #fbfdfc; }
+.jb-stat-card h3 { margin: 0; color: #52635b; font-size: 8pt; text-transform: uppercase; }
+.jb-stat-card strong { display: block; margin-top: 1mm; color: #203e32; font-size: 16pt; }
+.jb-stat-card p { margin: 1mm 0 0; color: #44524c; font-size: 7.5pt; line-height: 1.35; }
+.jb-report-two-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm; align-items: start; }
+.jb-verein-hirsche > h3 { margin-top: 1mm; }
+.jb-hirsch-b1 { display: inline-block; margin-right: 1mm; color: #8a5b18; font-size: 7pt; }
+.jb-nachsuchen-table .jb-nachsuchen-entry { break-inside: avoid; page-break-inside: avoid; }
+.jb-nachsuchen-table .jb-nachsuchen-bemerkung td { border-top: 0; color: #58665f; font-size: 8pt; line-height: 1.4; }
+.jb-nachsuchen-table .jb-nachsuchen-bemerkung td:first-child { padding: 0; border-right: 0; }
+.jb-nachsuchen-table .jb-nachsuchen-bemerkung td:last-child { padding-top: .7mm; padding-bottom: 3mm; }
+.jb-nachsuchen-table th:first-child, .jb-nachsuchen-table td:first-child { width: 20mm; min-width: 20mm; padding-right: 1.2mm; padding-left: 1.2mm; white-space: nowrap; }
+.jaegerbericht-sheet.is-verein .jb-nachsuchen-table th:nth-child(2), .jaegerbericht-sheet.is-verein .jb-nachsuchen-table td:nth-child(2) { width: 24%; }
+.jb-report-list { display: grid; gap: 1mm; margin: 0; padding: 0; list-style: none; }
+.jb-report-list li { display: flex; justify-content: space-between; gap: 3mm; padding: 1.4mm 0; border-bottom: 1px solid #e0e7e3; }
+.jb-report-list li:last-child { border-bottom: 0; }
+.jb-kahlwild-list { display: grid; gap: 2.5mm; }
+.jb-kahlwild-list > section { padding-bottom: 1.5mm; border-bottom: 1px solid #dbe4df; }
+.jb-kahlwild-list > section:last-child { padding-bottom: 0; border-bottom: 0; }
+.jb-kahlwild-list h4 { margin: 0; color: #234b3b; font-size: 9pt; }
+.jb-kahlwild-total { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 3mm; }
+.jb-kahlwild-total > b { min-width: 17mm; text-align: right; white-space: nowrap; }
+.jb-kahlwild-list .jb-report-list li > b { min-width: 17mm; text-align: right; }
+.jaegerbericht-sheet.is-verein .jb-kahlwild-list { width: 55mm; }
+.jaegerbericht-sheet.is-verein .jb-kahlwild-list > section { max-width: 55mm; }
+.jaegerbericht-sheet.is-verein .jb-kahlwild-total { grid-template-columns: 25mm 20mm; justify-content: start; gap: 10mm; }
+.jaegerbericht-sheet.is-verein .jb-kahlwild-total > b { min-width: 0; text-align: right; }
+.jaegerbericht-sheet.is-verein .jb-kahlwild-list .jb-report-list li { display: grid; grid-template-columns: 25mm 20mm; justify-content: start; gap: 10mm; }
+.jaegerbericht-sheet.is-verein .jb-kahlwild-list .jb-report-list li > b { min-width: 0; text-align: right; }
+.jb-kahlwild-geschlecht { margin: .6mm 0 1.2mm; color: #52635b; }
+.jb-report-year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5mm; }
+.jb-report-year { min-width: 0; border: 1px solid #cad8d1; border-radius: 1.5mm; overflow: hidden; }
+.jb-report-year h4 { margin: 0; padding: 1.5mm 2mm; background: #e5eee9; color: #203e32; font-size: 9pt; }
+.jb-report-year > div { display: grid; gap: .6mm; padding: 1.7mm 2mm; border-top: 1px solid #e0e7e3; }
+.jb-report-year > div:first-of-type { border-top: 0; }
+.jb-report-year strong { color: #52635b; font-size: 7.5pt; text-transform: uppercase; }
+.jb-report-year span { display: flex; justify-content: space-between; gap: 2mm; }
+.jb-report-year .jb-rehwild-year-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.jb-report-year .jb-rehwild-year-line > b { text-align: right; }
+.jb-haarfeder-seite .jb-table td,.jb-haarfeder-seite .jb-table th { padding-top: 1.3mm; padding-bottom: 1.3mm; }
+.jb-journal-table col:nth-child(1) { width: 12%; }
+.jb-journal-table col:nth-child(2) { width: 14%; }
+.jb-journal-table col:nth-child(3) { width: 21%; }
+.jb-journal-table col:nth-child(4) { width: 53%; }
+.jb-journal-table .jb-journal-entry { break-inside: avoid; page-break-inside: avoid; }
+.jb-journal-table .jb-journal-main td:first-child { white-space: nowrap; }
+.jb-journal-table .jb-journal-main td:nth-child(3) { font-weight: 600; }
+.jb-journal-table .jb-journal-description td { border-top: 0; color: #58665f; font-size: 8pt; line-height: 1.4; }
+.jb-journal-table .jb-journal-description td:first-child { padding: 0; border-right: 0; }
+.jb-journal-table .jb-journal-description td:last-child { padding-top: .7mm; padding-bottom: 2.7mm; }
+.jb-fallwild-seite .jb-fallwild-stat-grid { grid-template-columns: repeat(auto-fit, minmax(36mm, 1fr)); }
+.jb-fallwild-table th:nth-child(1),.jb-fallwild-table td:nth-child(1) { width: 20mm; min-width: 20mm; padding-right: 1.2mm; padding-left: 1.2mm; white-space: nowrap; }
+.jb-fallwild-table th:nth-child(2),.jb-fallwild-table td:nth-child(2) { width: 19%; }
+.jb-fallwild-table th:nth-child(3),.jb-fallwild-table td:nth-child(3) { width: 24%; }
+.jb-fallwild-table th:nth-child(4),.jb-fallwild-table td:nth-child(4) { overflow-wrap: break-word; word-break: normal; white-space: normal; }
+.jb-fallwild-table .jb-fallwild-entry { break-inside: avoid; page-break-inside: avoid; }
+.jb-fallwild-table .jb-fallwild-bemerkung td { border-top: 0; color: #58665f; font-size: 8pt; line-height: 1.4; overflow-wrap: break-word; word-break: normal; white-space: normal; }
+.jb-fallwild-table .jb-fallwild-bemerkung td:first-child { padding: 0; border-right: 0; }
+.jb-fallwild-table .jb-fallwild-bemerkung td:last-child { padding-top: .7mm; padding-bottom: 3mm; }
+.jb-fallwild-seite.is-verein .jb-fallwild-table th:nth-child(1),.jb-fallwild-seite.is-verein .jb-fallwild-table td:nth-child(1) { width: 20mm; min-width: 20mm; }
+.jb-fallwild-seite.is-verein .jb-fallwild-table th:nth-child(2),.jb-fallwild-seite.is-verein .jb-fallwild-table td:nth-child(2) { width: 16%; }
+.jb-fallwild-seite.is-verein .jb-fallwild-table th:nth-child(3),.jb-fallwild-seite.is-verein .jb-fallwild-table td:nth-child(3) { width: 19%; }
+.jb-fallwild-seite.is-verein .jb-fallwild-table th:nth-child(4),.jb-fallwild-seite.is-verein .jb-fallwild-table td:nth-child(4) { width: 24%; }
+.jb-fallwild-seite.is-verein .jb-fallwild-table th:nth-child(5),.jb-fallwild-seite.is-verein .jb-fallwild-table td:nth-child(5) { overflow-wrap: break-word; word-break: normal; white-space: normal; }
+.jb-fallwild-year-table th:nth-child(1),.jb-fallwild-year-table td:nth-child(1) { width: 22%; white-space: nowrap; }
+.jb-fallwild-year-table th:nth-child(2),.jb-fallwild-year-table td:nth-child(2) { width: 55%; }
+.jb-fallwild-year-table th:nth-child(3),.jb-fallwild-year-table td:nth-child(3) { width: 23%; text-align: right; white-space: nowrap; }
 
 @media (max-width: 768px) {
   .jaegerbericht-toolbar { align-items: stretch; }

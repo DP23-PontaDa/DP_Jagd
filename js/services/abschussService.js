@@ -15,7 +15,7 @@ const AbschussService = (() => {
         zusatzinfo, bemerkung, fallwild, sonderabschuss, interner_hirsch_b1,
         untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
         jaeger:personen (id, vorname, nachname),
-        wildgruppen (id, bezeichnung, rechnung_moeglich),
+        wildgruppen (id, bezeichnung, reihenfolge, rechnung_moeglich),
         wildklassen (id, code, bezeichnung, wildgruppe_id),
         wildhaendler (id, code, bezeichnung, rechnung_moeglich),
         erlegungsort:orte (id, nr, name, art, reviereinrichtung, latitude, longitude)

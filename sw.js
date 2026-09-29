@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v229";
+const CACHE_NAME = "dp-jagd-shell-v251";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./assets/app-icon.svg?v=2",
   "./assets/apple-touch-icon.png?v=1",
   "./assets/rechnung-logo.png",
-  "./css/layout.css?v=227",
+  "./css/layout.css?v=246",
   "./css/person-autocomplete.css?v=1",
   "./css/sidebar.css?v=168",
   "./css/login.css",
@@ -25,7 +25,7 @@ const APP_SHELL = [
   "./js/personen.js?v=124",
   "./js/abschussplan.js?v=129",
   "./js/freigaben.js?v=187",
-  "./js/jaeger-bericht.js?v=4",
+  "./js/jaeger-bericht.js?v=21",
   "./js/abschussplanWildgruppe.js?v=139",
   "./js/wildgruppen.js?v=88",
   "./js/stammdaten.js?v=149",
@@ -63,7 +63,7 @@ const APP_SHELL = [
   "./js/services/abschussplanService.js?v=142",
   "./js/services/abschussregelnService.js?v=157",
   "./js/services/freigabenService.js?v=173",
-  "./js/services/jaegerBerichtService.js?v=2",
+  "./js/services/jaegerBerichtService.js?v=8",
   "./js/services/jaegerBerichtPdfService.js?v=1",
   "./js/services/dashboardService.js?v=161",
   "./js/services/haarFederwildDashboardService.js?v=157",
@@ -71,7 +71,7 @@ const APP_SHELL = [
   "./js/services/wildklassenService.js?v=151",
   "./js/services/planpositionService.js",
   "./js/services/wildhaendlerService.js?v=154",
-  "./js/services/abschussService.js?v=168",
+  "./js/services/abschussService.js?v=169",
   "./js/services/rechnungService.js?v=155",
   "./js/services/rechnungPrintService.js?v=88",
   "./js/services/jagdJahrService.js?v=4",
