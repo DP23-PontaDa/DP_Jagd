@@ -2,7 +2,8 @@ window.A4PageLayout = (() => {
   const config = Object.freeze({
     breiteMm: 210, hoeheMm: 297,
     randObenMm: 34, randUntenMm: 20, randLinksMm: 24, randRechtsMm: 24,
-    kopfObenMm: 17.5, fussUntenMm: 7.5,
+    kopfObenMm: 9.5, fussUntenMm: 7.5,
+    kopfInhaltHoeheMm: 18, fussInhaltHoeheMm: 8,
   });
 
   function cssVariablenSetzen() {
@@ -15,6 +16,20 @@ window.A4PageLayout = (() => {
     root.setProperty("--a4-content-right", `${config.randRechtsMm}mm`);
     root.setProperty("--a4-header-top", `${config.kopfObenMm}mm`);
     root.setProperty("--a4-footer-bottom", `${config.fussUntenMm}mm`);
+    root.setProperty("--a4-header-content-height", `${config.kopfInhaltHoeheMm}mm`);
+    root.setProperty("--a4-footer-content-height", `${config.fussInhaltHoeheMm}mm`);
+    root.setProperty("--a4-content-height", `calc(${config.hoeheMm}mm - ${config.randObenMm}mm - ${config.randUntenMm}mm)`);
+    root.setProperty("--a4-calendar-available-height", `calc(var(--a4-content-height) - var(--a4-header-content-height) - var(--a4-footer-content-height))`);
+  }
+
+  function headerFooterHoehenAnpassen(kopf, fuss) {
+    if (!kopf || !fuss) return;
+    const pxProMm = 96 / 25.4;
+    const headerMm = Math.max(0, kopf.offsetHeight / pxProMm);
+    const footerMm = Math.max(0, fuss.offsetHeight / pxProMm);
+    document.documentElement.style.setProperty("--a4-header-content-height", `${headerMm.toFixed(2)}mm`);
+    document.documentElement.style.setProperty("--a4-footer-content-height", `${footerMm.toFixed(2)}mm`);
+    document.documentElement.style.setProperty("--a4-calendar-available-height", `calc(var(--a4-content-height) - var(--a4-header-content-height) - var(--a4-footer-content-height))`);
   }
 
   function titelMitJahr(titel, jahr) {
@@ -27,7 +42,7 @@ window.A4PageLayout = (() => {
     seite.classList.add("a4-report-sheet");
     const kopf = seite.querySelector(":scope > .a4-report-header") || document.createElement("header");
     kopf.className = "a4-report-header";
-    kopf.innerHTML = `<strong></strong><img src="assets/rechnung-logo.png" alt="Jagdverein St. Peter/Mitterberg">`;
+    kopf.innerHTML = `<div class="a4-header-title"><strong></strong></div><img src="assets/rechnung-logo.png" alt="Jagdverein St. Peter/Mitterberg">`;
     kopf.querySelector("strong").textContent = titelMitJahr(titel || "DP Jagd", jahr);
     if (!kopf.parentElement) seite.prepend(kopf);
 
@@ -36,6 +51,8 @@ window.A4PageLayout = (() => {
     fuss.innerHTML = `<span>Jagdverein St. Peter/Mitterberg</span><span></span><span>Daniel Pontasch</span>`;
     fuss.children[1].textContent = seiteNr && seitenGesamt ? `Seite ${seiteNr} / ${seitenGesamt}` : "";
     if (!fuss.parentElement) seite.append(fuss);
+
+    requestAnimationFrame(() => headerFooterHoehenAnpassen(kopf, fuss));
   }
 
   function rahmenAktualisieren(container, optionen) {

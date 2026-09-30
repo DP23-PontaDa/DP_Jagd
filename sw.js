@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v281";
+const CACHE_NAME = "dp-jagd-shell-v299";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./assets/app-icon.svg?v=2",
   "./assets/apple-touch-icon.png?v=1",
   "./assets/rechnung-logo.png",
-  "./css/layout.css?v=258",
+  "./css/layout.css?v=271",
   "./css/person-autocomplete.css?v=1",
   "./css/sidebar.css?v=168",
   "./css/login.css",
@@ -25,7 +25,7 @@ const APP_SHELL = [
   "./js/personen.js?v=124",
   "./js/abschussplan.js?v=130",
   "./js/freigaben.js?v=187",
-  "./js/jaeger-bericht.js?v=31",
+  "./js/jaeger-bericht.js?v=36",
   "./js/abschussplanWildgruppe.js?v=141",
   "./js/wildgruppen.js?v=88",
   "./js/stammdaten.js?v=149",
@@ -33,7 +33,7 @@ const APP_SHELL = [
   "./js/planpositionen.js",
   "./js/wildhaendler.js?v=154",
   "./js/abschuss.js?v=172",
-  "./js/jagd-jahr.js?v=19",
+  "./js/jagd-jahr.js?v=21",
   "./js/hirsch-a-freigabeverlauf.js?v=17",
   "./js/dp-jahr.js?v=6",
   "./js/rechnungen.js?v=160",

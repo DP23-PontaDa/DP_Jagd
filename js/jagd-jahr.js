@@ -16,9 +16,10 @@ window.JagdJahr = (() => {
   function fallbackKuerzel(name) { return String(name || "?").trim().split(/\s+/).map((teil) => teil[0] || "").join("").slice(0, 3).toUpperCase() || "?"; }
   function eintrag(abschuss) {
     const klasse=relation(abschuss.wildklasse), jaeger=relation(abschuss.jaeger);
+    const bezeichnung=klasse?.bezeichnung||"Unbekannt";
     return { id:abschuss.id, nr:abschuss.nr, datum:abschuss.datum, tageszeit:abschuss.tageszeit,
-      gruppe:relation(abschuss.wildgruppe)?.bezeichnung||"", klasse:klasse?.bezeichnung||"Unbekannt",
-      kuerzel:klasse?.kuerzel?.trim()||fallbackKuerzel(klasse?.bezeichnung),
+      gruppe:relation(abschuss.wildgruppe)?.bezeichnung||"", klasse:bezeichnung,
+      kuerzel:normal(bezeichnung)==="bock a"?"Bo_A":klasse?.kuerzel?.trim()||fallbackKuerzel(bezeichnung),
       vorname:MIT_VORNAME.has(normal(klasse?.bezeichnung)) ? jaeger?.vorname||"" : "",
       jaeger:[jaeger?.vorname,jaeger?.nachname].filter(Boolean).join(" "), fallwild:abschuss.fallwild===true,
       ort:relation(abschuss.erlegungsort)?.name||"" };
@@ -85,7 +86,7 @@ window.JagdJahr = (() => {
   function abschussListenSeitenDaten() {
     const hirsche=hirschGruppen(hirschEintraege(jahr)),rehboecke=rehbockEintraege();
     return [{typ:"hirsche",layout:"hirsch",titel:"HIRSCHABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"HIRSCH A",rechtsTitel:"HIRSCH B",...hirsche},
-      {typ:"hirsche",titel:"REHBOCK-ABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"REHBOCK A",rechtsTitel:"REHBOCK B",getrennteSummen:true,
+      {typ:"hirsche",layout:"rehbock",titel:"REHBOCK-ABSCHÜSSE",jahr:Number(jahr),untertitel:"",linksTitel:"REHBOCK A",rechtsTitel:"REHBOCK B",getrennteSummen:true,
         leertext:"Keine Rehbock-Abschüsse vorhanden.",a:rehboecke.filter((x)=>x.klasse==="A"),b:rehboecke.filter((x)=>x.klasse==="B"),weitere:[]}];
   }
   function gruppiert() {
@@ -150,9 +151,10 @@ window.JagdJahr = (() => {
     if(!anzahl){const leer=document.createElement("p");leer.className="jagdjahr-hirsch-empty";leer.textContent=seitenDaten.leertext||"Keine Hirschabschüsse vorhanden.";section.appendChild(leer);return section;}
     const grid=document.createElement("div");grid.className=`jagdjahr-hirsch-grid${Math.max(seitenDaten.a.length,seitenDaten.b.length)>36?" is-dense":""}`;
     const istHirschLayout=seitenDaten.layout==="hirsch";
+    const ohneKlasse=istHirschLayout||seitenDaten.layout==="rehbock";
     const getrennteSummen=seitenDaten.getrennteSummen===true||istHirschLayout;
-    grid.append(hirschBereich(seitenDaten.linksTitel||"HIRSCH A",seitenDaten.a,{ohneKlasse:istHirschLayout,datumOhneEndpunkt:istHirschLayout,getrennteSummen}),
-      hirschBereich(seitenDaten.rechtsTitel||"HIRSCH B",seitenDaten.b,{datumOhneEndpunkt:istHirschLayout,getrennteSummen}));
+    grid.append(hirschBereich(seitenDaten.linksTitel||"HIRSCH A",seitenDaten.a,{ohneKlasse,datumOhneEndpunkt:istHirschLayout,getrennteSummen}),
+      hirschBereich(seitenDaten.rechtsTitel||"HIRSCH B",seitenDaten.b,{ohneKlasse,datumOhneEndpunkt:istHirschLayout,getrennteSummen}));
     if(seitenDaten.weitere.length){const weitere=hirschBereich("WEITERE HIRSCHE",seitenDaten.weitere,{datumOhneEndpunkt:istHirschLayout,getrennteSummen});weitere.classList.add("is-wide");grid.appendChild(weitere);}
     section.appendChild(grid);return section;
   }
