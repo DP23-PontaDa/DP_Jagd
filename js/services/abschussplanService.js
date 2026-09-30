@@ -840,8 +840,16 @@ const AbschussplanService = (() => {
     const hirschAIds = ids(hirschAMappings);
     const hirschBIds = ids(hirschBMappings);
     const alleIds = [...new Set([...kahlwildIds, ...hirschAIds, ...hirschBIds])];
+    const quelle = {
+      kahlwildWildklassen: kahlwildIds.length,
+      hirschAWildklassen: hirschAIds.length,
+      hirschBWildklassen: hirschBIds.length,
+      geladeneAbschuesse: 0,
+      fallwildAusgeschlossen: 0,
+      sonderabschuesseAusgeschlossen: 0,
+    };
     if (!kahlwildIds.length || !alleIds.length) {
-      return { jahr: Number(jahr), aktuellesKahlwild: 0, kahlwildAbschussJahre: [], erlegteHirschAJahre: [], erlegteHirschBJahre: [], freigabeEreignisse: [] };
+      return { jahr: Number(jahr), aktuellesKahlwild: 0, kahlwildAbschussJahre: [], erlegteHirschAJahre: [], erlegteHirschBJahre: [], freigabeEreignisse: [], quelle };
     }
     const bisJahr = Number(jahr);
     const result = await db.from("abschuesse")
@@ -851,6 +859,7 @@ const AbschussplanService = (() => {
       .lt("datum", `${bisJahr + 1}-01-01`)
       .order("datum", { ascending: true });
     if (result.error) throw result.error;
+    quelle.geladeneAbschuesse = (result.data || []).length;
     let aktuellesKahlwild = 0;
     const kahlwildAbschussJahre = [];
     const erlegteHirschAJahre = [];
@@ -860,7 +869,7 @@ const AbschussplanService = (() => {
     const hirschASet = new Set(hirschAIds.map(String));
     const hirschBSet = new Set(hirschBIds.map(String));
     (result.data || []).forEach((abschuss) => {
-      if (abschuss.fallwild === true) return;
+      if (abschuss.fallwild === true) { quelle.fallwildAusgeschlossen += 1; return; }
       const abschussJahr = Number(String(abschuss.datum || "").slice(0, 4));
       if (!Number.isInteger(abschussJahr)) return;
       const wildklasseId = String(abschuss.wildklasse_id);
@@ -877,10 +886,38 @@ const AbschussplanService = (() => {
           erlegteHirschBJahre.push(abschussJahr);
           freigabeEreignisse.push({ id: abschuss.id, nr: abschuss.nr, datum: abschuss.datum, typ: "HIRSCH_B" });
         }
+        if ((hirschASet.has(wildklasseId) || hirschBSet.has(wildklasseId)) && abschuss.sonderabschuss === true) quelle.sonderabschuesseAusgeschlossen += 1;
       }
     });
     freigabeEreignisse.sort((a, b) => String(a.datum).localeCompare(String(b.datum)) || Number(a.nr || 0) - Number(b.nr || 0));
-    return { jahr: bisJahr, aktuellesKahlwild, kahlwildAbschussJahre, erlegteHirschAJahre, erlegteHirschBJahre, freigabeEreignisse };
+    return { jahr: bisJahr, aktuellesKahlwild, kahlwildAbschussJahre, erlegteHirschAJahre, erlegteHirschBJahre, freigabeEreignisse, quelle };
+  }
+
+  // Einziger Einstieg für alle Rotwild-Freigabeansichten. Die Auflösung der
+  // drei Planpositionen gehört damit nicht mehr in einzelne Oberflächen.
+  async function getAktiveRotwildFreigabeDaten(jahr = new Date().getFullYear()) {
+    const planperiode = await getAktivePlanperiode();
+    if (!planperiode) throw new Error("Keine aktive Planperiode vorhanden.");
+    const positionen = await getPlanperiodePlanpositionen(planperiode.id);
+    const normal = (wert) => String(wert || "").trim().toLocaleLowerCase("de");
+    const finde = (bezeichnung) => positionen.find((position) =>
+      normal(position.bezeichnung) === bezeichnung && position.aktiv === true);
+    const kahlwild = finde("kahlwild");
+    const hirschA = finde("hirsch a");
+    const hirschB = finde("hirsch b");
+    if (!kahlwild || !hirschA || !hirschB) {
+      throw new Error("Die aktiven Rotwild-Planpositionen Kahlwild, Hirsch A oder Hirsch B fehlen.");
+    }
+    const daten = await getRotwildFreigabeDaten(
+      planperiode,
+      { kahlwild: kahlwild.id, hirschA: hirschA.id, hirschB: hirschB.id },
+      jahr,
+    );
+    return {
+      ...daten,
+      planperiode,
+      planpositionen: { kahlwild: kahlwild.id, hirschA: hirschA.id, hirschB: hirschB.id },
+    };
   }
 
   return {
@@ -926,5 +963,6 @@ const AbschussplanService = (() => {
     saveInterneFreigabe,
     getHirschB1Statistik,
     getRotwildFreigabeDaten,
+    getAktiveRotwildFreigabeDaten,
   };
 })();

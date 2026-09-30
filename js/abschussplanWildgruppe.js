@@ -804,11 +804,7 @@ const AbschussplanWildgruppe = (() => {
         const ausgewaehltesJahr = aktuellesJahr >= Number(planperiode.startjahr) && aktuellesJahr <= Number(planperiode.endjahr)
           ? aktuellesJahr
           : Number(planperiode.endjahr);
-        const grafikDaten = await AbschussplanService.getRotwildFreigabeDaten(
-          planperiode,
-          { kahlwild: kahlwildPlanposition.id, hirschA: hirschAPlanposition.id, hirschB: hirschBPlanposition.id },
-          ausgewaehltesJahr,
-        );
+        const grafikDaten = await JagdJahrService.rotwildFreigabeDaten(ausgewaehltesJahr);
         const grafik = document.createElement("section");
         card.appendChild(grafik);
         RotwildFreigabeGrafik.render(grafik, grafikDaten);

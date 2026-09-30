@@ -3762,12 +3762,23 @@ textarea.form-control {
 .hirsch-a-verlauf-sheet > header h2 { font-size: 16pt; }
 .hav-startinfo { margin-top: 3px; color: #365648; font-size: 8pt; font-weight: 700; }
 .hav-legende { display: flex; justify-content: center; gap: 10px; margin-top: 3px; color: #59656a; font-size: 6.5pt; line-height: 1; }
+.hav-diagnose { display: block; margin-top: 3px; color: #65716c; font-size: 6.5pt; line-height: 1; }
+.hav-diagnose-block { max-width: 540px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid #cad7d0; border-radius: 4px; background: #f7faf8; color: #263e33; }
+.hav-diagnose-block strong { display: block; margin-bottom: 5px; }
+.hav-diagnose-block dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 16px; margin: 0; font-size: .9rem; }
+.hav-diagnose-block dt, .hav-diagnose-block dd { margin: 0; }
+.hav-diagnose-block dd { font-weight: 700; text-align: right; }
+.hav-diagnose-block + .hav-diagnose-block { margin-top: -4px; }
+.hav-diagnose-block ol { margin: 6px 0 0; padding-left: 20px; font-size: .82rem; line-height: 1.45; }
+.hav-diagnose-block p { margin: 7px 0 0; font-size: .85rem; }
 .hav-legende span::before { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border: 1px solid #aeb9b3; vertical-align: -1px; content: ""; }
 .hav-legende .ist-frei::before { background: #dceee2; }.hav-legende .ist-erlegt::before { background: #e2e6e4; }.hav-legende .ist-offen::before { background: #f8dddd; }
 .hirsch-a-verlauf-sheet .hav-calendar { height: 240mm; }
 .hirsch-a-verlauf-sheet .hav-calendar tbody tr,.hirsch-a-verlauf-sheet .hav-calendar td { height: calc(232mm / 31); max-height: calc(232mm / 31); }
 .hav-calendar td.hav-status-frei { background: #dceee2; }.hav-calendar td.hav-status-erlegt { background: #e2e6e4; }.hav-calendar td.hav-status-offen { background: #f8dddd; }
-.hav-status-zeichen { position: absolute; z-index: 3; right: 2px; bottom: 1px; color: #234b3b; font-size: 7pt; font-weight: 800; line-height: 1; }
+.hav-calendar td.is-invalid { background: #fff; border-bottom-color: transparent; }
+.hav-startguthaben { position: absolute; z-index: 3; right: 3px; bottom: 2px; color: #365648; font-size: 7pt; font-weight: 800; line-height: 1; }
+.hav-status-zeichen { position: absolute; z-index: 3; right: 2px; bottom: 1px; color: #234b3b; font-size: 7pt; font-weight: 800; line-height: 1; white-space: nowrap; }
 .hav-status-erlegt .hav-status-zeichen { color: #59656a; }
 .jagdjahr-eintraege { position: absolute; inset: 1px 2px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; overflow: hidden; text-align: center; }
 .jagdjahr-eintragszeile { display: flex; flex: 0 1 auto; align-items: center; justify-content: center; gap: 2px; width: 100%; min-width: 0; overflow: hidden; }
@@ -3879,7 +3890,7 @@ textarea.form-control {
 }
 
 @media print {
-    body:has(.jagdjahr-page) header,
+    body:has(.jagdjahr-page) #app > main > header,
     body:has(.jagdjahr-page) #sidebar,
     body:has(.jagdjahr-page) .jagdjahr-toolbar,
     body:has(.jagdjahr-page) .jagdjahr-legende { display: none !important; }
@@ -3929,7 +3940,7 @@ textarea.form-control {
 }
 
 @media print {
-    body:has(.key-dates-page) header,
+    body:has(.key-dates-page) #app > main > header,
     body:has(.key-dates-page) #sidebar,
     body:has(.key-dates-page) .key-dates-toolbar { display: none !important; }
     body:has(.key-dates-page) #app-content { margin: 0 !important; padding: 0 !important; }
@@ -3940,6 +3951,80 @@ textarea.form-control {
 }
 
 /* Gemeinsame Bildschirm-Zoomsteuerung fuer alle A4-Jahresvorschauen. */
+:root {
+    --a4-width: 210mm;
+    --a4-height: 297mm;
+    --a4-content-top: 34mm;
+    --a4-content-bottom: 20mm;
+    --a4-content-left: 24mm;
+    --a4-content-right: 24mm;
+    --a4-header-top: 17.5mm;
+    --a4-footer-bottom: 7.5mm;
+}
+.a4-report-sheet {
+    position: relative;
+    box-sizing: border-box;
+    width: var(--a4-width) !important;
+    height: var(--a4-height) !important;
+    padding: var(--a4-content-top) var(--a4-content-right) var(--a4-content-bottom) var(--a4-content-left) !important;
+    overflow: hidden;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+.a4-report-header,
+.a4-report-footer {
+    position: absolute;
+    z-index: 4;
+    right: var(--a4-content-right);
+    left: var(--a4-content-left);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    box-sizing: border-box;
+    color: #3D5567;
+    font-family: Arial, sans-serif;
+}
+.a4-report-header {
+    top: var(--a4-header-top);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    min-height: 0;
+    padding-bottom: 3mm;
+    border-bottom: 1px solid color-mix(in srgb, #3D5567 48%, transparent);
+}
+.a4-report-header strong { min-width: 0; font-size: 22pt; line-height: 1.05; }
+.a4-report-header img { justify-self: end; display: block; max-width: 34mm; max-height: 9mm; object-fit: contain; }
+.a4-report-footer {
+    bottom: var(--a4-footer-bottom);
+    min-height: 0;
+    padding-top: 3mm;
+    border-top: 1px solid color-mix(in srgb, #3D5567 48%, transparent);
+    font-size: 8pt;
+    line-height: 1;
+}
+.a4-report-footer > :nth-child(2) { text-align: center; }
+.a4-report-footer > :last-child { text-align: right; }
+
+/* Die bestehende Seitenüberschrift wird zum kleinen Inhaltsuntertitel;
+   Titel und Jahr stehen ausschließlich im gemeinsamen Seitenkopf. */
+.a4-report-sheet.jagdjahr-sheet > header:not(.a4-report-header),
+.a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) { height: 7mm; }
+.a4-report-sheet.jagdjahr-sheet > header:not(.a4-report-header) h2,
+.a4-report-sheet.jagdjahr-sheet > header:not(.a4-report-header) strong,
+.a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) h2,
+.a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) strong { display: none; }
+.a4-report-sheet.jagdjahr-sheet > header:not(.a4-report-header) p,
+.a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) p { margin: 0; color: #52635b; font-size: 8pt; text-align: left; }
+.a4-report-sheet .jagdjahr-calendar { height: calc(100% - 7mm); max-height: calc(100% - 7mm); }
+.a4-report-sheet .jagdjahr-calendar tbody tr,
+.a4-report-sheet .jagdjahr-calendar td { height: calc(228mm / 31); max-height: calc(228mm / 31); }
+.a4-report-sheet.hirsch-a-verlauf-sheet > header:not(.a4-report-header) { height: 25mm; }
+.a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar { height: calc(100% - 25mm); max-height: calc(100% - 25mm); }
+.a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar tbody tr,
+.a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar td { height: calc(210mm / 31); max-height: calc(210mm / 31); }
+.a4-report-sheet.key-dates-sheet .key-dates-months { grid-template-rows: repeat(2, 114mm); gap: 8mm 6mm; }
+.a4-report-sheet.jaegerbericht-sheet { padding: var(--a4-content-top) var(--a4-content-right) var(--a4-content-bottom) var(--a4-content-left) !important; }
+.a4-report-sheet.jaegerbericht-sheet .jaegerbericht-foot { right: var(--a4-content-right); bottom: var(--a4-footer-bottom); left: var(--a4-content-left); padding-top: 0; border-top: 0; }
+
 .a4-zoom-toolbar {
     display: inline-flex;
     width: auto;
@@ -3997,6 +4082,8 @@ textarea.form-control {
     .jagdjahr-filter { order: 20; width: 100%; }
     .a4-preview-container { padding: 8px; }
 }
+
+@page { size: A4 portrait; margin: 0; }
 
 @media print {
     .a4-zoom-toolbar { display: none !important; }

@@ -93,6 +93,7 @@ window.DpJahr = (() => {
   function rendern() {
     const container=el("dpjSeiten"); container.innerHTML="";
     seitenDaten().forEach((seiteDaten) => container.appendChild(seite(seiteDaten.untertitel,seiteDaten.monate,seiteDaten.eintraege)));
+    A4PageLayout.rahmenAktualisieren(container,{titel:"DP Jahr",jahr});
   }
   function artOptionen() {
     const arten=new Map(); daten.forEach((row) => { const art=artVon(row); if (art?.id) arten.set(String(art.id),art.bezeichnung); });
@@ -118,11 +119,7 @@ window.DpJahr = (() => {
     nurAnsitz=false; artIds.clear(); hashtag=""; el("dpjArt").querySelectorAll("input").forEach((input)=>{input.checked=false;});
     el("dpjArtSummary").textContent="Alle"; el("dpjHashtag").value=""; ansitzStatus(); rendern();
   }
-  async function pdf() {
-    const button=el("dpjPdf"), text=button.textContent; button.disabled=true; button.textContent="Erstellt …";
-    try { const blob=await JagdJahrPdfService.erstellen(jahr,seitenDaten(),{titel:"DP JAHR"}); JagdJahrPdfService.speichern(blob,`DP-Jahr-${jahr}.pdf`); }
-    catch(error) { AppFeedback.error(error.message); } finally { button.disabled=false; button.textContent=text; }
-  }
+  function drucken() { ReportPrintService.drucken(`DP-Jahr-${jahr}`); }
   async function init() {
     A4PreviewZoom.create({ scroll:document.querySelector(".jagdjahr-scroll"), pages:el("dpjSeiten"), sheetSelector:".jagdjahr-sheet" });
     const jahre=await TagebuchDpService.verfuegbareJahre(); el("dpjJahr").innerHTML=jahre.map((wert)=>`<option value="${wert}">${wert}</option>`).join(""); el("dpjJahr").value=jahr;
@@ -130,7 +127,7 @@ window.DpJahr = (() => {
     el("dpjAnsitz").addEventListener("click",()=>{nurAnsitz=!nurAnsitz;ansitzStatus();rendern();});
     el("dpjArt").addEventListener("change",(event)=>{if(!event.target.matches('input[type="checkbox"]'))return;if(event.target.checked)artIds.add(event.target.value);else artIds.delete(event.target.value);artZusammenfassung();rendern();});
     el("dpjHashtag").addEventListener("input",(event)=>{hashtag=event.target.value;rendern();});
-    el("dpjReset").addEventListener("click",reset); el("dpjPdf").addEventListener("click",pdf); el("dpjDrucken").addEventListener("click",()=>window.print());
+    el("dpjReset").addEventListener("click",reset); el("dpjPdf").addEventListener("click",drucken); el("dpjDrucken").addEventListener("click",drucken);
     el("dpjSeiten").addEventListener("click",(event)=>{const entry=event.target.closest("[data-id]");if(!entry)return;Router.pendingTagebuchDetailId=entry.dataset.id;Router.open("tagebuch-dp");});
     ansitzStatus(); await laden();
   }

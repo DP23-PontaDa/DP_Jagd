@@ -13,7 +13,7 @@ window.JaegerBericht = (() => {
     if (!titel) return "";
     return `<div class="jb-following-head">${esc(daten.jaeger.vorname)} ${esc(daten.jaeger.nachname)}</div><h2>${esc(titel)}</h2>`;
   }
-  function fuss() { return `<footer class="jaegerbericht-foot"><span>Erstellt am ${new Intl.DateTimeFormat("de-AT").format(daten.erstelltAm)}</span><span class="jb-page-number"></span></footer>`; }
+  function fuss() { return `<footer class="jaegerbericht-foot"><span>Jagdverein St. Peter/Mitterberg</span><span class="jb-page-number"></span><span>Daniel Pontasch</span></footer>`; }
   function seite(titel, html, klasse = "") {
     const section = document.createElement("section"); section.className = `jaegerbericht-sheet ${klasse}${daten?.istVerein ? " is-verein" : ""}`;
     section.innerHTML = `${kopf(titel)}<div class="jaegerbericht-content">${html}</div>${fuss()}`;
@@ -361,9 +361,9 @@ window.JaegerBericht = (() => {
     if(daten.stPeter.length)seiten.push(journalSeite(),...journalFortsetzungen());
     container.append(...seiten);
     seitenhoehenSichern(container);
-    [...container.children].forEach((page,index,list)=>{page.querySelector(".jb-page-number").textContent=`Seite ${index+1} / ${list.length}`;});
+    const titel=daten.istVerein?"Vereinsbericht St. Peter/Mitterberg":"Jägerdatenblatt";
+    A4PageLayout.rahmenAktualisieren(container,{titel,jahr:zeitraumText()});
   }
-  function dateiname() { const clean=(value)=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,""); const zeitraum=daten.vonJahr===daten.bisJahr?daten.vonJahr:`${daten.vonJahr}-${daten.bisJahr}`;return daten.istVerein?`DP_Jagd_JV_St_Peter_Mitterberg_${zeitraum}.pdf`:`DP_Jagd_Jaegerdatenblatt_${clean(daten.jaeger.nachname)}_${clean(daten.jaeger.vorname)}_${zeitraum}.pdf`; }
   async function anzeigen() {
     const jaegerId=jaegerDropdown.getValue(); if(!jaegerId){AppFeedback.error("Bitte einen Jäger auswählen.");return;}
     const von=Number(el("jbVonJahr").value),bis=Number(el("jbBisJahr").value);if(von>bis){AppFeedback.error("Das Startjahr darf nicht größer als das Endjahr sein.");return;}
@@ -371,7 +371,7 @@ window.JaegerBericht = (() => {
     try { daten=await JaegerBerichtService.laden(jaegerId,von,bis);rendern();el("jbStatus").textContent="";el("jbStatus").hidden=true;el("jbPdf").disabled=false;el("jbDrucken").disabled=false; }
     catch(error){console.error("Jägerdatenblatt:",error);el("jbStatus").hidden=false;el("jbStatus").textContent=error.message;AppFeedback.error(error.message);} finally{button.disabled=false;}
   }
-  async function pdf() { const button=el("jbPdf"),text=button.textContent;button.disabled=true;button.textContent="Erstellt …";try{const blob=await JaegerBerichtPdfService.erstellen(el("jbSeiten"));JaegerBerichtPdfService.speichern(blob,dateiname());}catch(error){console.error("Jägerdatenblatt PDF:",error);AppFeedback.error(error.message);}finally{button.disabled=false;button.textContent=text;} }
+  function drucken() { const titel=daten.istVerein?`Vereinsbericht St. Peter/Mitterberg ${zeitraumText()}`:`Jägerdatenblatt ${zeitraumText()}`; ReportPrintService.drucken(titel); }
   async function init() {
     const auswahlGeaendert=()=>{el("jbPdf").disabled=true;el("jbDrucken").disabled=true;daten=null;if(el("jbSeiten").children.length){el("jbStatus").hidden=false;el("jbStatus").textContent="Auswahl geändert – bitte Bericht erneut anzeigen.";}};
     A4PreviewZoom.create({scroll:document.querySelector(".jaegerbericht-scroll"),pages:el("jbSeiten"),sheetSelector:".jaegerbericht-sheet"});
@@ -385,7 +385,7 @@ window.JaegerBericht = (() => {
     const aktuell=new Date().getFullYear();el("jbVonJahr").value=String(aktuell);el("jbBisJahr").value=String(aktuell);
     const zeitraumAktualisieren=()=>{const von=Number(el("jbVonJahr").value),bis=Number(el("jbBisJahr").value);el("jbZeitraum").textContent=`Berichtszeitraum: ${von===bis?von:`${von} – ${bis}`}`;auswahlGeaendert();};
     el("jbVonJahr").addEventListener("change",zeitraumAktualisieren);el("jbBisJahr").addEventListener("change",zeitraumAktualisieren);zeitraumAktualisieren();
-    el("jbAnzeigen").addEventListener("click",anzeigen);el("jbPdf").addEventListener("click",pdf);el("jbDrucken").addEventListener("click",()=>window.print());
+    el("jbAnzeigen").addEventListener("click",anzeigen);el("jbPdf").addEventListener("click",drucken);el("jbDrucken").addEventListener("click",drucken);
   }
   return {init};
 })();

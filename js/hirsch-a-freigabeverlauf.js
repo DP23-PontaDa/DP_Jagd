@@ -6,11 +6,47 @@ window.HirschAFreigabeVerlauf = (() => {
 
   function datum(jahrWert, monat, tag) { return `${jahrWert}-${String(monat).padStart(2,"0")}-${String(tag).padStart(2,"0")}`; }
 
-  function kalenderRendern(status, freieA) {
+  function diagnoseRendern(diagnose) {
+    const ziel = el("havDiagnose");
+    if (!ziel) return;
+    ziel.hidden = false;
+    ziel.innerHTML = `<strong>Datenprüfung</strong><dl>` +
+      `<dt>Geladene Kahlwildabschüsse</dt><dd>${diagnose.kahlwild}</dd>` +
+      `<dt>Geladene Hirsch-A-Abschüsse</dt><dd>${diagnose.hirschA}</dd>` +
+      `<dt>A-Freigaben gesamt</dt><dd>${diagnose.aFreigabenGesamt}</dd>` +
+      `<dt>Davon Startguthaben</dt><dd>${diagnose.startAFreigaben}</dd>` +
+      `<dt>Neue A-Freigaben im Zeitraum</dt><dd>${diagnose.neueAFreigaben}</dd>` +
+      `<dt>A-Erlegungen</dt><dd>${diagnose.aErlegungen}</dd>` +
+      `<dt>Start-Kahlwild</dt><dd>${diagnose.startKahlwild}</dd>` +
+      `<dt>Start freie Hirsch A</dt><dd>${diagnose.startFreieA}</dd>` +
+      `<dt>Ende Vorjahr Kahlwild</dt><dd>${diagnose.endeVorjahrKahlwild}</dd>` +
+      `<dt>Ende Vorjahr freie Hirsch A</dt><dd>${diagnose.endeVorjahrFreieA}</dd>` +
+      `<dt>Statuszellen</dt><dd>${diagnose.statuszellen}</dd>` +
+      `<dt>Kahlwildstand am Jahresende</dt><dd>${diagnose.kahlwildStand}</dd>` +
+      `<dt>Hirsch A frei am Jahresende</dt><dd>${diagnose.freieAAmJahresende}</dd>` +
+      `<dt>Rotwild-Wildklassen (KW / A / B)</dt><dd>${diagnose.klassen}</dd>` +
+      `<dt>Treffer aus Abschüssen</dt><dd>${diagnose.treffer}</dd>` +
+      `<dt>Abschuss-Abfrage</dt><dd>${diagnose.abfrageAusgefuehrt ? "ausgeführt" : "wegen fehlender Zuordnung nicht ausgeführt"}</dd>` +
+      `</dl>`;
+  }
+
+  function anzeigeStatus(status, startKahlwild, startFreieA) {
+    const ergebnis = new Map(status);
+    const ersterMai = `${jahr}-05-01`;
+    ergebnis.set(ersterMai, { art: "guthaben", text: `+${startKahlwild}` });
+    for (let tag = 2; tag < 2 + Number(startFreieA || 0) && tag <= 31; tag += 1) {
+      const key = `${jahr}-05-${String(tag).padStart(2, "0")}`;
+      if (!ergebnis.has(key) || ergebnis.get(key).art === "offen") ergebnis.set(key, { art: "frei", startbestand: true });
+    }
+    return ergebnis;
+  }
+
+  function kalenderRendern(status, freieA, diagnose = null) {
     const ziel = el("havSeiten"); if (!ziel) return;
     ziel.innerHTML = "";
     const sheet = document.createElement("section"); sheet.className = "jagdjahr-sheet hirsch-a-verlauf-sheet";
-    sheet.innerHTML = `<header><h2>HIRSCH A FREIGABEVERLAUF</h2><strong>${jahr}</strong><p>Mai bis Dezember</p><div class="hav-startinfo">${jahr === 2025 ? "Start 01.05.2025 · Kahlwildguthaben: 19 Stk. · Hirsch A frei: 2 Stk." : `Hirsch A frei am Jahresende: ${freieA} Stk.`}</div><div class="hav-legende"><span class="ist-frei">A wird frei</span><span class="ist-erlegt">A erlegt</span><span class="ist-offen">kein A frei</span></div></header>`;
+    const startInfo = jahr === 2025 ? "Start 01.05.2025 · Kahlwildguthaben: 19 Stk. · Hirsch A frei: 2 Stk." : "Fortschreibung ab 01.05.2025";
+    sheet.innerHTML = `<header><h2>HIRSCH A FREIGABEVERLAUF</h2><strong>${jahr}</strong><p>Mai bis Dezember</p><div class="hav-startinfo">${startInfo} · Hirsch A frei am Jahresende: ${Number(freieA) || 0} Stk.</div><div class="hav-legende"><span class="ist-frei">A wird frei</span><span class="ist-erlegt">A erlegt</span><span class="ist-offen">kein A frei</span></div>${diagnose ? `<small class="hav-diagnose">Datenprüfung: Kahlwild ${diagnose.kahlwild} · Hirsch A ${diagnose.hirschA} · Statuszellen ${diagnose.statuszellen}</small>` : ""}</header>`;
     const table = document.createElement("table"); table.className = "jagdjahr-calendar acht-monate hav-calendar";
     const thead = document.createElement("thead"), kopf = document.createElement("tr");
     MONATE.forEach(([monat, name]) => { const th = document.createElement("th"); th.textContent = name; kopf.appendChild(th); }); thead.appendChild(kopf); table.appendChild(thead);
@@ -20,47 +56,73 @@ window.HirschAFreigabeVerlauf = (() => {
       MONATE.forEach(([monat]) => {
         const zelle = document.createElement("td");
         if (tag > new Date(jahr, monat + 1, 0).getDate()) { zelle.className = "is-invalid"; zeile.appendChild(zelle); return; }
-        const eintrag = status.get(datum(jahr, monat + 1, tag));
+        const key = datum(jahr, monat + 1, tag);
+        const eintrag = status.get(key);
         if (eintrag) zelle.classList.add(`hav-status-${eintrag.art}`);
-        zelle.innerHTML = `<span class="jagdjahr-tag">${tag}</span>${eintrag && eintrag.art !== "offen" ? '<span class="hav-status-zeichen">A</span>' : ""}`;
+        const aAnzahl = Number(eintrag?.anzahl || 1);
+        const aText = Array.from({ length: aAnzahl }, () => "A").join(" ");
+        zelle.innerHTML = `<span class="jagdjahr-tag">${tag}</span>${eintrag?.text ? `<span class="hav-startguthaben">${eintrag.text}</span>` : ""}${eintrag && ["frei", "erlegt"].includes(eintrag.art) ? `<span class="hav-status-zeichen">${aText}</span>` : ""}`;
         zeile.appendChild(zelle);
       });
       tbody.appendChild(zeile);
     }
     table.appendChild(tbody); sheet.appendChild(table); ziel.appendChild(sheet);
+    A4PageLayout.rahmenAktualisieren(ziel,{titel:"Hirsch A Freigabeverlauf",jahr});
   }
 
   async function laden() {
     const fehler = el("havFehler"); if (fehler) fehler.hidden = true;
+    const diagnoseZiel = el("havDiagnose"); if (diagnoseZiel) diagnoseZiel.hidden = true;
     try {
-      const ereignisse = await JagdJahrService.hirschAFreigabeEreignisse(jahr);
+      const daten = await JagdJahrService.hirschAFreigabeDaten(jahr);
+      const ereignisse = daten?.freigabeEreignisse || [];
       const ergebnis = RotwildFreigabeGrafik.hirschAFreigabeverlauf(jahr, ereignisse);
-      kalenderRendern(ergebnis.status, ergebnis.freieA);
-      el("havPdf")._status = ergebnis.status;
+      const diagnose = {
+        jahr,
+        kahlwild: ereignisse.filter((ereignis) => ereignis.typ === "KAHLWILD").length,
+        hirschA: ereignisse.filter((ereignis) => ereignis.typ === "HIRSCH_A").length,
+        hirschB: ereignisse.filter((ereignis) => ereignis.typ === "HIRSCH_B").length,
+        statuszellen: ergebnis.status.size,
+        aFreigabenGesamt: ergebnis.aFreigabenGesamt,
+        startAFreigaben: ergebnis.startAFreigaben,
+        neueAFreigaben: ergebnis.neueAFreigabenImJahr,
+        aErlegungen: [...ergebnis.status.values()].filter((status) => status.art === "erlegt").length,
+        startKahlwild: ergebnis.startKahlwild,
+        startFreieA: ergebnis.startFreieA,
+        endeVorjahrKahlwild: ergebnis.endeVorjahrKahlwild,
+        endeVorjahrFreieA: ergebnis.endeVorjahrFreieA,
+        kahlwildStand: 19 + Number(daten?.aktuellesKahlwild || 0),
+        freieAAmJahresende: ergebnis.freieA,
+        klassen: `${daten?.quelle?.kahlwildWildklassen || 0} / ${daten?.quelle?.hirschAWildklassen || 0} / ${daten?.quelle?.hirschBWildklassen || 0}`,
+        treffer: Number(daten?.quelle?.geladeneAbschuesse || 0),
+        abfrageAusgefuehrt: Number(daten?.quelle?.kahlwildWildklassen || 0) > 0,
+      };
+      console.debug("[Hirsch A Freigabeverlauf Debug]", diagnose, ereignisse);
+      diagnoseRendern(diagnose);
+      const sichtbareStatus = anzeigeStatus(ergebnis.status, ergebnis.startKahlwild, ergebnis.startFreieA);
+      kalenderRendern(sichtbareStatus, ergebnis.freieA, diagnose);
+      el("havPdf")._status = sichtbareStatus;
+      if (!ergebnis.status.size && fehler) {
+        fehler.textContent = ereignisse.length
+          ? `Es wurden ${ereignisse.length} Rotwild-Ereignisse geladen, daraus wurde aber keine sichtbare Hirsch-A-Statuszelle berechnet. Die Datenprüfung oben zeigt die Aufteilung.`
+          : "Keine freigabewirksamen Rotwild-Ereignisse geladen. Die Datenprüfung oben zeigt die Aufteilung.";
+        fehler.hidden = false;
+      }
     } catch (error) {
       console.error("Hirsch-A-Freigabeverlauf laden:", error);
       if (fehler) { fehler.textContent = error.message || "Der Freigabeverlauf konnte nicht geladen werden."; fehler.hidden = false; }
     }
   }
 
-  async function pdf(oeffnen) {
-    const button = oeffnen ? el("havDrucken") : el("havPdf"), text = button.textContent;
-    button.disabled = true; button.textContent = "Erstellt …";
-    try {
-      const monate = MONATE.map(([monat, name]) => ({ monat, name, jahr: Number(jahr) }));
-      const blob = await JagdJahrPdfService.erstellen(jahr, [{ typ: "kalender", untertitel: "Mai bis Dezember", monate, eintraege: new Map(), freigabeStatus: el("havPdf")._status }], { titel: "HIRSCH A FREIGABEVERLAUF" });
-      if (oeffnen) JagdJahrPdfService.oeffnen(blob); else JagdJahrPdfService.speichern(blob, `Hirsch-A-Freigabeverlauf-${jahr}.pdf`);
-    } catch (error) { AppFeedback.error(error.message || "PDF konnte nicht erstellt werden."); }
-    finally { button.disabled = false; button.textContent = text; }
-  }
+  function drucken() { ReportPrintService.drucken(`Hirsch-A-Freigabeverlauf-${jahr}`); }
 
   async function init() {
     if (!el("havJahr")) return;
     if (!initialisiert) {
       initialisiert = true;
       el("havJahr").addEventListener("change", (event) => { jahr = Number(event.target.value); laden(); });
-      el("havPdf").addEventListener("click", () => pdf(false));
-      el("havDrucken").addEventListener("click", () => pdf(true));
+      el("havPdf").addEventListener("click", drucken);
+      el("havDrucken").addEventListener("click", drucken);
     }
     const jahre = [...new Set([2025, ...(await JagdJahrService.verfuegbareJahre()).filter((wert) => Number(wert) >= 2025)])].sort((a, b) => b - a);
     jahr = jahre.includes(new Date().getFullYear()) ? new Date().getFullYear() : (jahre[0] || 2025);
