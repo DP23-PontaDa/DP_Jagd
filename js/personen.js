@@ -136,8 +136,8 @@ function persComparePersons(a, b) {
   }
 
   if (persActiveKat === 'Jagdgastkarte') {
-    const aParts = persParseJagdgastkarteId(a && (a.jagdgastkarte || a.personenNr));
-    const bParts = persParseJagdgastkarteId(b && (b.jagdgastkarte || b.personenNr));
+    const aParts = persParseJagdgastkarteId(a && (a.jagdgastkarteNr || a.personenNr));
+    const bParts = persParseJagdgastkarteId(b && (b.jagdgastkarteNr || b.personenNr));
 
     if (aParts.year !== bParts.year) return bParts.year - aParts.year;
     if (aParts.num !== bParts.num) return aParts.num - bParts.num;
@@ -197,7 +197,7 @@ function persRenderTable() {
     persons = persons.filter(function(person) {
       if (criteria === 'all') {
         return [person.personenNr, person.vorname, person.nachname, person.nameKat,
-          person.kjNr, person.jagdgastkarte, persJaegerGastDisplay(person),
+          person.kjNr, person.jagdgastkarteNr, persJaegerGastDisplay(person),
           persLastActiveJagdYear(person.personId),
           person.adresse, person.plz, person.ort]
           .join(' ')
@@ -276,7 +276,7 @@ function persRenderTable() {
       persAddCell(row, person.ort);
       persAddCell(row, persLastActiveJagdYear(person.personId));
       persAddCell(row, persJaegerGastDisplay(person));
-      persAddCell(row, person.jagdgastkarte);
+      persAddCell(row, persAllJagdRows.filter(function(j){return String(j.personId)===String(person.personId);}).flatMap(function(j){return j.kartennummern||[];}).join(', '));
       row.appendChild(persCreatePersonActionCell(person));
       row.addEventListener('click', function(event) {
         if (!event.target.closest('button')) persOpenEditPersonModal(person.personId, 'read');
@@ -542,8 +542,6 @@ function persOpenEditPersonModal(personId, mode) {
   const kjNrInput = document.getElementById('persKjNr');
   if (kjNrInput) kjNrInput.value = person.kjNr || '';
 
-  const jagdgastkarteInput = document.getElementById('persJagdgastkarte');
-  if (jagdgastkarteInput) jagdgastkarteInput.value = person.jagdgastkarte || '';
 
   const adresseInput = document.getElementById('persAdresse');
   if (adresseInput) adresseInput.value = person.adresse || '';
@@ -578,12 +576,13 @@ function persOpenEditPersonModal(personId, mode) {
           jahr: row.jahr || '',
           aktiv: row.aktiv === true,
           jaegerGastId: row.jaegerGastId || '',
-          bemerkung: row.bemerkung || ''
+          bemerkung: row.bemerkung || '',
+          kartennummern: row.kartennummern || []
         });
       });
 
       if (rows.length === 0) {
-        persAddJagdYearRow({ jahr: persCurrentYear, aktiv: true, jaegerGastId: '', bemerkung: '' });
+        persAddJagdYearRow({ jahr: persCurrentYear, aktiv: true, jaegerGastId: '', bemerkung: '', kartennummern: [] });
       }
     }
   }
@@ -617,7 +616,6 @@ function persClearModal() {
   const vorname = document.getElementById('persVorname');
   const nachname = document.getElementById('persNachname');
   const kjNr = document.getElementById('persKjNr');
-  const jagdgastkarte = document.getElementById('persJagdgastkarte');
   const jaegerGast = document.getElementById('persJaegerGast');
   const adresse = document.getElementById('persAdresse');
   const plz = document.getElementById('persPlz');
@@ -632,7 +630,6 @@ function persClearModal() {
   if (vorname) vorname.value = '';
   if (nachname) nachname.value = '';
   if (kjNr) kjNr.value = '';
-  if (jagdgastkarte) jagdgastkarte.value = '';
   if (jaegerGast) {
     jaegerGast.innerHTML = '';
     jaegerGast.value = '';
@@ -659,7 +656,6 @@ function persHandleNameKatChange() {
   const note = document.getElementById('persAktivNote');
   const aktivText = document.getElementById('persAktivText');
   const kjNrGroup = document.getElementById('persKjNrGroup');
-  const jagdgastkarteGroup = document.getElementById('persJagdgastkarteGroup');
   const jaegerGastGroup = document.getElementById('persJaegerGastGroup');
   const jaegerGastSelect = document.getElementById('persJaegerGast');
   const personenNrGroup = document.getElementById('persPersonenNrGroup');
@@ -682,7 +678,6 @@ function persHandleNameKatChange() {
     const group = document.getElementById(id);
     if (group) group.style.display = isHundefuehrer ? 'none' : '';
   });
-  if (jagdgastkarteGroup) jagdgastkarteGroup.style.display = isJagdgastkarte ? 'block' : 'none';
   if (jaegerGastGroup) jaegerGastGroup.style.display = 'none';
 
   if (jaegerGastSelect) {
@@ -757,16 +752,21 @@ function persAddJagdYearRow(rowData) {
   if (!tbody) return;
 
   const tr = document.createElement('tr');
-  const row = rowData || { jahr: persCurrentYear, aktiv: true, jaegerGastId: '', bemerkung: '' };
+  const row = rowData || { jahr: persCurrentYear, aktiv: true, jaegerGastId: '', bemerkung: '', kartennummern: [] };
 
   tr.setAttribute('data-id-jg-jahr', row.idJgJahr || '');
   tr.innerHTML =
     '<td class="pers-jagd-year-cell"><input type="number" class="form-control pers-jagd-jahr" min="1900" max="2999" value="' + persEscAttr(row.jahr || '') + '" oninput="persUpdateJagdAktivPreview()"></td>' +
     '<td style="text-align:center;"><input type="checkbox" class="pers-jagd-aktiv" ' + (row.aktiv ? 'checked' : '') + ' onchange="persUpdateJagdAktivPreview()"></td>' +
     '<td><select class="form-control pers-jagd-jaeger">' + persMemberOptions(row.jaegerGastId || '') + '</select></td>' +
+    '<td class="pers-jagd-karten"><div class="pers-jagd-karten-list"></div><button type="button" class="btn btn-outline pers-karten-add">+ Kartennummer hinzufügen</button></td>' +
     '<td><input type="text" class="form-control pers-jagd-bemerkung" value="' + persEscAttr(row.bemerkung || '') + '"></td>' +
     '<td><button class="action-btn delete-btn" type="button" title="Entfernen" aria-label="Entfernen" onclick="this.closest(\'tr\').remove(); persUpdateJagdAktivPreview();"></button></td>';
 
+  const liste=tr.querySelector('.pers-jagd-karten-list');
+  function addKarte(wert){const zeile=document.createElement('div');zeile.className='pers-karte-zeile';zeile.innerHTML='<input type="text" class="form-control pers-jagd-kartennummer" maxlength="50"><button type="button" class="action-btn delete-btn" title="Entfernen"></button>';zeile.querySelector('input').value=wert||'';zeile.querySelector('button').onclick=function(){zeile.remove();};liste.appendChild(zeile);}
+  (row.kartennummern||[]).forEach(addKarte);tr.querySelector('.pers-karten-add').onclick=function(){addKarte('');};
+  if(document.getElementById('persNameKat').value!=='Jagdgastkarte')tr.querySelector('.pers-jagd-karten').style.display='none';
   tbody.appendChild(tr);
   persUpdateJagdAktivPreview();
 }
@@ -798,6 +798,8 @@ function persCollectJagdRows(showValidation) {
     const jaegerGastId = tr.querySelector('.pers-jagd-jaeger').value;
     const bemerkung = tr.querySelector('.pers-jagd-bemerkung').value.trim();
     const idJgJahr = tr.getAttribute('data-id-jg-jahr') || '';
+    const kartennummern=[...tr.querySelectorAll('.pers-jagd-kartennummer')].map(function(input){return input.value.trim();}).filter(Boolean);
+    if(new Set(kartennummern).size!==kartennummern.length){if(showValidation)alert('Eine Jagdgastkartennummer darf innerhalb eines Jahres nur einmal vorkommen.');return null;}
 
     if (!jahr) continue;
 
@@ -817,7 +819,8 @@ function persCollectJagdRows(showValidation) {
       jahr: jahr,
       aktiv: aktiv,
       jaegerGastId: jaegerGastId,
-      bemerkung: bemerkung
+      bemerkung: bemerkung,
+      kartennummern: kartennummern
     });
   }
 
@@ -880,7 +883,6 @@ function persSavePerson() {
     vorname: document.getElementById('persVorname').value.trim(),
     nachname: document.getElementById('persNachname').value.trim(),
     kjNr: document.getElementById('persKjNr').value.trim(),
-    jagdgastkarte: document.getElementById('persJagdgastkarte').value.trim(),
     jaegerGastId: document.getElementById('persJaegerGast').value.trim(),
     adresse: document.getElementById('persAdresse').value.trim(),
     plz: document.getElementById('persPlz').value.trim(),
@@ -919,10 +921,6 @@ function persSavePerson() {
   }
 
   let jagdRows = [];
-  if (person.nameKat === 'Jagdgastkarte' && !person.jagdgastkarte) {
-    alert('Bitte Jagdgastkarte eingeben.');
-    return;
-  }
   if (persIsJagdKategorie(person.nameKat)) {
     jagdRows = persCollectJagdRows(true);
     if (jagdRows === null) return;

@@ -2157,8 +2157,8 @@ textarea.form-control {
   body:has(.jaegerbericht-page) #app-content { margin: 0 !important; padding: 0 !important; }
   .jaegerbericht-scroll { overflow: visible; padding: 0; }
   .jaegerbericht-pages { display: block; width: auto; }
-  .jaegerbericht-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
-  .jaegerbericht-sheet:last-child { break-after: auto; page-break-after: auto; }
+    .jaegerbericht-sheet { margin: 0; box-shadow: none; break-after: auto; page-break-after: auto; }
+    .jaegerbericht-sheet:not(:last-child) { break-after: page; page-break-after: always; }
 }
 .freigabe-hirsche-kopf > h2 {
   margin: 0;
@@ -2500,6 +2500,22 @@ textarea.form-control {
     min-width: 94px;
     font-variant-numeric: tabular-nums;
 }
+
+/* Jahresaktivität Jagdgastkarte: Karten und Bemerkung bleiben getrennte,
+   ausreichend breite Spalten. */
+#app-content .jagd-table { table-layout: fixed; }
+#app-content .jagd-table th.pers-jagd-year-column,
+#app-content .jagd-table td.pers-jagd-year-cell { width: 13%; min-width: 96px; }
+#app-content .jagd-table th.col-boolean { width: 7%; min-width: 54px; }
+#app-content .jagd-table th#persJagdMitgliedKopf { width: 25%; }
+#app-content .jagd-table th.pers-jagd-karten-kopf,
+#app-content .jagd-table td.pers-jagd-karten { width: 25%; min-width: 190px; }
+#app-content .jagd-table th.pers-jagd-bemerkung-kopf { width: 22%; }
+#app-content .jagd-table td:has(.pers-jagd-bemerkung) { width: 22%; min-width: 160px; }
+#app-content .jagd-table th.col-actions { width: 8%; min-width: 58px; }
+#app-content .jagd-table .pers-jagd-karten-list { display: grid; gap: 6px; }
+#app-content .jagd-table .pers-karte-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 30px; gap: 5px; align-items: center; }
+#app-content .jagd-table .pers-jagd-bemerkung { width: 100%; min-width: 0; }
 
 #app-content .person-table tr:hover,
 #app-content .ap-table tr:hover,
@@ -3897,8 +3913,8 @@ textarea.form-control {
     body:has(.jagdjahr-page) #app-content { margin: 0 !important; padding: 0 !important; }
     .jagdjahr-scroll { overflow: visible; padding: 0; }
     .jagdjahr-pages { display: block; }
-    .jagdjahr-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
-    .jagdjahr-sheet:last-child { break-after: auto; page-break-after: auto; }
+    .jagdjahr-sheet { margin: 0; box-shadow: none; break-after: auto; page-break-after: auto; }
+    .jagdjahr-sheet:not(:last-child) { break-after: page; page-break-after: always; }
 }
 
 /* Key Dates: zwei A4-Seiten mit je sechs Monatsblöcken. */
@@ -3946,8 +3962,8 @@ textarea.form-control {
     body:has(.key-dates-page) #app-content { margin: 0 !important; padding: 0 !important; }
     .key-dates-scroll { overflow: visible; padding: 0; }
     .key-dates-pages { display: block; }
-    .key-dates-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
-.key-dates-sheet:last-child { break-after: auto; page-break-after: auto; }
+    .key-dates-sheet { margin: 0; box-shadow: none; break-after: auto; page-break-after: auto; }
+    .key-dates-sheet:not(:last-child) { break-after: page; page-break-after: always; }
 }
 
 /* Gemeinsame Bildschirm-Zoomsteuerung fuer alle A4-Jahresvorschauen. */
@@ -3995,7 +4011,8 @@ textarea.form-control {
     align-items: start;
     min-height: 0;
     height: 25.5mm;
-    padding: 0 0 2mm;
+    /* Zusätzliche Luft für Unterlängen wie g und j vor der Kopflinie. */
+    padding: 0 0 4mm;
     background: transparent;
     border: 0;
     border-bottom: 1px solid color-mix(in srgb, #3D5567 48%, transparent);
@@ -4039,7 +4056,8 @@ textarea.form-control {
 .a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) h2,
 .a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) strong { display: none; }
 .a4-report-sheet.jagdjahr-sheet > header:not(.a4-report-header) p,
-.a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) p { margin: 1.2mm 0 0; color: #52635b; font-size: 8pt; text-align: left; }
+.a4-report-sheet.key-dates-sheet > header:not(.a4-report-header) p { margin: 3.2mm 0 2mm; color: #52635b; font-size: 8pt; text-align: left; }
+.a4-report-sheet.jagdjahr-sheet > header:not(.a4-report-header) p { margin: 3.2mm 0 2mm; font-size: 12pt; }
 .a4-report-sheet .jagdjahr-calendar {
     height: var(--a4-calendar-available-height);
     max-height: var(--a4-calendar-available-height);
@@ -4048,6 +4066,15 @@ textarea.form-control {
 .a4-report-sheet .jagdjahr-calendar td {
     height: calc(var(--a4-calendar-available-height) / 31);
     max-height: calc(var(--a4-calendar-available-height) / 31);
+}
+.a4-report-sheet.jagdjahr-sheet .jagdjahr-calendar {
+    height: calc(var(--a4-calendar-available-height) - 7mm);
+    max-height: calc(var(--a4-calendar-available-height) - 7mm);
+}
+.a4-report-sheet.jagdjahr-sheet .jagdjahr-calendar tbody tr,
+.a4-report-sheet.jagdjahr-sheet .jagdjahr-calendar td {
+    height: calc((var(--a4-calendar-available-height) - 7mm) / 31);
+    max-height: calc((var(--a4-calendar-available-height) - 7mm) / 31);
 }
 .a4-report-sheet.hirsch-a-verlauf-sheet > header:not(.a4-report-header) { height: 25mm; }
 .a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar {
@@ -4124,6 +4151,24 @@ textarea.form-control {
 @page { size: A4 portrait; margin: 0; }
 
 @media print {
+    /* Browser runden 297 mm gelegentlich minimal über die physische A4-Höhe.
+       Der 1-mm-Puffer verhindert die dadurch erzeugte Leerseite am Schluss. */
+    .a4-report-sheet {
+        height: 296mm !important;
+        min-height: 0 !important;
+    }
+    .a4-report-sheet > .a4-report-header {
+        /* Browser-PDF: Unterlängen dürfen die Trennlinie nicht berühren. */
+        padding-bottom: 5mm;
+    }
+    .a4-report-sheet > .a4-report-header .a4-header-title {
+        /* Browser-PDF rundet Grid-Abstände teils abweichend: Titel klar von der Linie lösen. */
+        transform: translateY(-0.5mm);
+    }
+    .a4-report-sheet > .a4-report-header strong {
+        /* line-height: 1 schneidet Unterlängen wie g und j im Browser-PDF ab. */
+        line-height: 1.2;
+    }
     .a4-zoom-toolbar { display: none !important; }
     .a4-preview-container { width: auto; height: auto; min-height: 0; padding: 0; overflow: visible; }
     .a4-zoom-stage { width: auto !important; height: auto !important; margin: 0; }

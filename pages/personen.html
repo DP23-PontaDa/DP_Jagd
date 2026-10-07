@@ -293,7 +293,7 @@
         <option value="vorname">Vorname</option>
         <option value="nachname">Nachname</option>
         <option value="kjNr">KJ_Nr</option>
-        <option value="jagdgastkarte">Jagdgastkarte</option>
+        <option value="jagdgastkarteNr">Jagdgastkarte</option>
         <option value="jahr">Jahr</option>
         <option value="jaegerGastId">Jäger_Gast</option>
         <option value="ort">Ort</option>
@@ -363,10 +363,6 @@
         <input type="text" id="persKjNr" class="form-control">
       </div>
 
-      <div class="form-group" id="persJagdgastkarteGroup" style="display:none;">
-        <label>Jagdgastkarte</label>
-        <input type="text" id="persJagdgastkarte" class="form-control">
-      </div>
 
       <div class="form-group" id="persJaegerGastGroup" style="display:none;">
         <label>Jäger_Gast</label>
@@ -424,7 +420,8 @@
             <th class="pers-jagd-year-column">Jahr</th>
             <th class="col-boolean">Aktiv</th>
             <th id="persJagdMitgliedKopf">Jäger</th>
-            <th>Bemerkung</th>
+            <th class="pers-jagd-karten-kopf">Jagdgastkartennummern</th>
+            <th class="pers-jagd-bemerkung-kopf">Bemerkung</th>
             <th class="col-actions">Aktion</th>
           </tr>
         </thead>

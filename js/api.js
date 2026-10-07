@@ -240,7 +240,7 @@
       ort: value(row, "ort", "Ort"),
       nameKat: value(row, "name_kat", "nameKat", "Name_Kat"),
       aktiv: boolean(row, "aktiv", "Aktiv"),
-      jagdgastkarte: value(row, "jagdgastkarte", "Jagdgastkarte"),
+      jagdgastkarteNr: value(row, "jagdgastkarte_nr", "jagdgastkarteNr", "Jagdgastkartennummer") || value(row, "jagdgastkarte", "Jagdgastkarte"),
       personenNr: value(row, "personen_nr", "personenNr", "Personen_Nr", "PersonenNr")
     };
   }
@@ -268,16 +268,20 @@
   async function loadPersonenInitialData() {
     var results = await Promise.all([
       db.from("personen").select("*"),
-      db.from("jagdjahre").select("*")
+      db.from("jagdjahre").select("*"),
+      db.from("jagdjahr_jagdgastkarten").select("jagdjahr_id,kartennummer")
     ]);
 
     if (results[0].error) throw results[0].error;
     if (results[1].error) throw results[1].error;
+    if (results[2].error) throw results[2].error;
+    var karten = new Map();
+    (results[2].data || []).forEach(function (karte) { var key=String(karte.jagdjahr_id); if(!karten.has(key))karten.set(key,[]);karten.get(key).push(karte.kartennummer); });
 
     return {
       currentYear: new Date().getFullYear(),
       personen: (results[0].data || []).map(mapPerson),
-      jagdgaeste: (results[1].data || []).map(mapJagdjahr)
+      jagdgaeste: (results[1].data || []).map(function(row){var jahr=mapJagdjahr(row);jahr.kartennummern=karten.get(String(jahr.idJgJahr))||[];return jahr;})
     };
   }
 
@@ -327,8 +331,7 @@
       plz: String(person.plz || "").trim(),
       ort: String(person.ort || "").trim(),
       name_kat: String(person.nameKat || "").trim(),
-      aktiv: person.aktiv === true,
-      jagdgastkarte: String(person.jagdgastkarte || "").trim()
+      aktiv: person.aktiv === true
     };
 
     var personenNr = coerceInteger(person.personenNr);
@@ -367,14 +370,20 @@
   async function replaceJagdjahre(personId, rows) {
     if (!personId) return;
 
+    var bisherige=await db.from("jagdjahre").select("id").eq("person_id",personId);if(bisherige.error)throw bisherige.error;
+    var ids=(bisherige.data||[]).map(function(row){return row.id;});
+    if(ids.length){var alteKarten=await db.from("jagdjahr_jagdgastkarten").delete().in("jagdjahr_id",ids);if(alteKarten.error)throw alteKarten.error;}
     var deleteResult = await db.from("jagdjahre").delete().eq("person_id", personId);
     if (deleteResult.error) throw deleteResult.error;
 
     var payloads = jagdjahrPayloads(personId, rows);
     if (payloads.length === 0) return;
 
-    var insertResult = await db.from("jagdjahre").insert(payloads);
+    var insertResult = await db.from("jagdjahre").insert(payloads).select("id,jahr");
     if (insertResult.error) throw insertResult.error;
+    var nachJahr=new Map((insertResult.data||[]).map(function(row){return[Number(row.jahr),row.id];})),karten=[];
+    (rows||[]).forEach(function(row){(row.kartennummern||[]).forEach(function(nummer){nummer=String(nummer||"").trim();if(nummer)karten.push({jagdjahr_id:nachJahr.get(Number(row.jahr)),kartennummer:nummer});});});
+    if(karten.length){var neu=await db.from("jagdjahr_jagdgastkarten").insert(karten);if(neu.error)throw neu.error;}
   }
 
   async function savePerson(payload) {
