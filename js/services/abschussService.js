@@ -2,6 +2,15 @@ const AbschussService = (() => {
   const db = window.db || window.supabase;
 
   function fehler(error, aktion) {
+    if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+      console.error("Supabase-Fehler", {
+        aktion,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      });
+    }
     const result = new Error(`${aktion} ist fehlgeschlagen. Bitte versuchen Sie es erneut.`);
     result.code = error && error.code;
     return result;
@@ -10,11 +19,12 @@ const AbschussService = (() => {
   async function getAbschuesse() {
     const [abschussResult, rechnungspositionenResult] = await Promise.all([
       db.from("abschuesse").select(`
-        id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, geweihgewicht, alter,
+        id, nr, datum, tageszeit, jaeger_id, anrechnung_person_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, geweihgewicht, alter,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung, fallwild, sonderabschuss, interner_hirsch_b1,
         untersuchungsprotokoll_nr, erstellt_am, geaendert_am,
-        jaeger:personen (id, vorname, nachname),
+        jaeger:personen!abschuesse_jaeger_fk (id, vorname, nachname),
+        anrechnung_person:personen!abschuesse_anrechnung_person_fk (id, vorname, nachname),
         wildgruppen (id, bezeichnung, reihenfolge, rechnung_moeglich),
         wildklassen (id, code, bezeichnung, wildgruppe_id),
         wildhaendler (id, code, bezeichnung, rechnung_moeglich),
@@ -137,6 +147,12 @@ const AbschussService = (() => {
     if (error) throw fehler(error, "Das Laden der Jäger");
     return data || [];
   }
+  async function getAuswaehlbareAnrechnungsJaeger() {
+    const { data, error } = await db.from("personen").select("id, personen_nr, vorname, nachname, name_kat, aktiv")
+      .eq("name_kat", "Mitglied").eq("aktiv", true).order("nachname").order("vorname");
+    if (error) throw fehler(error, "Das Laden der Anrechnungsjäger");
+    return data || [];
+  }
 
   const getAuswaehlbareJaeger = getAuswaehlbareAbschussJaeger;
   const getJaeger = getAuswaehlbareAbschussJaeger;
@@ -145,6 +161,6 @@ const AbschussService = (() => {
     getAbschuesse, getAbschuss, createAbschuss, updateAbschuss,
     deleteAbschuss, getNaechsteAbschussnummer,
     istAbschussnummerVergeben, getAktiveWildhaendler,
-    getAuswaehlbareAbschussJaeger, getAuswaehlbareJaeger, getJaeger,
+    getAuswaehlbareAbschussJaeger, getAuswaehlbareAnrechnungsJaeger, getAuswaehlbareJaeger, getJaeger,
   };
 })();

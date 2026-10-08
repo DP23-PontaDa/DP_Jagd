@@ -16,7 +16,7 @@ const AbschussregelnService = (() => {
     const freiAb = String(regel.frei_ab || `${freigabejahr}-01-01`).slice(0, 10);
     return (abschuesse || [])
       .filter((abschuss) => AbschussWirkung.istFreigabewirksamerHirschabschuss(abschuss) &&
-        String(abschuss.jaeger_id) === String(regel.jaeger_id) &&
+        String(AbschussAnrechnung.personId(abschuss)) === String(regel.jaeger_id) &&
         String(abschuss.wildklasse_id) === String(regel.wildklasse_id) &&
         Number(String(abschuss.datum || "").slice(0, 4)) === freigabejahr &&
         String(abschuss.datum || "").slice(0, 10) >= freiAb)
@@ -27,7 +27,7 @@ const AbschussregelnService = (() => {
       db.from("abschussregeln").select(
         "*,wildklasse:wildklassen(id,bezeichnung,reihenfolge,wildgruppe:wildgruppen(id,bezeichnung,reihenfolge)),jaeger:personen(id,vorname,nachname,name_kat)"
       ).not("jaeger_id", "is", null),
-      db.from("abschuesse").select("id,datum,jaeger_id,wildklasse_id,fallwild,sonderabschuss").eq("fallwild", false),
+      db.from("abschuesse").select("id,datum,jaeger_id,anrechnung_person_id,wildklasse_id,fallwild,sonderabschuss").eq("fallwild", false),
     ]);
     const abschuesse = check(abschuesseResult) || [];
     const regeln = (check(regelnResult) || []).map((regel) => {

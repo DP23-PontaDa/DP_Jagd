@@ -144,7 +144,7 @@ const DashboardService = (() => {
         datum,
         wildgruppe_id,
         wildklasse_id,
-        jaeger:personen (id, personen_nr, vorname, nachname),
+        jaeger:personen!abschuesse_jaeger_fk (id, personen_nr, vorname, nachname),
         wildgruppe:wildgruppen (id, bezeichnung, reihenfolge),
         wildklasse:wildklassen (id, code, bezeichnung, reihenfolge)
       `)

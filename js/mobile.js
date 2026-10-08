@@ -1,5 +1,8 @@
 window.MobileUI = (() => {
   function enhanceTable(table) {
+    // A4-Berichtstabellen bleiben immer klassische Tabellen, auch bei einer
+    // schmalen Browserbreite in der Vorschau.
+    if (table.classList.contains("jb-table") || table.closest(".jaegerbericht-sheet")) return;
     const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
       th.textContent.trim(),
     );

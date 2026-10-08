@@ -191,7 +191,7 @@ const FreigabenService = (() => {
       db.from("abschussregeln").select("*").eq("aktiv",true).not("jaeger_id","is",null),
       db.from("allgemeine_abschussregeln").select("*").eq("aktiv",true)
         .order("prioritaet",{ascending:false}),
-      db.from("abschuesse").select("id,datum,jaeger_id,wildklasse_id,fallwild,sonderabschuss,zusatzinfo,interner_hirsch_b1,geweihgewicht").eq("fallwild",false).lte("datum",`${jahr}-12-31`).order("datum",{ascending:false}),
+      db.from("abschuesse").select("id,datum,jaeger_id,anrechnung_person_id,wildklasse_id,fallwild,sonderabschuss,zusatzinfo,interner_hirsch_b1,geweihgewicht").eq("fallwild",false).lte("datum",`${jahr}-12-31`).order("datum",{ascending:false}),
       planKontext(), WildklassenService.getKahlwildpflichtRegeln(),
     ]);
     const geladeneRegeln=check(regelnResult);
@@ -214,7 +214,7 @@ const FreigabenService = (() => {
     });
     const kahlwildVerlaufJeJaeger=new Map();
     basis.jaeger.forEach((jaeger)=>basis.klassen.forEach((klasse)=>{
-      const personAbschuesse=basis.abschuesse.filter((a)=>String(a.jaeger_id)===String(jaeger.id)&&String(a.datum)<=`${jahr}-12-31`);
+      const personAbschuesse=basis.abschuesse.filter((a)=>String(AbschussAnrechnung.personId(a))===String(jaeger.id)&&String(a.datum)<=`${jahr}-12-31`);
       const alleKlassenAbschuesse=personAbschuesse.filter((a)=>
         String(a.wildklasse_id)===String(klasse.id)&&
         AbschussWirkung.istFreigabewirksamerHirschabschuss(a));
@@ -403,7 +403,7 @@ const FreigabenService = (() => {
       liste.push(regel); regelMap.set(schluessel,liste);
     });
     return basis.jaeger.map((jaeger) => {
-      const abschuesse = basis.abschuesse.filter((abschuss) => String(abschuss.jaeger_id) === String(jaeger.id));
+      const abschuesse = basis.abschuesse.filter((abschuss) => String(AbschussAnrechnung.personId(abschuss)) === String(jaeger.id));
       const jahresabschuesse = abschuesse.filter((abschuss) => Number(String(abschuss.datum || "").slice(0, 4)) === Number(jahr));
       const verlauf = calculateKahlwildPflichtProJahr(abschuesse, klasseMap, basis.plan.kahlwildIds, regelMap, jahr, jaeger);
       const snapshot = verlauf.find((zeile) => Number(zeile.jahr) === Number(jahr)) || {

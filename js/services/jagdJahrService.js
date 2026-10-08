@@ -12,7 +12,7 @@ const JagdJahrService = (() => {
   async function abschuesseZeitraum(von, bis) {
     return pruefen(await db.from("abschuesse").select(`
       id,nr,datum,tageszeit,fallwild,sonderabschuss,alter,wildklasse_id,wildgruppe_id,
-      jaeger:personen(id,vorname,nachname),
+      jaeger:personen!abschuesse_jaeger_fk(id,vorname,nachname),
       wildgruppe:wildgruppen(id,bezeichnung),
       wildklasse:wildklassen(id,code,bezeichnung,kuerzel),
       erlegungsort:orte(id,name,art,reviereinrichtung)

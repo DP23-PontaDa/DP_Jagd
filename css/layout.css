@@ -2027,6 +2027,7 @@ textarea.form-control {
 .jaegerbericht-sheet { position: relative; box-sizing: border-box; width: 210mm; height: 297mm; padding: 12mm 13mm 14mm; overflow: hidden; page: jaegerbericht; background: #fff; color: #263238; box-shadow: 0 2px 14px #0002; font-family: Arial, sans-serif; font-size: 8.5pt; }
 @page jaegerbericht { size: A4 portrait; margin: 0; }
 .jaegerbericht-sheet > h2 { margin: 5mm 0 4mm; color: #243b32; font-size: 17pt; letter-spacing: .04em; }
+.a4-report-sheet.jaegerbericht-sheet > h2 { margin-top: 8mm; }
 .jaegerbericht-content { display: grid; gap: 4mm; align-content: start; }
 .jb-following-head { margin: 0; padding: 0 0 2mm; border-bottom: 1px solid #d6dfda; color: #52635b; font-size: 8pt; font-weight: 700; text-align: right; }
 .jaegerbericht-folgeseite > .jb-following-head { display: none; }
@@ -2062,6 +2063,7 @@ textarea.form-control {
 .jb-table td { padding: 1.7mm 2mm; border: 1px solid #ccd5d1; overflow-wrap: break-word; vertical-align: top; word-break: normal; }
 .jb-table thead { display: table-header-group; }
 .jb-table tr { break-inside: avoid; page-break-inside: avoid; }
+.jaegerbericht-sheet .jb-table tbody td::before { content: none !important; display: none !important; }
 .jb-date-table th:first-child, .jb-date-table td:first-child { width: 20mm; min-width: 20mm; padding-right: 1.2mm; padding-left: 1.2mm; white-space: nowrap; }
 .jb-verein-hirsche .jb-date-table th:first-child, .jb-verein-hirsche .jb-date-table td:first-child { width: 21mm; min-width: 21mm; }
 .jaegerbericht-sheet.is-verein .jb-date-table:has(thead th:nth-child(3):last-child) th:nth-child(3),
@@ -3778,6 +3780,12 @@ textarea.form-control {
 .hav-startinfo { margin-top: 3px; color: #365648; font-size: 8pt; font-weight: 700; }
 .hav-legende { display: flex; justify-content: center; gap: 10px; margin-top: 3px; color: #59656a; font-size: 6.5pt; line-height: 1; }
 .hav-diagnose { display: block; margin-top: 3px; color: #65716c; font-size: 6.5pt; line-height: 1; }
+.hav-startdatum { margin: 0 0 1.5mm; color: #365648; font-size: 8pt; font-weight: 700; }
+.hav-statistik { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8mm; color: #365648; font-size: 7.5pt; line-height: 1.2; }
+.hav-statistik dl { display: grid; gap: 1mm; margin: 0; }
+.hav-statistik dl > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2mm; align-items: baseline; }
+.hav-statistik dt, .hav-statistik dd { margin: 0; }
+.hav-statistik dd { font-weight: 700; text-align: right; white-space: nowrap; }
 .hav-diagnose-block { max-width: 540px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid #cad7d0; border-radius: 4px; background: #f7faf8; color: #263e33; }
 .hav-diagnose-block strong { display: block; margin-bottom: 5px; }
 .hav-diagnose-block dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 16px; margin: 0; font-size: .9rem; }
@@ -4012,7 +4020,7 @@ textarea.form-control {
     min-height: 0;
     height: 25.5mm;
     /* Zusätzliche Luft für Unterlängen wie g und j vor der Kopflinie. */
-    padding: 0 0 4mm;
+    padding: 0 0 3mm;
     background: transparent;
     border: 0;
     border-bottom: 1px solid color-mix(in srgb, #3D5567 48%, transparent);
@@ -4022,6 +4030,8 @@ textarea.form-control {
     align-self: end;
     min-width: 0;
 }
+.a4-report-sheet.jaegerbericht-sheet > .a4-report-header .a4-header-title { overflow: hidden; }
+.a4-report-sheet.jaegerbericht-sheet > .a4-report-header strong { white-space: nowrap; }
 .a4-report-sheet > .a4-report-header strong {
     display: inline-block;
     max-width: 100%;
@@ -4077,17 +4087,19 @@ textarea.form-control {
     max-height: calc((var(--a4-calendar-available-height) - 7mm) / 31);
 }
 .a4-report-sheet.hirsch-a-verlauf-sheet > header:not(.a4-report-header) { height: 25mm; }
+.a4-report-sheet.hirsch-a-verlauf-sheet > header:not(.a4-report-header) { margin: 0; text-align: left; }
 .a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar {
-    height: var(--a4-calendar-available-height);
-    max-height: var(--a4-calendar-available-height);
+    height: calc(var(--a4-calendar-available-height) - 7mm);
+    max-height: calc(var(--a4-calendar-available-height) - 7mm);
 }
 .a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar tbody tr,
 .a4-report-sheet.hirsch-a-verlauf-sheet .hav-calendar td {
-    height: calc(var(--a4-calendar-available-height) / 31);
-    max-height: calc(var(--a4-calendar-available-height) / 31);
+    height: calc((var(--a4-calendar-available-height) - 7mm) / 31);
+    max-height: calc((var(--a4-calendar-available-height) - 7mm) / 31);
 }
 .a4-report-sheet.key-dates-sheet .key-dates-months { grid-template-rows: repeat(2, 114mm); gap: 8mm 6mm; }
 .a4-report-sheet.jaegerbericht-sheet { padding: var(--a4-content-top) var(--a4-content-right) var(--a4-content-bottom) var(--a4-content-left) !important; }
+.a4-report-sheet.jaegerbericht-sheet .jaegerbericht-content { margin-top: 3mm; }
 .a4-report-sheet.jaegerbericht-sheet .jaegerbericht-foot { right: var(--a4-content-right); bottom: var(--a4-footer-bottom); left: var(--a4-content-left); padding-top: 0; border-top: 0; }
 
 .a4-zoom-toolbar {
@@ -4159,7 +4171,7 @@ textarea.form-control {
     }
     .a4-report-sheet > .a4-report-header {
         /* Browser-PDF: Unterlängen dürfen die Trennlinie nicht berühren. */
-        padding-bottom: 5mm;
+        padding-bottom: 3mm;
     }
     .a4-report-sheet > .a4-report-header .a4-header-title {
         /* Browser-PDF rundet Grid-Abstände teils abweichend: Titel klar von der Linie lösen. */

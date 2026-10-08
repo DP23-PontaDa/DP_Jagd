@@ -27,6 +27,9 @@ window.A4PageLayout = (() => {
     const pxProMm = 96 / 25.4;
     const headerMm = Math.max(0, kopf.offsetHeight / pxProMm);
     const footerMm = Math.max(0, fuss.offsetHeight / pxProMm);
+    // In einem noch ausgeblendeten Reiter liefern Browser 0 px. Diese
+    // Zwischenmessung darf die gültigen A4-Standardhöhen nicht überschreiben.
+    if (headerMm < 1 || footerMm < 1) return;
     document.documentElement.style.setProperty("--a4-header-content-height", `${headerMm.toFixed(2)}mm`);
     document.documentElement.style.setProperty("--a4-footer-content-height", `${footerMm.toFixed(2)}mm`);
     document.documentElement.style.setProperty("--a4-calendar-available-height", `calc(var(--a4-content-height) - var(--a4-header-content-height) - var(--a4-footer-content-height))`);
@@ -34,6 +37,21 @@ window.A4PageLayout = (() => {
 
   function titelMitJahr(titel, jahr) {
     return jahr == null || String(titel).includes(String(jahr)) ? titel : `${titel} ${jahr}`;
+  }
+
+  function titelEinpassen(kopf) {
+    const seite = kopf?.closest(".jaegerbericht-sheet");
+    const titelbereich = kopf?.querySelector(".a4-header-title");
+    const schrift = titelbereich?.querySelector("strong");
+    if (!seite || !titelbereich || !schrift || titelbereich.clientWidth < 1) return;
+
+    schrift.style.removeProperty("font-size");
+    const minimumPx = 10 * (96 / 72);
+    let groesse = parseFloat(getComputedStyle(schrift).fontSize);
+    while (schrift.scrollWidth > titelbereich.clientWidth && groesse > minimumPx) {
+      groesse -= 0.5;
+      schrift.style.fontSize = `${groesse}px`;
+    }
   }
 
   function rahmen(seite, { titel, jahr, seiteNr, seitenGesamt } = {}) {
@@ -52,7 +70,10 @@ window.A4PageLayout = (() => {
     fuss.children[1].textContent = seiteNr && seitenGesamt ? `Seite ${seiteNr} / ${seitenGesamt}` : "";
     if (!fuss.parentElement) seite.append(fuss);
 
-    requestAnimationFrame(() => headerFooterHoehenAnpassen(kopf, fuss));
+    requestAnimationFrame(() => {
+      titelEinpassen(kopf);
+      headerFooterHoehenAnpassen(kopf, fuss);
+    });
   }
 
   function rahmenAktualisieren(container, optionen) {

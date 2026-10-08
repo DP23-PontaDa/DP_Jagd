@@ -10,6 +10,17 @@ window.JaegerBerichtService = (() => {
     return result?.data || [];
   }
 
+  async function zugangLaden() {
+    const result = await db.rpc("app_jaegerdatenblatt_zugang");
+    const rows = pruefen(result, "Der Zugriff auf das Jägerdatenblatt konnte nicht geprüft werden.");
+    return rows[0] || { ist_admin: false, person_id: null, vorname: null, nachname: null };
+  }
+
+  async function meineJahreLaden() {
+    return pruefen(await db.rpc("app_jaegerdatenblatt_meine_jahre"), "Berichtsjahre konnten nicht geladen werden.")
+      .map((row) => Number(row.jahr)).filter(Number.isInteger);
+  }
+
   async function jahreLaden() {
     const resultate=await Promise.all(["abschuesse","nachsuchen","probeschuesse","fehlschuesse","st_peter_mitterberg"]
       .map((tabelle)=>db.from(tabelle).select("datum")));
@@ -109,7 +120,7 @@ window.JaegerBerichtService = (() => {
     const rehgeiss = rehwild.filter(istRehgeiss), rehkitz = rehwild.filter(istRehkitz);
     const details = (liste, alter = true) => nachDatumSortieren(liste, (a, b) =>
       wildklasseInfo(a).klasse.localeCompare(wildklasseInfo(b).klasse, "de") || jaegerName(a).localeCompare(jaegerName(b), "de"))
-      .map((row) => ({ id: row.id, datum: row.datum, klasse: wildklasseInfo(row).klasse, jaeger: jaegerName(row), alter: alter ? row.alter : null, jahr: jahrVon(row.datum), fallwild: row.fallwild === true }));
+      .map((row) => ({ id: row.id, datum: row.datum, klasse: wildklasseInfo(row).klasse, jaeger: jaegerName(row), alter: alter ? row.alter : null, jahr: jahrVon(row.datum), fallwild: row.fallwild === true, fremdabschuss: row.ist_fremdabschuss === true }));
     const haarFederJahre = zeitraumJahre.flatMap((jahr) => {
       const werte = new Map();
       haarFederwild.filter((row) => jahrVon(row.datum) === jahr).forEach((row) => {
@@ -140,11 +151,58 @@ window.JaegerBerichtService = (() => {
     };
   }
 
+  async function ladenPersoenlich(jaegerId, vonJahr, bisJahr) {
+    const payload = pruefen(await db.rpc("app_jaegerdatenblatt_meine_daten", {
+      p_person_id: jaegerId, p_von_jahr: vonJahr, p_bis_jahr: bisJahr,
+    }), "Das persönliche Jägerdatenblatt konnte nicht geladen werden.") || {};
+    const jaeger = payload.jaeger;
+    if (!jaeger?.id) throw new Error("Deinem Benutzerkonto ist noch kein Jäger zugeordnet. Bitte wende dich an den Administrator.");
+    const abschuesseAlle = payload.abschuesse || [];
+    const kahlwildIds = new Set((payload.kahlwild_ids || []).map(String));
+    const eigene = abschuesseAlle.filter((row) => String(row.jaeger_id) === String(jaeger.id));
+    const fremdabschuesse = nachDatumSortieren(abschuesseAlle.filter((row) =>
+      String(row.anrechnung_person_id || "") === String(jaeger.id) && String(row.jaeger_id) !== String(jaeger.id)));
+    const abschuesse = nachDatumSortieren(eigene);
+    const regulaereAbschuesse = abschuesse.filter(istRegulaererAbschuss);
+    const fallwild = abschuesse.filter((row) => row.fallwild === true);
+    const kahlwild = regulaereAbschuesse.filter((row) => kahlwildIds.has(String(row.wildklasse_id)));
+    const hirsche = regulaereAbschuesse.filter((row) => norm(relation(row.wildklassen)?.bezeichnung).startsWith("hirsch"));
+    const sonderabschuesse = regulaereAbschuesse.filter((row) => row.sonderabschuss === true);
+    const zeitraumJahre = Array.from({ length: bisJahr - vonJahr + 1 }, (_, index) => vonJahr + index);
+    const auswertung = auswertungErstellen(regulaereAbschuesse, zeitraumJahre);
+    const auswertungMitFremdabschuesse = auswertungErstellen([
+      ...regulaereAbschuesse,
+      ...fremdabschuesse.filter(istRegulaererAbschuss).map((row) => ({ ...row, ist_fremdabschuss: true })),
+    ], zeitraumJahre);
+    const jahresStatistik = zeitraumJahre.map((jahr) => {
+      const liste = regulaereAbschuesse.filter((row) => jahrVon(row.datum) === jahr);
+      return { jahr, kahlwild: liste.filter((row) => kahlwildIds.has(String(row.wildklasse_id))).length,
+        hirschA: liste.filter((row) => norm(relation(row.wildklassen)?.bezeichnung) === "hirsch a").length,
+        hirschB: liste.filter((row) => ["hirsch b", "hirsch b1"].includes(norm(relation(row.wildklassen)?.bezeichnung))).length };
+    });
+    const wildgruppenStatistik = [];
+    const jahresWildgruppen = [];
+    return { jaeger, istVerein: false, istEingeschraenkt: true, vonJahr, bisJahr, statusJahr: bisJahr, erstelltAm: new Date(),
+      abschuesse, fallwild, kahlwild, hirsche, fremdabschuesse, sonderabschuesse,
+      nachsuchen: payload.nachsuchen || [], probeschuesse: payload.probeschuesse || [], fehlschuesse: payload.fehlschuesse || [], stPeter: [],
+      freigaben: [], kahlwildStatus: null, kahlwildJahre: [], jahresStatistik, wildgruppenStatistik, jahresWildgruppen, ortName,
+      auswertung, auswertungMitFremdabschuesse,
+      nachJaeger: { kahlwild: [], rotwild: [], rehwild: [], gesamt: [] },
+      kennzahlen: { abschuesse: regulaereAbschuesse.length, kahlwild: kahlwild.length, hirsche: hirsche.length,
+        hirschA: hirsche.filter((row) => norm(relation(row.wildklassen)?.bezeichnung) === "hirsch a").length,
+        hirschB: hirsche.filter((row) => ["hirsch b", "hirsch b1"].includes(norm(relation(row.wildklassen)?.bezeichnung))).length,
+        nachsuchen: (payload.nachsuchen || []).length, probeschuesse: (payload.probeschuesse || []).length,
+        fehlschuesse: (payload.fehlschuesse || []).length, sonderabschuesse: sonderabschuesse.length },
+    };
+  }
+
   async function laden(jaegerId, vonJahr, bisJahr) {
     vonJahr=Number(vonJahr);bisJahr=Number(bisJahr);
     if(!Number.isInteger(vonJahr)||!Number.isInteger(bisJahr)||vonJahr>bisJahr){
       throw new Error("Das Startjahr darf nicht größer als das Endjahr sein.");
     }
+    const zugang = await zugangLaden();
+    if (!zugang.ist_admin) return ladenPersoenlich(zugang.person_id, vonJahr, bisJahr);
     const istVerein = String(jaegerId) === VEREIN_VALUE;
     const [personen, abschuesseAlle, nachsuchenAlle, probeschuesseAlle, fehlschuesseAlle,
       stPeterAlle] = await Promise.all([
@@ -159,6 +217,9 @@ window.JaegerBerichtService = (() => {
     const jaegerIds = new Set(personen.map((person) => String(person.id)));
     const gehoertZumVerein = (row) => jaegerIds.has(String(row.jaeger_id));
     const personenAbschuesseAlle = abschuesseAlle.filter((row) => istVerein ? gehoertZumVerein(row) : String(row.jaeger_id) === String(jaegerId));
+    const fremdabschuesseAlle = istVerein ? [] : abschuesseAlle.filter((row) =>
+      String(row.anrechnung_person_id || "") === String(jaegerId) &&
+      String(row.jaeger_id) !== String(jaegerId));
     const personenRegulaereAbschuesseAlle = personenAbschuesseAlle.filter(istRegulaererAbschuss);
     const vorhandeneJahre = [...new Set(personenRegulaereAbschuesseAlle.map((row) => jahrVon(row.datum))
       .filter(Number.isInteger))].sort((a, b) => a - b);
@@ -173,6 +234,7 @@ window.JaegerBerichtService = (() => {
     const kahlwildIds = freigabeDaten.basis?.plan?.kahlwildIds || new Set();
     const abschuesse = nachDatumSortieren(personenAbschuesseAlle.filter((row) => imZeitraum(row, vonJahr, bisJahr)), (a, b) =>
       wildklasseInfo(a).klasse.localeCompare(wildklasseInfo(b).klasse, "de") || jaegerName(a).localeCompare(jaegerName(b), "de"));
+    const fremdabschuesse = nachDatumSortieren(fremdabschuesseAlle.filter((row) => imZeitraum(row, vonJahr, bisJahr)));
     const regulaereAbschuesse = abschuesse.filter(istRegulaererAbschuss);
     const fallwild = abschuesse.filter((row) => row.fallwild === true);
     const kahlwild = regulaereAbschuesse.filter((row) => kahlwildIds.has(String(row.wildklasse_id)));
@@ -215,6 +277,10 @@ window.JaegerBerichtService = (() => {
         hirschB:regulaer.filter((row)=>["hirsch b","hirsch b1"].includes(norm(relation(row.wildklassen)?.bezeichnung))).length,
         fallwild:liste.filter((row)=>row.fallwild===true).length};});
     const auswertung = auswertungErstellen(regulaereAbschuesse, zeitraumJahre);
+    const auswertungMitFremdabschuesse = auswertungErstellen([
+      ...regulaereAbschuesse,
+      ...fremdabschuesse.filter(istRegulaererAbschuss).map((row) => ({ ...row, ist_fremdabschuss: true })),
+    ], zeitraumJahre);
 
     const nachJaeger = (liste, filter = () => true) => [...liste.filter(filter).reduce((werte, row) => {
       const name = jaegerName(row), aktuell = werte.get(name) || { jaeger: name, anzahl: 0 };
@@ -228,9 +294,9 @@ window.JaegerBerichtService = (() => {
     }, new Map()).values()].sort((a, b) => (b.kahlwild + b.hirsche) - (a.kahlwild + a.hirsche) || a.jaeger.localeCompare(b.jaeger, "de"));
 
     return {
-      jaeger, istVerein, vonJahr, bisJahr, statusJahr, erstelltAm: new Date(), abschuesse, fallwild, kahlwild, hirsche,
+      jaeger, istVerein, vonJahr, bisJahr, statusJahr, erstelltAm: new Date(), abschuesse, fallwild, kahlwild, hirsche, fremdabschuesse,
       sonderabschuesse, nachsuchen, probeschuesse, fehlschuesse, stPeter,
-      freigaben, kahlwildStatus, kahlwildJahre, jahresStatistik, wildgruppenStatistik,jahresWildgruppen,ortName, auswertung,
+      freigaben, kahlwildStatus, kahlwildJahre, jahresStatistik, wildgruppenStatistik,jahresWildgruppen,ortName, auswertung, auswertungMitFremdabschuesse,
       nachJaeger: { kahlwild: nachJaeger(kahlwild), rotwild: rotwildNachJaeger, rehwild: nachJaeger(regulaereAbschuesse, istRehwild), gesamt: nachJaeger(regulaereAbschuesse) },
       kennzahlen: {
         abschuesse:regulaereAbschuesse.length,kahlwild: kahlwild.length,hirsche:hirsche.length,
@@ -242,5 +308,5 @@ window.JaegerBerichtService = (() => {
     };
   }
 
-  return { jaegerLaden, jahreLaden, laden, personErwaehnt, VEREIN_VALUE };
+  return { jaegerLaden, jahreLaden, meineJahreLaden, zugangLaden, laden, personErwaehnt, VEREIN_VALUE };
 })();

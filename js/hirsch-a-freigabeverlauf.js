@@ -3,6 +3,8 @@ window.HirschAFreigabeVerlauf = (() => {
   const el = (id) => document.getElementById(id);
   let jahr = null;
   let initialisiert = false;
+  let ladeFolge = 0;
+  let initialisierungsFolge = 0;
 
   function datum(jahrWert, monat, tag) { return `${jahrWert}-${String(monat).padStart(2,"0")}-${String(tag).padStart(2,"0")}`; }
 
@@ -47,6 +49,23 @@ window.HirschAFreigabeVerlauf = (() => {
     const sheet = document.createElement("section"); sheet.className = "jagdjahr-sheet hirsch-a-verlauf-sheet";
     const startInfo = jahr === 2025 ? "Start 01.05.2025 · Kahlwildguthaben: 19 Stk. · Hirsch A frei: 2 Stk." : "Fortschreibung ab 01.05.2025";
     sheet.innerHTML = `<header><h2>HIRSCH A FREIGABEVERLAUF</h2><strong>${jahr}</strong><p>Mai bis Dezember</p><div class="hav-startinfo">${startInfo} · Hirsch A frei am Jahresende: ${Number(freieA) || 0} Stk.</div><div class="hav-legende"><span class="ist-frei">A wird frei</span><span class="ist-erlegt">A erlegt</span><span class="ist-offen">kein A frei</span></div>${diagnose ? `<small class="hav-diagnose">Datenprüfung: Kahlwild ${diagnose.kahlwild} · Hirsch A ${diagnose.hirschA} · Statuszellen ${diagnose.statuszellen}</small>` : ""}</header>`;
+    const werte = diagnose || {};
+    const stueck = (wert) => `${Number(wert) || 0} Stk.`;
+    sheet.innerHTML = `<header>
+      <div class="hav-statistik" aria-label="Jahresstatistik Hirsch A Freigabeverlauf">
+        <dl>
+          <div><dt>Hirsch A frei Jahresanfang:</dt><dd>${stueck(werte.startFreieA)}</dd></div>
+          <div><dt>Hirsch A frei Jahresende:</dt><dd>${stueck(freieA)}</dd></div>
+          <div><dt>Neue A Freigaben:</dt><dd>${stueck(werte.neueAFreigaben)}</dd></div>
+          <div><dt>Hirsch A Erlegungen:</dt><dd>${stueck(werte.aErlegungen)}</dd></div>
+        </dl>
+        <dl>
+          <div><dt>Kahlwildguthaben Jahresanfang:</dt><dd>${stueck(werte.startKahlwild)}</dd></div>
+          <div><dt>Kahlwildstand Jahresende:</dt><dd>${stueck(werte.kahlwildStand)}</dd></div>
+          <div><dt>Kahlwildabschuss:</dt><dd>${stueck(werte.kahlwild)}</dd></div>
+        </dl>
+      </div>
+    </header>`;
     const table = document.createElement("table"); table.className = "jagdjahr-calendar acht-monate hav-calendar";
     const thead = document.createElement("thead"), kopf = document.createElement("tr");
     MONATE.forEach(([monat, name]) => { const th = document.createElement("th"); th.textContent = name; kopf.appendChild(th); }); thead.appendChild(kopf); table.appendChild(thead);
@@ -71,22 +90,27 @@ window.HirschAFreigabeVerlauf = (() => {
   }
 
   async function laden() {
+    const ladeId = ++ladeFolge;
+    const ladeJahr = jahr;
     const fehler = el("havFehler"); if (fehler) fehler.hidden = true;
     const diagnoseZiel = el("havDiagnose"); if (diagnoseZiel) diagnoseZiel.hidden = true;
     try {
-      const daten = await JagdJahrService.hirschAFreigabeDaten(jahr);
+      const daten = await JagdJahrService.hirschAFreigabeDaten(ladeJahr);
+      if (ladeId !== ladeFolge || ladeJahr !== jahr) return;
       const ereignisse = daten?.freigabeEreignisse || [];
+      const ereignisseImJahr = ereignisse.filter((ereignis) => String(ereignis.datum || "").startsWith(`${ladeJahr}-`));
       const ergebnis = RotwildFreigabeGrafik.hirschAFreigabeverlauf(jahr, ereignisse);
       const diagnose = {
         jahr,
-        kahlwild: ereignisse.filter((ereignis) => ereignis.typ === "KAHLWILD").length,
-        hirschA: ereignisse.filter((ereignis) => ereignis.typ === "HIRSCH_A").length,
-        hirschB: ereignisse.filter((ereignis) => ereignis.typ === "HIRSCH_B").length,
+        kahlwild: ereignisseImJahr.filter((ereignis) => ereignis.typ === "KAHLWILD").length,
+        hirschA: ereignisseImJahr.filter((ereignis) => ereignis.typ === "HIRSCH_A").length,
+        hirschB: ereignisseImJahr.filter((ereignis) => ereignis.typ === "HIRSCH_B").length,
         statuszellen: ergebnis.status.size,
         aFreigabenGesamt: ergebnis.aFreigabenGesamt,
         startAFreigaben: ergebnis.startAFreigaben,
         neueAFreigaben: ergebnis.neueAFreigabenImJahr,
-        aErlegungen: [...ergebnis.status.values()].filter((status) => status.art === "erlegt").length,
+        // Einzelne Abschüsse zählen, nicht nur eine Statuszelle pro Datum.
+        aErlegungen: ereignisseImJahr.filter((ereignis) => ereignis.typ === "HIRSCH_A").length,
         startKahlwild: ergebnis.startKahlwild,
         startFreieA: ergebnis.startFreieA,
         endeVorjahrKahlwild: ergebnis.endeVorjahrKahlwild,
@@ -98,7 +122,6 @@ window.HirschAFreigabeVerlauf = (() => {
         abfrageAusgefuehrt: Number(daten?.quelle?.kahlwildWildklassen || 0) > 0,
       };
       console.debug("[Hirsch A Freigabeverlauf Debug]", diagnose, ereignisse);
-      diagnoseRendern(diagnose);
       const sichtbareStatus = anzeigeStatus(ergebnis.status, ergebnis.startKahlwild, ergebnis.startFreieA);
       kalenderRendern(sichtbareStatus, ergebnis.freieA, diagnose);
       el("havPdf")._status = sichtbareStatus;
@@ -109,6 +132,7 @@ window.HirschAFreigabeVerlauf = (() => {
         fehler.hidden = false;
       }
     } catch (error) {
+      if (ladeId !== ladeFolge || ladeJahr !== jahr) return;
       console.error("Hirsch-A-Freigabeverlauf laden:", error);
       if (fehler) { fehler.textContent = error.message || "Der Freigabeverlauf konnte nicht geladen werden."; fehler.hidden = false; }
     }
@@ -118,6 +142,7 @@ window.HirschAFreigabeVerlauf = (() => {
 
   async function init() {
     if (!el("havJahr")) return;
+    const initialisierungsId = ++initialisierungsFolge;
     if (!initialisiert) {
       initialisiert = true;
       el("havJahr").addEventListener("change", (event) => { jahr = Number(event.target.value); laden(); });
@@ -125,6 +150,7 @@ window.HirschAFreigabeVerlauf = (() => {
       el("havDrucken").addEventListener("click", drucken);
     }
     const jahre = [...new Set([2025, ...(await JagdJahrService.verfuegbareJahre()).filter((wert) => Number(wert) >= 2025)])].sort((a, b) => b - a);
+    if (initialisierungsId !== initialisierungsFolge) return;
     jahr = jahre.includes(new Date().getFullYear()) ? new Date().getFullYear() : (jahre[0] || 2025);
     el("havJahr").innerHTML = jahre.map((wert) => `<option value="${wert}">${wert}</option>`).join("");
     el("havJahr").value = jahr;

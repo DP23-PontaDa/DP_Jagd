@@ -3,6 +3,7 @@ window.Abschuss = (() => {
   let aktuell = null;
   let nummerJahr = null;
   let jaegerDropdown;
+  let anrechnungDropdown;
   let wildgruppeDropdown;
   let wildklasseDropdown;
   let wildhaendlerDropdown;
@@ -41,8 +42,9 @@ window.Abschuss = (() => {
       minChars: 2,
       maxResults: 10,
       prioritizeMatches: true,
-      onChange: freigabeZusatzinfoVorschlagen,
+      onChange: () => { anrechnungAnzeigeAktualisieren({ zuruecksetzen: true }); freigabeZusatzinfoVorschlagen(); },
     });
+    anrechnungDropdown = new SearchDropdown(el("asAnrechnung"), { placeholder: "Vereinsmitglied auswählen" });
     wildgruppeDropdown = new SearchDropdown(el("asWildgruppe"), {
       placeholder: "Wildgruppe suchen",
       onChange: wildgruppeGeaendert,
@@ -161,6 +163,27 @@ window.Abschuss = (() => {
   async function ladeJaeger() {
       jaeger = await AbschussService.getAuswaehlbareAbschussJaeger();
       jaegerDropdown.setOptions(PersonenAutocompleteService.optionen(jaeger));
+      anrechnungDropdown.setOptions(PersonenAutocompleteService.optionen(await AbschussService.getAuswaehlbareAnrechnungsJaeger()));
+  }
+
+  function ausgewaehlterJaegerIstMitglied() {
+    const jaegerId = jaegerDropdown?.getValue();
+    const person = jaeger.find((eintrag) => String(eintrag.id) === String(jaegerId));
+    return String(person?.name_kat || "").trim() === "Mitglied";
+  }
+
+  function anrechnungAnzeigeAktualisieren({ zuruecksetzen = false } = {}) {
+    const gruppe = el("asAnrechnungGruppe");
+    const jaegerId = jaegerDropdown?.getValue();
+    const istMitglied = ausgewaehlterJaegerIstMitglied();
+    const anzeigen = Boolean(jaegerId) && !istMitglied;
+    gruppe.hidden = !anzeigen;
+
+    if (istMitglied && jaegerId) {
+      anrechnungDropdown?.setValue(jaegerId, false);
+    } else if (zuruecksetzen) {
+      anrechnungDropdown?.clear(false);
+    }
   }
 
   async function ladeWildgruppen() {
@@ -720,6 +743,8 @@ window.Abschuss = (() => {
       el("asDatum").value = abschuss.datum || "";
       el("asTageszeit").value = abschuss.tageszeit || "";
       jaegerDropdown.setValue(abschuss.jaeger_id, false);
+      anrechnungDropdown.setValue(abschuss.anrechnung_person_id || abschuss.jaeger_id, false);
+      anrechnungAnzeigeAktualisieren();
       el("asGewicht").value = abschuss.gewicht ?? "";
       el("asGeweihgewicht").value = abschuss.geweihgewicht ?? "";
       el("asAlter").value = abschuss.alter ?? "";
@@ -768,6 +793,8 @@ window.Abschuss = (() => {
     el("asGeweihgewichtGruppe").hidden = true;
     el("asAlterGruppe").hidden = true;
     jaegerDropdown.clear(false);
+    anrechnungDropdown.clear(false);
+    anrechnungAnzeigeAktualisieren();
     wildgruppeDropdown.clear(false);
     wildklasseDropdown.clear(false);
     wildklasseDropdown.setOptions([]);
@@ -852,6 +879,11 @@ window.Abschuss = (() => {
       datum: el("asDatum").value,
       tageszeit: el("asTageszeit").value || null,
       jaeger_id: jaegerDropdown.getValue(),
+      anrechnung_person_id: (() => {
+        if (ausgewaehlterJaegerIstMitglied()) return null;
+        const id = anrechnungDropdown.getValue();
+        return id && String(id) !== String(jaegerDropdown.getValue()) ? id : null;
+      })(),
       wildgruppe_id: wildgruppeDropdown.getValue(),
       wildklasse_id: wildklasseDropdown.getValue(),
       ort_id: ortDropdown.getValue(),

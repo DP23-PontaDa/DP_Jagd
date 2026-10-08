@@ -1,12 +1,20 @@
 window.Benutzerverwaltung = (() => {
   const el = (id) => document.getElementById(id);
-  let daten = { profile: [], rollen: [], module: [], rechte: [] };
+  let daten = { profile: [], rollen: [], module: [], rechte: [], personen: [] };
   let aktuellerBenutzer = null;
 
   function escapeHtml(value) {
     const div = document.createElement("div");
     div.textContent = value ?? "";
     return div.innerHTML;
+  }
+
+  function personenOptionen(personId = null) {
+    const select = el("bvPerson");
+    select.innerHTML = `<option value="">Keine Zuordnung</option>${daten.personen.map((person) =>
+      `<option value="${person.id}">${escapeHtml(`${person.personen_nr ? `${person.personen_nr} · ` : ""}${person.vorname || ""} ${person.nachname || ""}`.trim())}</option>`
+    ).join("")}`;
+    select.value = personId || "";
   }
 
   async function init() {
@@ -68,6 +76,7 @@ window.Benutzerverwaltung = (() => {
     el("bvRolle").innerHTML = daten.rollen.map((rolle) =>
       `<option value="${rolle.id}">${escapeHtml(rolle.name)}</option>`).join("");
     el("bvRolle").value = profil.rolle_id;
+    personenOptionen(profil.person_id);
     el("bvAktiv").checked = profil.aktiv === true;
     const istAdmin = profil.rolle?.name === "Admin";
     el("bvRolle").disabled = istAdmin;
@@ -87,6 +96,7 @@ window.Benutzerverwaltung = (() => {
       `<option value="${rolle.id}">${escapeHtml(rolle.name)}</option>`).join("");
     const standardRolle = daten.rollen.find((rolle) => rolle.name === "Jäger") || daten.rollen[0];
     el("bvRolle").value = standardRolle?.id || "";
+    personenOptionen();
     el("bvRolle").disabled = false;
     el("bvAktiv").checked = true;
     el("bvAktiv").disabled = false;
@@ -108,8 +118,9 @@ window.Benutzerverwaltung = (() => {
       const eingabe = {
         benutzername: el("bvBenutzername").value,
         passwort: el("bvPasswort").value,
-        rolle_id: el("bvRolle").value,
-        aktiv: el("bvAktiv").checked,
+      rolle_id: el("bvRolle").value,
+      person_id: el("bvPerson").value || null,
+      aktiv: el("bvAktiv").checked,
       };
       if (!eingabe.benutzername.trim() || !eingabe.rolle_id) {
         throw new Error("Benutzername und Rolle sind erforderlich.");

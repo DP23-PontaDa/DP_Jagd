@@ -11,7 +11,7 @@ window.JaegerBericht = (() => {
 
   function kopf(titel, titelImInhaltsbereich = false) {
     if (!titel) return "";
-    return `<div class="jb-following-head">${esc(daten.jaeger.vorname)} ${esc(daten.jaeger.nachname)}</div>${titelImInhaltsbereich ? "" : `<h2>${esc(titel)}</h2>`}`;
+    return titelImInhaltsbereich ? "" : `<h2>${esc(titel)}</h2>`;
   }
   function fuss() { return `<footer class="jaegerbericht-foot"><span>Jagdverein St. Peter/Mitterberg</span><span class="jb-page-number"></span><span>Daniel Pontasch</span></footer>`; }
   function seite(titel, html, klasse = "", titelImInhaltsbereich = false) {
@@ -151,6 +151,7 @@ window.JaegerBericht = (() => {
 
   function wert(value) { return Number(value || 0); }
   function fallwildHinweis(row) { return row.fallwild ? " <span class=\"jb-badge\">Fallwild</span>" : ""; }
+  function fremdabschussHinweis(row) { return row.fremdabschuss ? " (x)" : ""; }
   function listeMitAnzahl(werte) {
     return werte.length ? `<ul class="jb-report-list">${werte.map((wert) => `<li><span>${esc(wert.bezeichnung)}</span><b>${wert.anzahl} Stk.</b></li>`).join("")}</ul>` : `<p class="jb-empty">Keine Abschüsse im Berichtszeitraum.</p>`;
   }
@@ -167,20 +168,21 @@ window.JaegerBericht = (() => {
   }
   function rotwildSeite() {
     const rotwild = daten.auswertung.rotwild;
+    const rotwildAnzeige = daten.auswertungMitFremdabschuesse.rotwild;
     const hirschA = daten.freigaben.find((row) => norm(row.wildklasse?.bezeichnung) === "hirsch a");
     const naechsterHirschA = Number(hirschA?.freigabejahr || hirschA?.regulaeres_freigabejahr);
     const kahlwild = daten.kahlwildStatus;
     const hirschSpalten = daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Klasse", "Alter", "Datum"];
     const hirschZeile = (row, bBereich = false) => daten.istVerein
       ? [`${bBereich && row.klasse === "Hirsch B1" ? '<b class="jb-hirsch-b1">B1</b> ' : ""}${datum(row.datum)}`, esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`]
-      : [esc(row.klasse) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)];
-    const hirschDetails = tabelle(hirschSpalten, rotwild.hirschDetails.slice(0, 14).map((row) => hirschZeile(row)), "Keine Hirsche im Berichtszeitraum.", "jb-date-table");
+      : [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)];
+    const hirschDetails = tabelle(hirschSpalten, rotwildAnzeige.hirschDetails.slice(0, 14).map((row) => hirschZeile(row)), "Keine Hirsche im Berichtszeitraum.", "jb-date-table");
     const kahlwildDetails = rotwild.kahlwildDetails.length ? `<div class="jb-kahlwild-list">${rotwild.kahlwildDetails.map((row) => `<section><div class="jb-kahlwild-total"><h4>${esc(row.bezeichnung)}</h4><b>${row.anzahl} Stk.</b></div>${geschlechtsZeilen(row)}</section>`).join("")}</div>` : `<p class="jb-empty">Kein Kahlwild im Berichtszeitraum.</p>`;
     return seite("", `
       <h2 class="jb-report-page-title">ROTWILD</h2>
       <div class="jb-stat-grid">${statistikKarte("Abschüsse", `${rotwild.gesamt} Stk.`)}${statistikKarte("Hirsche", `${rotwild.hirsche} Stk.`, rotwild.hirschKlassen.map((wert) => `Hirsch ${wert.klasse}: ${wert.anzahl}`).join(" · "))}${statistikKarte("Kahlwild", `${rotwild.kahlwild} Stk.`, `Tiere: ${rotwild.tiere} · Kalb: ${rotwild.kalb}`)}</div>
       ${daten.istVerein ? `${abschnitt("Kahlwild", kahlwildDetails)}${abschnitt("Rotwild nach Jahr", jaehrlicheRotwildwerte(rotwild.jahre))}${vereinHirsche(rotwild)}${abschnitt("Kahlwild pro Jäger", tabelle(["Jäger", "Kahlwild", "Hirsche"], daten.nachJaeger.rotwild.map((row) => [esc(row.jaeger), esc(`${row.kahlwild} Stk.`), esc(`${row.hirsche} Stk.`)])))}` : `<div class="jb-report-two-columns">${abschnitt("Hirsche", hirschDetails)}${abschnitt("Kahlwild", kahlwildDetails)}</div>${abschnitt("Rotwild nach Jahr", jaehrlicheRotwildwerte(rotwild.jahre))}`}
-      ${daten.istVerein ? "" : `<div class="jb-status-grid">${Number.isFinite(naechsterHirschA) ? `<section class="jb-highlight"><h3>NÄCHSTER HIRSCH A FREI</h3><b>${naechsterHirschA}</b></section>` : ""}${wert(kahlwild?.offen) > 0 ? `<section class="jb-highlight"><h3>KAHLWILDPFLICHT</h3><dl><dt>Pflicht</dt><dd>${wert(kahlwild.pflicht) + wert(kahlwild.uebertrag)} Stk.</dd><dt>Erlegt/angerechnet</dt><dd>${wert(kahlwild.angerechnet)} Stk.</dd><dt>Noch offen</dt><dd class="offen">${wert(kahlwild.offen)} Stk.</dd></dl></section>` : ""}</div>`}
+      ${daten.istVerein ? "" : `<div class="jb-status-grid">${Number.isFinite(naechsterHirschA) ? `<section class="jb-highlight"><h3>NÄCHSTER HIRSCH A FREI</h3><b>${naechsterHirschA}</b></section>` : ""}${wert(kahlwild?.offen) > 0 ? `<section class="jb-highlight"><h3>KAHLWILDPFLICHT</h3><dl><dt>Pflicht</dt><dd>${wert(kahlwild.pflicht) + wert(kahlwild.uebertrag)} Stk.</dd><dt>Erlegt/angerechnet</dt><dd>${wert(kahlwild.angerechnet)} Stk.</dd><dt>Noch offen</dt><dd class="offen">${wert(kahlwild.offen)} Stk.</dd></dl></section>` : ""}</div>${fremdabschuesseAbschnitt("Fremdabschüsse Rotwild", (row) => norm(wildgruppe(row)) === "rotwild")}`}
     `, "jb-wildseite jb-rotwild-seite");
   }
   function vereinHirsche(rotwild, start = 0, titel = "HIRSCHE") {
@@ -197,15 +199,25 @@ window.JaegerBericht = (() => {
   }
   function rehwildSeite() {
     const rehwild = daten.auswertung.rehwild;
-    const bockA = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock A", "Alter", "Datum"], rehwild.rehbockADetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
-    const bockB = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock B", "Datum"], rehwild.rehbockBDetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fallwildHinweis(row), datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
+    const rehwildAnzeige = daten.auswertungMitFremdabschuesse.rehwild;
+    const bockA = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock A", "Alter", "Datum"], rehwildAnzeige.rehbockADetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
+    const bockB = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock B", "Datum"], rehwildAnzeige.rehbockBDetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
     return seite("REHWILD", `
       <div class="jb-report-profile"><strong>${esc(daten.jaeger.vorname)} ${esc(daten.jaeger.nachname)}</strong><span>Berichtszeitraum: ${esc(zeitraumText())}</span></div>
       <h2 class="jb-report-page-title">REHWILD</h2>
       <div class="jb-stat-grid">${statistikKarte("Abschüsse", `${rehwild.gesamt} Stk.`)}${statistikKarte("Rehböcke", `${rehwild.rehbockA + rehwild.rehbockB} Stk.`, `A: ${rehwild.rehbockA} · B: ${rehwild.rehbockB}`)}${statistikKarte("Rehgeiß", `${rehwild.rehgeiss} Stk.`)}${statistikKarte("Rehkitz", `${rehwild.rehkitz} Stk.`)}</div>
       ${abschnitt("Rehwild nach Jahr", rehwildJahre(rehwild.jahre))}
       <div class="jb-report-two-columns jb-rehbock-details">${abschnitt("Rehbock A", bockA)}${abschnitt("Rehbock B", bockB)}</div>
+      ${fremdabschuesseAbschnitt("Fremdabschüsse", (row) => norm(wildgruppe(row)) !== "rotwild")}
     `, "jb-wildseite jb-rehwild-seite", true);
+  }
+  function fremdabschuesseAbschnitt(titel = "Fremdabschüsse", filter = () => true) {
+    const eintraege = (daten.fremdabschuesse || []).filter(filter);
+    if (daten.istVerein || !eintraege.length) return "";
+    return abschnitt(titel, tabelle(["Datum", "Schütze", "Wildklasse"], eintraege.map((row) => [
+      datum(row.datum), esc(row.jaeger?.vorname ? `${row.jaeger.vorname} ${row.jaeger.nachname || ""}`.trim() : "–"),
+      esc(row.wildklassen?.bezeichnung || "Ohne Wildklasse"),
+    ]), ""));
   }
   function rehwildNachJaegerSeite() {
     if (!daten.istVerein) return [];
@@ -286,7 +298,7 @@ window.JaegerBericht = (() => {
       for (let index = 14; index < Math.max(a, b); index += 14) seiten.push(seite("ROTWILD – FORTSETZUNG", vereinHirsche(rotwild, index, "HIRSCHE"), "jb-wildseite jb-rotwild-seite"));
       return seiten;
     }
-    const hirschZeilen = rotwild.hirschDetails.map((row) => [esc(row.klasse) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]);
+    const hirschZeilen = daten.auswertungMitFremdabschuesse.rotwild.hirschDetails.map((row) => [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]);
     return fortsetzungsSeiten("ROTWILD", "Hirsche", ["Klasse", "Alter", "Datum"], hirschZeilen, 14, 14, "jb-date-table");
   }
   function rehwildFortsetzungen() { return []; }
@@ -356,7 +368,7 @@ window.JaegerBericht = (() => {
       rotwildSeite(), ...rotwildFortsetzungen(),
       haarFederwildSeite(),
       fallwildSeite(), ...fallwildFortsetzungen(),
-      freigabenSeite(), ...freigabenFortsetzungen(),
+      ...(daten.istEingeschraenkt ? [] : [freigabenSeite(), ...freigabenFortsetzungen()]),
     ];
     if(daten.nachsuchen.length||daten.probeschuesse.length||daten.fehlschuesse.length)seiten.push(...aktivitaetenSeiten());
     if(daten.stPeter.length)seiten.push(journalSeite(),...journalFortsetzungen());
@@ -383,8 +395,26 @@ window.JaegerBericht = (() => {
       placeholder: "Jäger oder Vereinsbericht suchen", minChars: 0, maxResults: 10, prioritizeMatches: true,
       onChange: auswahlGeaendert,
     });
-    const [jaeger,jahre]=await Promise.all([JaegerBerichtService.jaegerLaden(),JaegerBerichtService.jahreLaden()]);
-    jaegerDropdown.setOptions([{value:JaegerBerichtService.VEREIN_VALUE,label:"JV St. Peter/Mitterberg",group:"Vereinsbericht"},...PersonenAutocompleteService.optionen(jaeger)]);
+    const zugang = await JaegerBerichtService.zugangLaden();
+    let jaeger; let jahre;
+    if (zugang.ist_admin) {
+      [jaeger,jahre] = await Promise.all([JaegerBerichtService.jaegerLaden(),JaegerBerichtService.jahreLaden()]);
+      jaegerDropdown.setOptions([{value:JaegerBerichtService.VEREIN_VALUE,label:"JV St. Peter/Mitterberg",group:"Vereinsbericht"},...PersonenAutocompleteService.optionen(jaeger)]);
+    } else {
+      if (!zugang.person_id) {
+        el("jbJaegerAuswahl").hidden = true;
+        el("jbStatus").textContent = "Deinem Benutzerkonto ist noch kein Jäger zugeordnet. Bitte wende dich an den Administrator.";
+        el("jbStatus").hidden = false;
+        return;
+      }
+      jaeger = [{ id: zugang.person_id, vorname: zugang.vorname, nachname: zugang.nachname }];
+      jahre = await JaegerBerichtService.meineJahreLaden();
+      jaegerDropdown.setOptions(PersonenAutocompleteService.optionen(jaeger));
+      jaegerDropdown.setValue(zugang.person_id, false);
+      el("jbJaegerAuswahl").hidden = true;
+      el("jbEigenerJaeger").textContent = `Jägerdatenblatt: ${zugang.vorname || ""} ${zugang.nachname || ""}`.trim();
+      el("jbEigenerJaeger").hidden = false;
+    }
     const optionen=jahre.map((jahr)=>`<option value="${jahr}">${jahr}</option>`).join("");el("jbVonJahr").innerHTML=optionen;el("jbBisJahr").innerHTML=optionen;
     const aktuell=new Date().getFullYear();el("jbVonJahr").value=String(aktuell);el("jbBisJahr").value=String(aktuell);
     const zeitraumAktualisieren=()=>{const von=Number(el("jbVonJahr").value),bis=Number(el("jbBisJahr").value);el("jbZeitraum").textContent=`Berichtszeitraum: ${von===bis?von:`${von} – ${bis}`}`;auswahlGeaendert();};

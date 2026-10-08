@@ -45,7 +45,7 @@ const ImportExportService = (() => {
         id, nr, datum, tageszeit, jaeger_id, wildgruppe_id, wildklasse_id, ort_id, gewicht, alter,
         preis_pro_kg, gesamtpreis, wildhaendler_id, zahlungseingang,
         zusatzinfo, bemerkung, fallwild, sonderabschuss, untersuchungsprotokoll_nr,
-        jaeger:personen (id, vorname, nachname),
+        jaeger:personen!abschuesse_jaeger_fk (id, vorname, nachname),
         wildgruppen (id, bezeichnung),
         wildklassen (id, bezeichnung, wildgruppe_id),
         wildhaendler (id, bezeichnung),

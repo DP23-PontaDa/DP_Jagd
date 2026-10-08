@@ -28,7 +28,7 @@ const HaarFederwildDashboardService = (() => {
     do {
       const result = await db.from("abschuesse").select(`
         datum,jaeger_id,wildgruppe_id,wildklasse_id,
-        jaeger:personen(id,personen_nr,vorname,nachname),
+        jaeger:personen!abschuesse_jaeger_fk(id,personen_nr,vorname,nachname),
         wildgruppe:wildgruppen(id,bezeichnung,reihenfolge),
         wildklasse:wildklassen(id,bezeichnung,reihenfolge)
       `).eq("fallwild", false)

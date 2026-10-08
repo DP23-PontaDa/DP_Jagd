@@ -50,6 +50,7 @@ Deno.serve(async (request) => {
   const benutzername = String(eingabe.benutzername || "").trim();
   const passwort = String(eingabe.passwort || "");
   const rolleId = String(eingabe.rolle_id || "").trim();
+  const personId = eingabe.person_id ? String(eingabe.person_id).trim() : null;
   const aktiv = eingabe.aktiv === true;
   const login = technischerLogin(benutzername);
   const technischeEmail = `${login}@dpjagd.local`;
@@ -143,6 +144,7 @@ Deno.serve(async (request) => {
       name: benutzername,
       email: technischeEmail,
       rolle_id: rolleId,
+      person_id: personId,
       aktiv,
     }),
   });
