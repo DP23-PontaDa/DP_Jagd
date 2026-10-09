@@ -13,6 +13,7 @@ window.Abschuss = (() => {
   let wildhaendler = [];
   let planWildklassen = [];
   let filterWildklassen = [];
+  let filterWildklasseIds = new Set();
   let allgemeineRegeln = [];
   let erfassungsmodus = "plan";
   let filterInitialisiert = false;
@@ -23,6 +24,7 @@ window.Abschuss = (() => {
   async function init(modus = "plan") {
     erfassungsmodus = modus === "ausserhalb-plan" ? "ausserhalb-plan" : "plan";
     filterInitialisiert = false;
+    filterWildklasseIds.clear();
     const seitenTitel = document.querySelector(".abschuss-page h1");
     if (seitenTitel) {
       seitenTitel.textContent = erfassungsmodus === "plan"
@@ -89,7 +91,16 @@ window.Abschuss = (() => {
       filterWildklassenOptionenAufbauen();
       rendern();
     });
-    ["asFilterJahr", "asFilterWildklasse", "asFilterJaeger",
+    el("asFilterWildklasse").addEventListener("change", (event) => {
+      const checkbox = event.target.closest("input[type=checkbox][data-wildklasse-id]");
+      if (!checkbox) return;
+      const id = checkbox.dataset.wildklasseId;
+      if (checkbox.checked) filterWildklasseIds.add(id);
+      else filterWildklasseIds.delete(id);
+      filterWildklassenBeschriftungAktualisieren();
+      rendern();
+    });
+    ["asFilterJahr", "asFilterJaeger",
       "asFilterWildhaendler", "asFilterFallwild"]
       .forEach((id) => el(id).addEventListener("change", rendern));
     document.querySelector(".abschuss-quick-filters")
@@ -243,7 +254,7 @@ window.Abschuss = (() => {
       search: el("asSuche").value,
       jahr: el("asFilterJahr").value,
       wildgruppeId: el("asFilterWildgruppe").value,
-      wildklasseId: el("asFilterWildklasse").value,
+      wildklasseIds: [...filterWildklasseIds],
       jaegerId: el("asFilterJaeger").value,
       wildhaendlerId: el("asFilterWildhaendler").value,
       fallwild: el("asFilterFallwild").value,
@@ -270,8 +281,8 @@ window.Abschuss = (() => {
           String(item.datum || "").slice(0, 4) === aktuelleFilter.jahr,
         (item) => !aktuelleFilter.wildgruppeId ||
           String(item.wildgruppe_id) === aktuelleFilter.wildgruppeId,
-        (item) => !aktuelleFilter.wildklasseId ||
-          String(item.wildklasse_id) === aktuelleFilter.wildklasseId,
+        (item) => !aktuelleFilter.wildklasseIds.length ||
+          aktuelleFilter.wildklasseIds.includes(String(item.wildklasse_id)),
         (item) => !aktuelleFilter.jaegerId ||
           String(item.jaeger_id) === aktuelleFilter.jaegerId,
         (item) => !aktuelleFilter.wildhaendlerId ||
@@ -448,15 +459,31 @@ window.Abschuss = (() => {
     const wildgruppeId = el("asFilterWildgruppe").value;
     const passendeWildklassen = filterWildklassen.filter((wildklasse) =>
       !wildgruppeId || String(wildklasse.wildgruppe_id) === String(wildgruppeId));
-    selectFuellen(
-      el("asFilterWildklasse"),
-      "Wildklasse",
-      passendeWildklassen.map((wildklasse) => ({
-        value: String(wildklasse.id),
-        label: wildklasse.bezeichnung || wildklasse.label || "",
-      })),
-      "Alle Wildklassen",
-    );
+    const erlaubteIds = new Set(passendeWildklassen.map((wildklasse) => String(wildklasse.id)));
+    filterWildklasseIds = new Set([...filterWildklasseIds].filter((id) => erlaubteIds.has(id)));
+    const optionen = el("asFilterWildklasseOptionen");
+    optionen.innerHTML = "";
+    passendeWildklassen.forEach((wildklasse) => {
+      const id = String(wildklasse.id);
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.dataset.wildklasseId = id;
+      checkbox.checked = filterWildklasseIds.has(id);
+      label.append(checkbox, document.createTextNode(wildklasse.bezeichnung || wildklasse.label || ""));
+      optionen.appendChild(label);
+    });
+    filterWildklassenBeschriftungAktualisieren();
+  }
+
+  function filterWildklassenBeschriftungAktualisieren() {
+    const ausgewaehlt = filterWildklassen.filter((wildklasse) =>
+      filterWildklasseIds.has(String(wildklasse.id)));
+    el("asFilterWildklasseText").textContent = !ausgewaehlt.length
+      ? "Wildklassen: Alle"
+      : ausgewaehlt.length === 1
+        ? `Wildklasse: ${ausgewaehlt[0].bezeichnung || ausgewaehlt[0].label || ""}`
+        : `Wildklassen: ${ausgewaehlt.length} ausgewählt`;
   }
 
   function filterOptionenAufbauen() {
@@ -499,7 +526,8 @@ window.Abschuss = (() => {
     el("asSuche").value = "";
     el("asFilterJahr").value = aktuellesJahr;
     el("asFilterWildgruppe").value = "";
-    el("asFilterWildklasse").value = "";
+    filterWildklasseIds.clear();
+    filterWildklassenOptionenAufbauen();
     el("asFilterJaeger").value = "";
     el("asFilterWildhaendler").value = "";
     el("asFilterFallwild").value = "false";

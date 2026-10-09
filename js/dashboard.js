@@ -9,6 +9,7 @@ const Dashboard = (() => {
   let dashboardData = null;
   let dashboardBereiche = null;
   let dashboardJahr = "beide";
+  let dashboardAuswertungsJahre = new Set();
   let heatmapKarte = null;
   let heatmapLadeId = 0;
 
@@ -78,6 +79,17 @@ const Dashboard = (() => {
               .filter(Boolean)
               .reduce((minimum, element) => Math.min(minimum, element.y), bar.y);
             ctx.fillText(String(total), bar.x, top - 6);
+            return;
+          }
+          if (dataset.valueLabel === "stack-segment") {
+            const base = Number(bar.base);
+            const top = Number(bar.y);
+            if (!Number.isFinite(base) || !Number.isFinite(top) || Math.abs(base - top) < 14) return;
+            ctx.fillStyle = "#ffffff";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(numberValue(value)), bar.x, top + ((base - top) / 2));
+            ctx.fillStyle = "#243342";
+            ctx.textBaseline = "bottom";
             return;
           }
           ctx.fillText(String(numberValue(value)), bar.x, bar.y - 6);
@@ -199,7 +211,10 @@ const Dashboard = (() => {
         backgroundColor: istJahresFarben[index],
         stack: "ist-periode",
         skipNull: true,
-        valueLabel: index === jahre.length - 1 ? "stack-total" : null,
+        // Der erste Jahreswert bleibt als unterstes Segment der Stapelsäule
+        // sichtbar beschriftet; der letzte liefert weiterhin die Gesamtsumme.
+        valueLabel: index === 0 ? "stack-segment" :
+          (index === jahre.length - 1 ? "stack-total" : null),
       })),
       {
         label: `Soll ${aktuellesJahr}`,
@@ -878,6 +893,61 @@ const Dashboard = (() => {
     container.appendChild(section);
   }
 
+  function createDashboardFilters(container, data, bereiche) {
+    const section = createElement("section", "dashboard-analysis-filters");
+    const periodeLabel = createElement("label", "", "Planperiode für Rotwild, Rehwild und Gamswild");
+    const periodeSelect = document.createElement("select");
+    (data.planperioden || []).forEach((periode) => {
+      const option = document.createElement("option");
+      option.value = periode.id;
+      option.textContent = `${periode.bezeichnung || "Planperiode"} (${periode.startjahr} / ${periode.endjahr})${periode.status === "AKTIV" ? " – aktiv" : ""}`;
+      option.selected = String(periode.id) === String(data.planperiode.id);
+      periodeSelect.appendChild(option);
+    });
+    periodeSelect.addEventListener("change", () => {
+      const periode = (data.planperioden || []).find((item) => String(item.id) === periodeSelect.value);
+      dashboardAuswertungsJahre = new Set([periode?.startjahr, periode?.endjahr].map(Number));
+      ladeDashboardDaten(periodeSelect.value);
+    });
+    periodeLabel.appendChild(periodeSelect);
+    section.appendChild(periodeLabel);
+
+    container.appendChild(section);
+  }
+
+  function createAuswertungsJahrFilter(container, data) {
+    const section = createElement("section", "dashboard-analysis-year-filter dashboard-analysis-year-filter-section");
+    section.appendChild(createElement("strong", "", "Jahre für Abschüsse nach Jäger und Wildfleisch"));
+    const auswahl = document.createElement("details");
+    auswahl.className = "abschuss-multifilter";
+    const summary = document.createElement("summary");
+    const optionen = createElement("div", "abschuss-multifilter-options");
+    const aktualisieren = () => {
+      const jahre = data.jahre || [];
+      summary.textContent = !dashboardAuswertungsJahre.size ? "Jahre: Keine Auswahl" :
+        dashboardAuswertungsJahre.size === jahre.length ? "Jahre: Alle" :
+          `Jahre: ${[...dashboardAuswertungsJahre].sort((a, b) => b - a).join(", ")}`;
+    };
+    (data.jahre || []).forEach((jahr) => {
+      const label = createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = dashboardAuswertungsJahre.has(Number(jahr));
+      input.addEventListener("change", () => {
+        if (input.checked) dashboardAuswertungsJahre.add(Number(jahr));
+        else dashboardAuswertungsJahre.delete(Number(jahr));
+        aktualisieren();
+        renderDashboardContent();
+      });
+      label.append(input, document.createTextNode(String(jahr)));
+      optionen.appendChild(label);
+    });
+    aktualisieren();
+    auswahl.append(summary, optionen);
+    section.appendChild(auswahl);
+    container.appendChild(section);
+  }
+
   function optionenSetzen(select, werte, leertext, selected = "") {
     select.innerHTML = "";
     const leer = document.createElement("option");
@@ -900,6 +970,7 @@ const Dashboard = (() => {
       const input = document.createElement("input");
       input.type = "checkbox";
       input.value = gruppe.id;
+      input.checked = ["rotwild", "rehwild"].includes(String(gruppe.bezeichnung || "").trim().toLocaleLowerCase("de"));
       input.addEventListener("change", onChange);
       label.append(input, document.createTextNode(gruppe.bezeichnung));
       container.appendChild(label);
@@ -911,9 +982,10 @@ const Dashboard = (() => {
       .map((input) => input.value);
   }
 
-  function heatmapPopup(punkt) {
+  function heatmapPopup(punkt, jahr) {
     const container = createElement("div", "dashboard-heatmap-popup");
     container.appendChild(createElement("strong", "", punkt.ort_name));
+    container.appendChild(createElement("div", "", `Jahr: ${jahr === "beide" ? "Alle Jahre" : jahr}`));
     container.appendChild(createElement("div", "", `${punkt.anzahl} Abschüsse`));
     punkt.wildgruppen.forEach((gruppe) => container.appendChild(
       createElement("div", "", `${gruppe.bezeichnung}: ${gruppe.anzahl}`),
@@ -921,7 +993,20 @@ const Dashboard = (() => {
     return container;
   }
 
-  async function heatmapKarteRendern(container, daten, modus, ladeId) {
+  function heatmapFarbe(intensitaet) {
+    const farben = [
+      [0, [43, 131, 186]], [0.25, [102, 189, 99]], [0.5, [254, 224, 139]],
+      [0.75, [244, 109, 67]], [1, [215, 25, 28]],
+    ];
+    const wert = Math.max(0, Math.min(1, Number(intensitaet) || 0));
+    const ende = farben.find((eintrag) => wert <= eintrag[0]) || farben[farben.length - 1];
+    const start = [...farben].reverse().find((eintrag) => eintrag[0] <= wert) || farben[0];
+    const anteil = start[0] === ende[0] ? 0 : (wert - start[0]) / (ende[0] - start[0]);
+    const rgb = start[1].map((kanal, index) => Math.round(kanal + (ende[1][index] - kanal) * anteil));
+    return `rgb(${rgb.join(",")})`;
+  }
+
+  async function heatmapKarteRendern(container, daten, modus, ladeId, zahlenAnzeigen = false) {
     let einstellungen = null;
     try { einstellungen = await OrteService.kartenEinstellungenLaden(); }
     catch (error) { console.warn("Karteneinstellungen konnten nicht geladen werden:", error); }
@@ -939,14 +1024,23 @@ const Dashboard = (() => {
     daten.punkte.forEach((punkt) => {
       const position = [punkt.latitude, punkt.longitude];
       grenzen.push(position);
-      L.marker(position).bindPopup(heatmapPopup(punkt)).addTo(markerLayer);
+      const popup = heatmapPopup(punkt, daten.jahr);
+      if (zahlenAnzeigen) {
+        const intensitaet = punkt.anzahl / Math.max(1, daten.maxAbschuesse || 0);
+        const hintergrund = heatmapFarbe(intensitaet);
+        const schriftfarbe = intensitaet >= 0.58 ? "#fff" : "#243342";
+        L.marker(position, { icon: L.divIcon({ className: "dashboard-heatmap-count", html: `<span style="background:${hintergrund};color:${schriftfarbe}">${punkt.anzahl}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).bindPopup(popup).addTo(markerLayer);
+      } else {
+        L.circleMarker(position, { radius: 10, color: "#243342", weight: 1, fillColor: "#fff", fillOpacity: 0.08, opacity: 0.35 }).bindPopup(popup).addTo(markerLayer);
+      }
     });
     let heatLayer;
     if (typeof L.heatLayer === "function") {
-      const maximum = Math.max(1, ...daten.punkte.map((punkt) => punkt.anzahl));
+      const maximum = Math.max(1, daten.maxAbschuesse || 0);
       heatLayer = L.heatLayer(
-        daten.punkte.map((punkt) => [punkt.latitude, punkt.longitude, punkt.anzahl]),
-        { radius: 30, blur: 22, maxZoom: 17, max: maximum, minOpacity: 0.3 },
+        daten.punkte.map((punkt) => [punkt.latitude, punkt.longitude, punkt.anzahl / maximum]),
+        { radius: 22, blur: 12, maxZoom: 17, max: 1, minOpacity: 0.35,
+          gradient: { 0: "#2B83BA", 0.25: "#66BD63", 0.5: "#FEE08B", 0.75: "#F46D43", 1: "#D7191C" } },
       );
     } else {
       const maximum = Math.max(1, ...daten.punkte.map((punkt) => punkt.anzahl));
@@ -957,7 +1051,8 @@ const Dashboard = (() => {
         },
       )));
     }
-    (modus === "orte" ? markerLayer : heatLayer).addTo(heatmapKarte);
+    if (modus === "orte") markerLayer.addTo(heatmapKarte);
+    else { heatLayer.addTo(heatmapKarte); markerLayer.addTo(heatmapKarte); }
     if (grenzen.length > 1) heatmapKarte.fitBounds(grenzen, { padding: [28, 28], maxZoom: 16 });
     else if (grenzen.length === 1) heatmapKarte.setView(grenzen[0], 16);
     setTimeout(() => heatmapKarte?.invalidateSize(), 100);
@@ -974,9 +1069,15 @@ const Dashboard = (() => {
     gruppeAuswahl.setAttribute("aria-label", "Wildgruppen auswählen; keine Auswahl bedeutet alle Wildgruppen");
     gruppeFeld.appendChild(gruppeAuswahl);
     gruppeFeld.appendChild(createElement("small", "dashboard-heatmap-filter-help", "Keine Auswahl = alle Wildgruppen"));
-    const klasseLabel = createElement("label", "", "Wildklasse");
-    const klasseSelect = document.createElement("select");
-    klasseLabel.appendChild(klasseSelect);
+    const klasseLabel = createElement("div", "dashboard-heatmap-filter");
+    klasseLabel.appendChild(createElement("span", "dashboard-heatmap-filter-label", "Wildklassen"));
+    const klasseAuswahl = document.createElement("details");
+    klasseAuswahl.className = "abschuss-multifilter";
+    const klasseText = document.createElement("summary");
+    klasseText.textContent = "Wildklassen: Alle";
+    const klasseOptionen = createElement("div", "abschuss-multifilter-options");
+    klasseAuswahl.append(klasseText, klasseOptionen);
+    klasseLabel.appendChild(klasseAuswahl);
     const modusLabel = createElement("label", "", "Darstellung");
     const modusSelect = document.createElement("select");
     modusSelect.innerHTML = '<option value="heatmap">Heatmap</option><option value="orte">Orte</option>';
@@ -986,13 +1087,18 @@ const Dashboard = (() => {
     fallwildInput.type = "checkbox";
     fallwildInput.checked = false;
     fallwildLabel.append(fallwildInput, document.createTextNode("Fallwild einblenden"));
-    controls.append(gruppeFeld, klasseLabel, modusLabel, fallwildLabel);
+    const zahlenLabel = createElement("label", "dashboard-heatmap-fallwild");
+    const zahlenInput = document.createElement("input");
+    zahlenInput.type = "checkbox";
+    zahlenInput.checked = true;
+    zahlenLabel.append(zahlenInput, document.createTextNode("Abschusszahlen anzeigen"));
+    controls.append(gruppeFeld, klasseLabel, modusLabel, fallwildLabel, zahlenLabel);
     section.appendChild(controls);
     const map = createElement("div", "dashboard-heatmap-map");
     map.setAttribute("aria-label", "Heatmap der Erlegungsorte");
     section.appendChild(map);
     const legend = createElement("div", "dashboard-heatmap-legend");
-    legend.innerHTML = '<span>wenig Abschüsse</span><i aria-hidden="true"></i><span>viele Abschüsse</span>';
+    legend.innerHTML = '<span>0</span><i aria-hidden="true"></i><span>0 Abschüsse</span>';
     section.appendChild(legend);
     const info = createElement("p", "dashboard-heatmap-info");
     section.appendChild(info);
@@ -1000,6 +1106,26 @@ const Dashboard = (() => {
 
     let alleGruppen = [];
     let alleKlassen = [];
+    let wildklasseIds = new Set();
+    function klassenOptionenSetzen(klassen) {
+      const erlaubt = new Set(klassen.map((klasse) => String(klasse.id)));
+      wildklasseIds = new Set([...wildklasseIds].filter((id) => erlaubt.has(id)));
+      klasseOptionen.innerHTML = "";
+      klassen.forEach((klasse) => {
+        const id = String(klasse.id);
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.dataset.wildklasseId = id;
+        input.checked = wildklasseIds.has(id);
+        label.append(input, document.createTextNode(klasse.bezeichnung));
+        klasseOptionen.appendChild(label);
+      });
+      klasseText.textContent = !wildklasseIds.size ? "Wildklassen: Alle"
+        : wildklasseIds.size === 1
+          ? `Wildklasse: ${klassen.find((klasse) => wildklasseIds.has(String(klasse.id)))?.bezeichnung || ""}`
+          : `Wildklassen: ${wildklasseIds.size} ausgewählt`;
+    }
     async function laden(initial = false) {
       const ladeId = ++heatmapLadeId;
       section.setAttribute("aria-busy", "true");
@@ -1008,7 +1134,7 @@ const Dashboard = (() => {
           planperiode,
           jahr: dashboardJahr,
           wildgruppeIds: ausgewaehlteGruppen(gruppeAuswahl),
-          wildklasseId: klasseSelect.value || null,
+          wildklasseIds: [...wildklasseIds],
           inklusiveFallwild: fallwildInput.checked,
         });
         if (ladeId !== heatmapLadeId || !section.isConnected) return;
@@ -1016,10 +1142,18 @@ const Dashboard = (() => {
           alleGruppen = ergebnis.wildgruppen;
           alleKlassen = ergebnis.wildklassen;
           gruppenAuswahlRendern(gruppeAuswahl, alleGruppen, gruppenGeaendert);
-          optionenSetzen(klasseSelect, alleKlassen, "Alle Wildklassen");
+          klassenOptionenSetzen(alleKlassen);
+          return laden();
         }
-        info.textContent = `${ergebnis.ohneKoordinaten} Abschüsse ohne gespeicherte Koordinaten.`;
-        await heatmapKarteRendern(map, ergebnis, modusSelect.value, ladeId);
+        const maximum = ergebnis.maxAbschuesse || 0;
+        legend.hidden = maximum === 0;
+        legend.querySelector("span:first-child").textContent = "0";
+        legend.querySelector("span:last-child").textContent = `${maximum} Abschüsse`;
+        info.textContent = maximum
+          ? `${ergebnis.ohneKoordinaten} Abschüsse ohne gespeicherte Koordinaten.`
+          : `Keine Abschüsse mit Koordinaten für ${dashboardJahr === "beide" ? "alle Jahre" : `das Jahr ${dashboardJahr}`} vorhanden.`;
+        if (maximum) await heatmapKarteRendern(map, ergebnis, modusSelect.value, ladeId, zahlenInput.checked);
+        else if (heatmapKarte) { heatmapKarte.remove(); heatmapKarte = null; }
       } catch (error) {
         console.error("Erlegungsorte-Heatmap konnte nicht geladen werden:", error);
         info.textContent = "Die Heatmap konnte nicht geladen werden.";
@@ -1032,12 +1166,23 @@ const Dashboard = (() => {
       const klassen = gruppenIds.length
         ? alleKlassen.filter((klasse) => gruppenIds.includes(String(klasse.wildgruppe_id)))
         : alleKlassen;
-      optionenSetzen(klasseSelect, klassen, "Alle Wildklassen");
+      klassenOptionenSetzen(klassen);
       laden();
     }
-    klasseSelect.addEventListener("change", () => laden());
+    klasseAuswahl.addEventListener("change", (event) => {
+      const input = event.target.closest("input[data-wildklasse-id]");
+      if (!input) return;
+      if (input.checked) wildklasseIds.add(input.dataset.wildklasseId);
+      else wildklasseIds.delete(input.dataset.wildklasseId);
+      klassenOptionenSetzen(alleKlassen.filter((klasse) => {
+        const gruppenIds = ausgewaehlteGruppen(gruppeAuswahl);
+        return !gruppenIds.length || gruppenIds.includes(String(klasse.wildgruppe_id));
+      }));
+      laden();
+    });
     modusSelect.addEventListener("change", () => laden());
     fallwildInput.addEventListener("change", () => laden());
+    zahlenInput.addEventListener("change", () => laden());
     laden(true);
   }
 
@@ -1049,6 +1194,9 @@ const Dashboard = (() => {
     const data = dashboardData;
     const bereiche = dashboardBereiche;
     const groupNames = data.wildgruppen.map((wildgruppe) => wildgruppe.bezeichnung);
+    if (bereiche.abschuss || bereiche.jaeger || bereiche.wildhaendler) {
+      createDashboardFilters(content, data, bereiche);
+    }
     if (bereiche.abschuss) {
       const harvestSection = createElement("section", "dashboard-harvest-section");
       harvestSection.id = "dashboard-abschuss";
@@ -1061,15 +1209,16 @@ const Dashboard = (() => {
         ));
       });
     }
-    if (bereiche.abschuss || bereiche.jaeger || bereiche.wildhaendler) {
-      createYearFilter(content, data.planperiode);
+    if (bereiche.jaeger || bereiche.wildhaendler) {
+      createAuswertungsJahrFilter(content, data);
     }
-    const jaegerRows = dashboardJahr === "beide" ? data.jaeger :
-      data.jaeger.filter((row) => String(row.jahr) === dashboardJahr);
+    const jaegerRows = data.jaeger.filter((row) =>
+      dashboardAuswertungsJahre.has(Number(row.jahr)));
     if (bereiche.jaeger) createHunterCharts(content, jaegerRows, data.wildgruppen);
     if (bereiche.wildhaendler) {
-      const dealerKey = dashboardJahr === "beide" ? "beide" : dashboardJahr;
-      createDealerCharts(content, data.wildhaendler?.[dealerKey] || {});
+      createDealerCharts(content, DashboardService.auswertungWildhaendler(
+        data.wildhaendler || [], data.wildgruppen, [...dashboardAuswertungsJahre],
+      ));
     }
     observeDashboardSections();
   }
@@ -1108,6 +1257,37 @@ const Dashboard = (() => {
     sections.forEach((section) => sectionObserver.observe(section));
   }
 
+  async function ladeDashboardDaten(planperiodeId = null, initialSection = null) {
+    const content = document.getElementById("dashboardContent");
+    const period = document.getElementById("dashboardPeriod");
+    const error = document.getElementById("dashboardError");
+    if (!content || !period || !error || !dashboardBereiche) return;
+    destroyCharts();
+    content.innerHTML = "";
+    error.hidden = true;
+    try {
+      const data = await DashboardService.loadDashboard(dashboardBereiche, planperiodeId);
+      if (!data.planperiode) {
+        period.textContent = "Keine aktive Planperiode";
+        content.appendChild(createElement("div", "no-data",
+          "Für das Dashboard ist eine aktive Planperiode erforderlich."));
+        return;
+      }
+      period.textContent = `Planperiode: ${data.planperiode.startjahr} / ${data.planperiode.endjahr}`;
+      dashboardData = data;
+      if (!dashboardAuswertungsJahre.size) {
+        dashboardAuswertungsJahre = new Set([
+          Number(data.planperiode.startjahr), Number(data.planperiode.endjahr),
+        ]);
+      }
+      renderDashboardContent();
+      if (initialSection) requestAnimationFrame(() => scrollToSection(initialSection));
+    } catch (loadError) {
+      console.error("Dashboard konnte nicht geladen werden:", loadError);
+      error.hidden = false;
+    }
+  }
+
   async function init(initialSection = null) {
     const content = document.getElementById("dashboardContent");
     const period = document.getElementById("dashboardPeriod");
@@ -1118,6 +1298,7 @@ const Dashboard = (() => {
     dashboardData = null;
     dashboardBereiche = null;
     dashboardJahr = "beide";
+    dashboardAuswertungsJahre = new Set();
     content.innerHTML = "";
     error.hidden = true;
 
@@ -1127,6 +1308,10 @@ const Dashboard = (() => {
         jaeger: BerechtigungService.darf("dashboard-jaeger", "Lesen"),
         wildhaendler: BerechtigungService.darf("dashboard-wildhaendler", "Lesen"),
       };
+      dashboardBereiche = bereiche;
+      await ladeDashboardDaten(null, initialSection);
+      return;
+      /* legacy loading branch retained below */
       const data = await DashboardService.loadDashboard(bereiche);
       if (!data.planperiode) {
         period.textContent = "Keine aktive Planperiode";

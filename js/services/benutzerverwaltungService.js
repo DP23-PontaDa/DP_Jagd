@@ -46,6 +46,17 @@ const BenutzerverwaltungService = (() => {
     });
     if (error) throw fehler(error, "Benutzer konnte nicht gespeichert werden.");
     if (data?.error) throw fehler(data, "Benutzer konnte nicht gespeichert werden.");
+    // Die Zuordnung ist eine reine Profildaten-Änderung. Sie wird zusätzlich
+    // direkt gespeichert, damit ältere noch aktive Edge-Function-Versionen
+    // das neu eingeführte Feld nicht stillschweigend verwerfen können.
+    const profilId = data?.id || daten.benutzer_id;
+    if (profilId) {
+      const { error: personError } = await db
+        .from("app_benutzerprofile")
+        .update({ person_id: daten.person_id || null })
+        .eq("id", profilId);
+      if (personError) throw fehler(personError, "Die Jägerzuordnung konnte nicht gespeichert werden.");
+    }
     return data;
   }
 

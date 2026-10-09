@@ -18,6 +18,19 @@ select r.id, 'jaeger-bericht', true, false, false
 from public.app_rollen r where r.name = 'Jäger'
 on conflict (rolle_id, modul_code) do update set lesen = true;
 
+-- Einige ältere Installationen besitzen die Rollenstruktur bereits, jedoch
+-- noch nicht diese zentrale serverseitige Admin-Hilfsfunktion.
+create or replace function public.app_ist_admin()
+returns boolean language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.app_benutzerprofile p
+    join public.app_rollen r on r.id = p.rolle_id
+    where p.id = auth.uid() and p.aktiv = true and r.name = 'Admin'
+  );
+$$;
+
 create or replace function public.app_jaegerdatenblatt_zugang()
 returns table(ist_admin boolean, person_id uuid, vorname text, nachname text)
 language sql stable security definer set search_path = public

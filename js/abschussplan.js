@@ -20,6 +20,27 @@
   // Placeholder intern first year values (editable)
   const INTERN_PLACEHOLDER = {};
   let overviewCharts = [];
+  let overviewIstSichtbar = true;
+
+  const overviewValueLabels = {
+    id: "overviewValueLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx, data } = chart;
+      ctx.save();
+      ctx.fillStyle = "#243342";
+      ctx.font = "600 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      data.datasets.forEach((dataset, datasetIndex) => {
+        chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
+          const value = Number(dataset.data[index]);
+          if (!Number.isFinite(value) || value === 0) return;
+          ctx.fillText(String(value), bar.x, bar.y - 5);
+        });
+      });
+      ctx.restore();
+    },
+  };
 
   function $(sel, ctx = document) {
     return ctx.querySelector(sel);
@@ -64,7 +85,28 @@
     periodeWert.textContent =
       `${planperiode.startjahr} / ${planperiode.endjahr}`;
     periode.append(periodeLabel, periodeWert);
-    container.appendChild(periode);
+    const istUmschalter = document.createElement("button");
+    istUmschalter.type = "button";
+    istUmschalter.className = "btn btn-secondary";
+    const istUmschalterAktualisieren = () => {
+      istUmschalter.textContent = overviewIstSichtbar ? "Ist-Säulen ausblenden" : "Ist-Säulen einblenden";
+      istUmschalter.setAttribute("aria-pressed", String(overviewIstSichtbar));
+    };
+    istUmschalter.addEventListener("click", () => {
+      overviewIstSichtbar = !overviewIstSichtbar;
+      overviewCharts.forEach((chart) => {
+        chart.data.datasets.forEach((dataset) => {
+          if (dataset.istSaeule) dataset.hidden = !overviewIstSichtbar;
+        });
+        chart.update();
+      });
+      istUmschalterAktualisieren();
+    });
+    istUmschalterAktualisieren();
+    const overviewControls = document.createElement("div");
+    overviewControls.className = "ap-overview-controls";
+    overviewControls.append(periode, istUmschalter);
+    container.appendChild(overviewControls);
 
     const [gruppen, periodPositionen, plaene] = await Promise.all([
       AbschussplanService.getWildgruppen(),
@@ -178,29 +220,63 @@
             return Number(position?.soll || 0);
           }),
         );
+        const istWerte = gruppenPositionen.map((positionen) =>
+          klassen.map((klasse) => {
+            const position = positionen.find(
+              (eintrag) =>
+                String(eintrag.planperiode_planposition_id) === String(klasse.id),
+            );
+            return Number(position?.ist || 0);
+          }),
+        );
         overviewCharts.push(
           new Chart(canvas, {
             type: "bar",
+            plugins: [overviewValueLabels],
             data: {
               labels,
               datasets: [
                 {
-                  label: "KJ",
+                  label: "KJ Soll",
                   data: werte[0],
                   backgroundColor: "#2878a8",
                   borderRadius: 4,
                 },
                 {
-                  label: String(planperiode.startjahr),
+                  label: `${planperiode.startjahr} Soll`,
                   data: werte[1],
                   backgroundColor: "#167c68",
                   borderRadius: 4,
                 },
                 {
-                  label: String(planperiode.endjahr),
+                  label: `${planperiode.endjahr} Soll`,
                   data: werte[2],
                   backgroundColor: "#d47b19",
                   borderRadius: 4,
+                },
+                {
+                  label: "KJ Ist",
+                  data: istWerte[0],
+                  backgroundColor: "#1d5f87",
+                  borderRadius: 4,
+                  istSaeule: true,
+                  hidden: !overviewIstSichtbar,
+                },
+                {
+                  label: `${planperiode.startjahr} Ist`,
+                  data: istWerte[1],
+                  backgroundColor: "#0f5a4c",
+                  borderRadius: 4,
+                  istSaeule: true,
+                  hidden: !overviewIstSichtbar,
+                },
+                {
+                  label: `${planperiode.endjahr} Ist`,
+                  data: istWerte[2],
+                  backgroundColor: "#a65312",
+                  borderRadius: 4,
+                  istSaeule: true,
+                  hidden: !overviewIstSichtbar,
                 },
               ],
             },
@@ -208,6 +284,7 @@
               responsive: true,
               maintainAspectRatio: false,
               animation: { duration: 450 },
+              layout: { padding: { top: 20 } },
               plugins: {
                 legend: {
                   position: "top",
@@ -221,6 +298,7 @@
                 },
                 y: {
                   beginAtZero: true,
+                  grace: "10%",
                   ticks: { precision: 0 },
                 },
               },

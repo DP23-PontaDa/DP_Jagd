@@ -172,10 +172,12 @@ window.JaegerBericht = (() => {
     const hirschA = daten.freigaben.find((row) => norm(row.wildklasse?.bezeichnung) === "hirsch a");
     const naechsterHirschA = Number(hirschA?.freigabejahr || hirschA?.regulaeres_freigabejahr);
     const kahlwild = daten.kahlwildStatus;
-    const hirschSpalten = daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Klasse", "Alter", "Datum"];
-    const hirschZeile = (row, bBereich = false) => daten.istVerein
-      ? [`${bBereich && row.klasse === "Hirsch B1" ? '<b class="jb-hirsch-b1">B1</b> ' : ""}${datum(row.datum)}`, esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`]
-      : [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)];
+    const hirschSpalten = ["Datum", "Jäger", "Alter"];
+    const hirschZeile = (row, bBereich = false) => [
+      `${bBereich && row.klasse === "Hirsch B1" ? '<b class="jb-hirsch-b1">B1</b> ' : ""}${datum(row.datum)}`,
+      `${esc(row.jaeger)}${fremdabschussHinweis(row)}`,
+      row.alter == null ? "–" : `${esc(row.alter)} Jahre`,
+    ];
     const hirschDetails = tabelle(hirschSpalten, rotwildAnzeige.hirschDetails.slice(0, 14).map((row) => hirschZeile(row)), "Keine Hirsche im Berichtszeitraum.", "jb-date-table");
     const kahlwildDetails = rotwild.kahlwildDetails.length ? `<div class="jb-kahlwild-list">${rotwild.kahlwildDetails.map((row) => `<section><div class="jb-kahlwild-total"><h4>${esc(row.bezeichnung)}</h4><b>${row.anzahl} Stk.</b></div>${geschlechtsZeilen(row)}</section>`).join("")}</div>` : `<p class="jb-empty">Kein Kahlwild im Berichtszeitraum.</p>`;
     return seite("", `
@@ -200,8 +202,8 @@ window.JaegerBericht = (() => {
   function rehwildSeite() {
     const rehwild = daten.auswertung.rehwild;
     const rehwildAnzeige = daten.auswertungMitFremdabschuesse.rehwild;
-    const bockA = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock A", "Alter", "Datum"], rehwildAnzeige.rehbockADetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
-    const bockB = tabelle(daten.istVerein ? ["Datum", "Jäger", "Alter"] : ["Bock B", "Datum"], rehwildAnzeige.rehbockBDetails.map((row) => daten.istVerein ? [datum(row.datum), esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`] : [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), datum(row.datum)]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
+    const bockA = tabelle(["Datum", "Jäger", "Alter"], rehwildAnzeige.rehbockADetails.map((row) => [datum(row.datum), `${esc(row.jaeger)}${fremdabschussHinweis(row)}`, row.alter == null ? "–" : `${esc(row.alter)} Jahre`]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
+    const bockB = tabelle(["Datum", "Jäger"], rehwildAnzeige.rehbockBDetails.map((row) => [datum(row.datum), `${esc(row.jaeger)}${fremdabschussHinweis(row)}`]), "Keine Rehböcke im Berichtszeitraum.", "jb-date-table");
     return seite("REHWILD", `
       <div class="jb-report-profile"><strong>${esc(daten.jaeger.vorname)} ${esc(daten.jaeger.nachname)}</strong><span>Berichtszeitraum: ${esc(zeitraumText())}</span></div>
       <h2 class="jb-report-page-title">REHWILD</h2>
@@ -298,8 +300,8 @@ window.JaegerBericht = (() => {
       for (let index = 14; index < Math.max(a, b); index += 14) seiten.push(seite("ROTWILD – FORTSETZUNG", vereinHirsche(rotwild, index, "HIRSCHE"), "jb-wildseite jb-rotwild-seite"));
       return seiten;
     }
-    const hirschZeilen = daten.auswertungMitFremdabschuesse.rotwild.hirschDetails.map((row) => [esc(row.klasse) + fremdabschussHinweis(row) + fallwildHinweis(row), row.alter == null ? "–" : `${esc(row.alter)} Jahre`, datum(row.datum)]);
-    return fortsetzungsSeiten("ROTWILD", "Hirsche", ["Klasse", "Alter", "Datum"], hirschZeilen, 14, 14, "jb-date-table");
+    const hirschZeilen = daten.auswertungMitFremdabschuesse.rotwild.hirschDetails.map((row) => [datum(row.datum), `${esc(row.jaeger)}${fremdabschussHinweis(row)}`, row.alter == null ? "–" : `${esc(row.alter)} Jahre`]);
+    return fortsetzungsSeiten("ROTWILD", "Hirsche", ["Datum", "Jäger", "Alter"], hirschZeilen, 14, 14, "jb-date-table");
   }
   function rehwildFortsetzungen() { return []; }
 

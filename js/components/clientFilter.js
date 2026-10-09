@@ -10,15 +10,16 @@ window.ClientFilter = (() => {
 
   function filter(items, config) {
     const search = normalize(config.search);
+    const searchWoerter = search.split(/\s+/).filter(Boolean);
     const predicates = config.predicates || [];
 
     return (items || []).filter((item) => {
-      if (
-        search &&
-        !(config.searchFields || []).some((getter) =>
-          values(item, getter).some((value) => normalize(value).includes(search)),
-        )
-      ) {
+      const suchtext = (config.searchFields || [])
+        .flatMap((getter) => values(item, getter))
+        .map(normalize)
+        .filter(Boolean)
+        .join(" ");
+      if (searchWoerter.length && !searchWoerter.every((wort) => suchtext.includes(wort))) {
         return false;
       }
 
