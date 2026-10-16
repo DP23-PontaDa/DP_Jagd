@@ -3921,6 +3921,44 @@ textarea.form-control {
 .jagdjahr-eintraege.is-very-dense .jagdjahr-eintrag b { font-size: 7.5pt; }
 .jagdjahr-eintraege.is-very-dense .jagdjahr-eintrag.has-name small { font-size: var(--jagdjahr-vorname, 7px); }
 .jagdjahr-eintrag.is-fallwild, .jagdjahr-fallwild { color: #d97706; }
+.jagdjahr-eintraege.is-raster-2,
+.jagdjahr-eintraege.is-raster-3 {
+    top: 7px;
+    display: flex;
+    flex-flow: row wrap;
+    align-content: stretch;
+    justify-content: stretch;
+    gap: 1px;
+    padding: 0 1px 1px;
+}
+.jagdjahr-eintraege.is-raster-2 .jagdjahr-eintrag,
+.jagdjahr-eintraege.is-raster-3 .jagdjahr-eintrag {
+    flex: 0 0 calc(50% - 1px);
+    width: calc(50% - 1px);
+    height: calc(50% - 1px);
+    max-width: none;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+}
+.jagdjahr-eintraege.is-raster-3 .jagdjahr-eintrag { flex-basis: calc(33.333% - 1px); width: calc(33.333% - 1px); height: calc(33.333% - 1px); }
+.jagdjahr-eintraege.is-raster-2 .jagdjahr-eintrag b { font-size: 6.5pt; line-height: 1; }
+.jagdjahr-eintraege.is-raster-3 .jagdjahr-eintrag b { font-size: 5.2pt; line-height: 1; }
+/* In 2×2/3×3 ist nur das Kürzel lesbar; Name und Details bleiben im Tooltip. */
+.jagdjahr-eintraege.is-raster-2 .jagdjahr-eintrag small,
+.jagdjahr-eintraege.is-raster-3 .jagdjahr-eintrag small { display: none; }
+/* Zwei Einträge haben eine ganze Zeile zur Verfügung und zeigen daher den Namen. */
+.jagdjahr-eintraege.is-raster-2.anzahl-2 .jagdjahr-eintrag { height: 100%; }
+.jagdjahr-eintraege.is-raster-2.anzahl-2 .jagdjahr-eintrag b { font-size: 7pt; }
+.jagdjahr-eintraege.is-raster-2.anzahl-2 .jagdjahr-eintrag small { display: block; font-size: 5.5pt; }
+/* Die 2×2-Positionen sind explizit gesetzt, damit sie auch im Browser-PDF
+   nicht durch die automatische Flex-Höhenberechnung abgeschnitten werden. */
+.jagdjahr-eintraege.is-raster-2:not(.anzahl-2) { position: absolute; }
+.jagdjahr-eintraege.is-raster-2:not(.anzahl-2) .jagdjahr-eintrag { position: absolute; z-index: 3; display: grid !important; width: 50%; height: 2.3mm; min-height: 2.3mm; visibility: visible !important; opacity: 1 !important; }
+.jagdjahr-eintraege.is-raster-2:not(.anzahl-2) .jagdjahr-eintrag:nth-child(1) { top: 0; left: 0; }
+.jagdjahr-eintraege.is-raster-2:not(.anzahl-2) .jagdjahr-eintrag:nth-child(2) { top: 0; right: 0; }
+.jagdjahr-eintraege.is-raster-2:not(.anzahl-2) .jagdjahr-eintrag:nth-child(3) { top: 2.4mm; left: 0; }
+.jagdjahr-eintraege.is-raster-2:not(.anzahl-2) .jagdjahr-eintrag:nth-child(4) { top: 2.4mm; right: 0; }
 .jagdjahr-legende { display: flex; justify-content: center; gap: 20px; margin: 4px 0 20px; font-size: .82rem; }
 .jagdjahr-hirsch-sheet > header { height: 28mm; }
 .jagdjahr-hirsch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 8mm; }
@@ -3988,6 +4026,14 @@ textarea.form-control {
     .jagdjahr-pages { display: block; }
     .jagdjahr-sheet { margin: 0; box-shadow: none; break-after: auto; page-break-after: auto; }
     .jagdjahr-sheet:not(:last-child) { break-after: page; page-break-after: always; }
+    /* PDF-Druck: Browser reservieren minimal mehr Platz für Tabellenzeilen.
+       Die kompakte Rastervariante stellt daher immer alle Einträge dar. */
+    .a4-report-sheet .jagdjahr-eintraege.is-raster-2,
+    .a4-report-sheet .jagdjahr-eintraege.is-raster-3 { top: 5px; }
+    .a4-report-sheet .jagdjahr-eintraege.is-raster-2 .jagdjahr-eintrag b { font-size: 5.8pt; }
+    .a4-report-sheet .jagdjahr-eintraege.is-raster-3 .jagdjahr-eintrag b { font-size: 4.6pt; }
+    .a4-report-sheet .jagdjahr-eintraege.is-raster-2 .jagdjahr-eintrag small,
+    .a4-report-sheet .jagdjahr-eintraege.is-raster-3 .jagdjahr-eintrag small { display: none !important; }
 }
 
 /* Key Dates: zwei A4-Seiten mit je sechs Monatsblöcken. */

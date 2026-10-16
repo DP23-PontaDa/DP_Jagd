@@ -46,7 +46,42 @@ const DashboardService = (() => {
     return handle(result, "Fehler in Dashboard.getAbschussplanWildgruppen") || [];
   }
 
-  async function getPlanpositionen(planperiodeId) {
+  async function getIstNachPlanposition(planperiode) {
+    const mappingResult = await db.from("planperiode_planposition_wildklasse")
+      .select("planperiode_planposition_id,wildklasse_id")
+      .eq("planperiode_id", planperiode.id);
+    const mappings = handle(mappingResult, "Fehler in Dashboard.getIstNachPlanposition.Mapping") || [];
+    if (!mappings.length) return new Map();
+    const positionNachKlasse = new Map(mappings.map((mapping) => [
+      String(mapping.wildklasse_id), String(mapping.planperiode_planposition_id),
+    ]));
+    const werte = new Map();
+    const pageSize = 1000;
+    let offset = 0;
+    let page = [];
+    do {
+      const result = await db.from("abschuesse")
+        .select("wildklasse_id,datum,fallwild")
+        .gte("datum", `${planperiode.startjahr}-01-01`)
+        .lt("datum", `${Number(planperiode.endjahr) + 1}-01-01`)
+        .range(offset, offset + pageSize - 1);
+      page = handle(result, "Fehler in Dashboard.getIstNachPlanposition.Abschuesse") || [];
+      page.forEach((abschuss) => {
+        const positionId = positionNachKlasse.get(String(abschuss.wildklasse_id));
+        if (!positionId || abschuss.fallwild === true) return;
+        const jahr = Number(String(abschuss.datum || "").slice(0, 4));
+        const wert = werte.get(positionId) || { startjahr: 0, endjahr: 0 };
+        if (jahr === Number(planperiode.startjahr)) wert.startjahr += 1;
+        if (jahr === Number(planperiode.endjahr)) wert.endjahr += 1;
+        werte.set(positionId, wert);
+      });
+      offset += pageSize;
+    } while (page.length === pageSize);
+    return werte;
+  }
+
+  async function getPlanpositionen(planperiode) {
+    const planperiodeId = typeof planperiode === "object" ? planperiode.id : planperiode;
     const result = await db
       .from("vw_dashboard_planpositionen")
       .select(`
@@ -80,6 +115,14 @@ const DashboardService = (() => {
       "Fehler in Dashboard.getPlanpositionen",
     ) || [];
 
+    const istNachPosition = typeof planperiode === "object"
+      ? await getIstNachPlanposition(planperiode)
+      : new Map();
+    const planpositionenMitIst = dashboardPositionen.map((position) => {
+      const ist = istNachPosition.get(String(position.planperiode_planposition_id));
+      return ist ? { ...position, ist_startjahr: ist.startjahr, ist_endjahr: ist.endjahr } : position;
+    });
+
     const planResult = await db.from("abschussplaene")
       .select("id,jahr,wildgruppe_id")
       .eq("planperiode_id", planperiodeId)
@@ -88,7 +131,7 @@ const DashboardService = (() => {
       planResult,
       "Fehler in Dashboard.getPlanpositionen.Jahresplaene",
     ) || [];
-    if (!jahresPlaene.length) return dashboardPositionen;
+    if (!jahresPlaene.length) return planpositionenMitIst;
 
     const positionResult = await db.from("abschussplan_positionen")
       .select("plan_id,planperiode_planposition_id,soll")
@@ -113,7 +156,7 @@ const DashboardService = (() => {
       sollNachPositionUndJahr.set(schluessel, Number(position.soll) || 0);
     });
 
-    return dashboardPositionen.map((position) => {
+    return planpositionenMitIst.map((position) => {
       const jahreswerte = {};
       [position.startjahr, position.endjahr].forEach((jahr) => {
         const schluessel = `${position.planperiode_planposition_id}|${Number(jahr)}`;
@@ -455,7 +498,7 @@ const DashboardService = (() => {
       wildgruppen.map((wildgruppe) => String(wildgruppe.id)),
     );
     const [allePlanpositionen, alleJaeger, wildhaendler, hirschB1] = await Promise.all([
-      bereiche.abschuss ? getPlanpositionen(planperiode.id) : Promise.resolve([]),
+      bereiche.abschuss ? getPlanpositionen(planperiode) : Promise.resolve([]),
       (bereiche.jaeger || bereiche.abschuss) ? getJaeger() : Promise.resolve([]),
       bereiche.wildhaendler
         ? getWildhaendler()

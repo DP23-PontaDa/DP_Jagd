@@ -96,13 +96,28 @@ window.JagdJahr = (() => {
     return map;
   }
   function monate(liste){return liste.map(([monat,name])=>({monat,name,jahr:Number(jahr)}));}
-  function abschussRaster(box, items) {
+  function abschussRasterAlt(box, items) {
     for(let start=0;start<items.length;start+=3){
       const zeile=document.createElement("div");zeile.className="jagdjahr-eintragszeile";
       items.slice(start,start+3).forEach((item)=>{const button=document.createElement("button");button.type="button";button.className=`jagdjahr-eintrag${item.vorname?" has-name":" is-simple"}${item.fallwild?" is-fallwild":""}`;button.dataset.id=item.id;button.title=`Nr. ${item.nr} · ${item.klasse} · ${item.jaeger||"Kein Jäger"} · ${item.datum}${item.ort?` · ${item.ort}`:""}`;button.innerHTML=`<b>${escapeHtml(item.kuerzel)}</b>${item.vorname?`<small>${escapeHtml(item.vorname)}</small>`:""}`;zeile.appendChild(button);});
       box.appendChild(zeile);
     }
   }
+  // Mehrere Abschüsse eines Tages werden bewusst als gleichmäßiges Raster
+  // angeordnet: bis vier Einträge 2 × 2, ab fünf Einträgen 3 × 3.
+  function abschussRaster(box, items) {
+    if(items.length>1)box.classList.add(items.length<=4?"is-raster-2":"is-raster-3",`anzahl-${items.length}`);
+    items.forEach((item)=>{
+      const button=document.createElement("button");
+      button.type="button";
+      button.className=`jagdjahr-eintrag${item.vorname?" has-name":" is-simple"}${item.fallwild?" is-fallwild":""}`;
+      button.dataset.id=item.id;
+      button.title=[`Nr. ${item.nr}`,item.klasse,item.jaeger||"Kein Jaeger",item.datum,item.ort].filter(Boolean).join(" · ");
+      button.innerHTML=`<b>${escapeHtml(item.kuerzel)}</b>${item.vorname?`<small>${escapeHtml(item.vorname)}</small>`:""}`;
+      box.appendChild(button);
+    });
+  }
+
   function namenEinpassen(container) {
     container.querySelectorAll(".jagdjahr-eintraege.has-multiple-names").forEach((box)=>{
       let kuerzel=10,vorname=8;

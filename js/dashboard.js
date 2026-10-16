@@ -905,8 +905,6 @@ const Dashboard = (() => {
       periodeSelect.appendChild(option);
     });
     periodeSelect.addEventListener("change", () => {
-      const periode = (data.planperioden || []).find((item) => String(item.id) === periodeSelect.value);
-      dashboardAuswertungsJahre = new Set([periode?.startjahr, periode?.endjahr].map(Number));
       ladeDashboardDaten(periodeSelect.value);
     });
     periodeLabel.appendChild(periodeSelect);
@@ -1276,9 +1274,7 @@ const Dashboard = (() => {
       period.textContent = `Planperiode: ${data.planperiode.startjahr} / ${data.planperiode.endjahr}`;
       dashboardData = data;
       if (!dashboardAuswertungsJahre.size) {
-        dashboardAuswertungsJahre = new Set([
-          Number(data.planperiode.startjahr), Number(data.planperiode.endjahr),
-        ]);
+        dashboardAuswertungsJahre = new Set((data.jahre || []).map(Number));
       }
       renderDashboardContent();
       if (initialSection) requestAnimationFrame(() => scrollToSection(initialSection));
