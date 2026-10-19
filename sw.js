@@ -1,4 +1,4 @@
-const CACHE_NAME = "dp-jagd-shell-v355";
+const CACHE_NAME = "dp-jagd-shell-v357";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -25,7 +25,7 @@ const APP_SHELL = [
   "./js/personen.js?v=126",
   "./js/abschussplan.js?v=133",
   "./js/freigaben.js?v=187",
-  "./js/jaeger-bericht.js?v=41",
+  "./js/jaeger-bericht.js?v=43",
   "./js/abschussplanWildgruppe.js?v=141",
   "./js/wildgruppen.js?v=88",
   "./js/stammdaten.js?v=149",

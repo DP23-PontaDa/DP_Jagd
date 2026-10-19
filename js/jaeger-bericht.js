@@ -183,18 +183,23 @@ window.JaegerBericht = (() => {
     return seite("", `
       <h2 class="jb-report-page-title">ROTWILD</h2>
       <div class="jb-stat-grid">${statistikKarte("Abschüsse", `${rotwild.gesamt} Stk.`)}${statistikKarte("Hirsche", `${rotwild.hirsche} Stk.`, rotwild.hirschKlassen.map((wert) => `Hirsch ${wert.klasse}: ${wert.anzahl}`).join(" · "))}${statistikKarte("Kahlwild", `${rotwild.kahlwild} Stk.`, `Tiere: ${rotwild.tiere} · Kalb: ${rotwild.kalb}`)}</div>
-      ${daten.istVerein ? `${abschnitt("Kahlwild", kahlwildDetails)}${abschnitt("Rotwild nach Jahr", jaehrlicheRotwildwerte(rotwild.jahre))}${vereinHirsche(rotwild)}${abschnitt("Kahlwild pro Jäger", tabelle(["Jäger", "Kahlwild", "Hirsche"], daten.nachJaeger.rotwild.map((row) => [esc(row.jaeger), esc(`${row.kahlwild} Stk.`), esc(`${row.hirsche} Stk.`)])))}` : `<div class="jb-report-two-columns">${abschnitt("Hirsche", hirschDetails)}${abschnitt("Kahlwild", kahlwildDetails)}</div>${abschnitt("Rotwild nach Jahr", jaehrlicheRotwildwerte(rotwild.jahre))}`}
+      ${daten.istVerein ? `${abschnitt("Kahlwild", kahlwildDetails)}${abschnitt("Rotwild nach Jahr", jaehrlicheRotwildwerte(rotwild.jahre))}` : `<div class="jb-report-two-columns">${abschnitt("Hirsche", hirschDetails)}${abschnitt("Kahlwild", kahlwildDetails)}</div>${abschnitt("Rotwild nach Jahr", jaehrlicheRotwildwerte(rotwild.jahre))}`}
       ${daten.istVerein ? "" : `<div class="jb-status-grid">${Number.isFinite(naechsterHirschA) ? `<section class="jb-highlight"><h3>NÄCHSTER HIRSCH A FREI</h3><b>${naechsterHirschA}</b></section>` : ""}${wert(kahlwild?.offen) > 0 ? `<section class="jb-highlight"><h3>KAHLWILDPFLICHT</h3><dl><dt>Pflicht</dt><dd>${wert(kahlwild.pflicht) + wert(kahlwild.uebertrag)} Stk.</dd><dt>Erlegt/angerechnet</dt><dd>${wert(kahlwild.angerechnet)} Stk.</dd><dt>Noch offen</dt><dd class="offen">${wert(kahlwild.offen)} Stk.</dd></dl></section>` : ""}</div>${fremdabschuesseAbschnitt("Fremdabschüsse Rotwild", (row) => norm(wildgruppe(row)) === "rotwild")}`}
     `, "jb-wildseite jb-rotwild-seite");
   }
   function vereinHirsche(rotwild, start = 0, titel = "HIRSCHE") {
     const hirschA = rotwild.hirschDetails.filter((row) => row.klasse === "Hirsch A");
     const hirschB = rotwild.hirschDetails.filter((row) => row.klasse === "Hirsch B" || row.klasse === "Hirsch B1");
-    const zeilen = (werte, bBereich) => tabelle(["Datum", "Jäger", "Alter"], werte.slice(start, start + 14).map((row) => [
+    const proSeite = 28;
+    const zeilen = (werte, bBereich) => tabelle(["Datum", "Jäger", "Alter"], werte.slice(start, start + proSeite).map((row) => [
       `${bBereich && row.klasse === "Hirsch B1" ? '<b class="jb-hirsch-b1">B1</b> ' : ""}${datum(row.datum)}`,
       esc(row.jaeger), row.alter == null ? "–" : `${esc(row.alter)} Jahre`,
     ]), "Keine Hirsche im Berichtszeitraum.", "jb-date-table");
-    return `<section class="jb-section jb-verein-hirsche"><h3>${titel}</h3><div class="jb-report-two-columns">${abschnitt("Hirsch A", zeilen(hirschA, false))}${abschnitt("Hirsch B", zeilen(hirschB, true))}</div></section>`;
+    const spalten = [
+      hirschA.slice(start, start + proSeite).length ? abschnitt("Hirsch A", zeilen(hirschA, false)) : "",
+      hirschB.slice(start, start + proSeite).length ? abschnitt("Hirsch B", zeilen(hirschB, true)) : "",
+    ].join("");
+    return `<section class="jb-section jb-verein-hirsche"><h3>${titel}</h3><div class="jb-report-two-columns">${spalten}</div></section>`;
   }
   function rehwildJahre(werte) {
     return `<div class="jb-report-year-grid jb-report-year-grid-three">${werte.map((wert) => `<section class="jb-report-year"><h4>${wert.jahr}</h4><div class="jb-rehwild-year-boecke"><strong>Rehböcke</strong><span>A: <b>${jahreswert(wert.rehbockA)}</b></span><span>B: <b>${jahreswert(wert.rehbockB)}</b></span></div><div class="jb-rehwild-year-line"><strong>Rehgeiß</strong><b>${jahreswert(wert.rehgeiss)}</b></div><div class="jb-rehwild-year-line"><strong>Rehkitz</strong><b>${jahreswert(wert.rehkitz)}</b></div></section>`).join("")}</div>`;
@@ -296,12 +301,23 @@ window.JaegerBericht = (() => {
     if (daten.istVerein) {
       const a = rotwild.hirschDetails.filter((row) => row.klasse === "Hirsch A").length;
       const b = rotwild.hirschDetails.filter((row) => row.klasse === "Hirsch B" || row.klasse === "Hirsch B1").length;
+      const proSeite = 28;
       const seiten = [];
-      for (let index = 14; index < Math.max(a, b); index += 14) seiten.push(seite("ROTWILD – FORTSETZUNG", vereinHirsche(rotwild, index, "HIRSCHE"), "jb-wildseite jb-rotwild-seite"));
+      for (let index = 0; index < Math.max(a, b); index += proSeite) {
+        const titel = index === 0 ? "ROTWILD – HIRSCHE" : "ROTWILD – HIRSCHE – FORTSETZUNG";
+        seiten.push(seite(titel, vereinHirsche(rotwild, index, "HIRSCHE"), "jb-wildseite jb-rotwild-seite"));
+      }
       return seiten;
     }
     const hirschZeilen = daten.auswertungMitFremdabschuesse.rotwild.hirschDetails.map((row) => [datum(row.datum), `${esc(row.jaeger)}${fremdabschussHinweis(row)}`, row.alter == null ? "–" : `${esc(row.alter)} Jahre`]);
     return fortsetzungsSeiten("ROTWILD", "Hirsche", ["Datum", "Jäger", "Alter"], hirschZeilen, 14, 14, "jb-date-table");
+  }
+  function kahlwildProJaegerSeite() {
+    if (!daten.istVerein) return [];
+    const zeilen = daten.nachJaeger.rotwild.map((row) => [
+      esc(row.jaeger), esc(`${row.kahlwild} Stk.`), esc(`${row.hirsche} Stk.`),
+    ]);
+    return [seite("ROTWILD – KAHLWILD PRO JÄGER", abschnitt("Kahlwild pro Jäger", tabelle(["Jäger", "Kahlwild", "Hirsche"], zeilen)), "jb-wildseite jb-rotwild-seite")];
   }
   function rehwildFortsetzungen() { return []; }
 
@@ -367,7 +383,7 @@ window.JaegerBericht = (() => {
     const container = el("jbSeiten"); container.innerHTML = "";
     const seiten=[
       rehwildSeite(), ...rehwildFortsetzungen(), ...rehwildNachJaegerSeite(),
-      rotwildSeite(), ...rotwildFortsetzungen(),
+      rotwildSeite(), ...rotwildFortsetzungen(), ...kahlwildProJaegerSeite(),
       haarFederwildSeite(),
       fallwildSeite(), ...fallwildFortsetzungen(),
       ...(daten.istEingeschraenkt ? [] : [freigabenSeite(), ...freigabenFortsetzungen()]),
